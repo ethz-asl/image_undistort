@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>image_undistort</name>
+  <version>0.0.0</version>
+  <description>
+      Simple image undistorter
+  </description>
+  <maintainer email="ztaylor@ethz.ch">Zachary Taylor</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>eigen_catkin</depend>
+  <depend>roslib</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+
+</package>
