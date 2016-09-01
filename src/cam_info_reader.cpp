@@ -35,12 +35,12 @@ bool CamInfoReader::loadCamParams() {
 
   cam_info_.K[0] = intrinsics_in[0];
   cam_info_.K[1] = 0.0;
-  cam_info_.K[2] = 0.0;
+  cam_info_.K[2] = intrinsics_in[2];
   cam_info_.K[3] = 0.0;
   cam_info_.K[4] = intrinsics_in[1];
-  cam_info_.K[5] = 0.0;
-  cam_info_.K[6] = intrinsics_in[2];
-  cam_info_.K[7] = intrinsics_in[3];
+  cam_info_.K[5] = intrinsics_in[3];
+  cam_info_.K[6] = 0.0;
+  cam_info_.K[7] = 0.0;
   cam_info_.K[8] = 1.0;
 
   std::vector<double> resolution_in;
@@ -85,14 +85,14 @@ bool CamInfoReader::loadCamParams() {
   cam_info_.P[0] = cam_info_.K[0];
   cam_info_.P[1] = cam_info_.K[1];
   cam_info_.P[2] = cam_info_.K[2];
-  cam_info_.P[3] = cam_info_.K[3];
-  cam_info_.P[4] = cam_info_.K[4];
-  cam_info_.P[5] = cam_info_.K[5];
-  cam_info_.P[6] = cam_info_.K[6];
-  cam_info_.P[7] = cam_info_.K[7];
-  cam_info_.P[8] = cam_info_.K[8];
-  cam_info_.P[9] = 0.0;
-  cam_info_.P[10] = 0.0;
+  cam_info_.P[3] = 0.0;
+  cam_info_.P[4] = cam_info_.K[3];
+  cam_info_.P[5] = cam_info_.K[4];
+  cam_info_.P[6] = cam_info_.K[5];
+  cam_info_.P[7] = 0.0;
+  cam_info_.P[8] = cam_info_.K[6];
+  cam_info_.P[9] = cam_info_.K[7];
+  cam_info_.P[10] = cam_info_.K[8];
   cam_info_.P[11] = 0.0;
 
   return true;

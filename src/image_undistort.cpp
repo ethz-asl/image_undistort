@@ -34,10 +34,9 @@ void ImageUndistort::newFrameCallback(
 
 void ImageUndistort::camInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_msg) {
-  Eigen::Matrix3d K;
-  for (size_t i = 0; i < camera_msg->K.size(); ++i) {
-    K(i) = camera_msg->K[i];
-  }
+  Eigen::Matrix3d K =
+      Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+          camera_msg->K.elems);
 
   const cv::Size resolution(camera_msg->width, camera_msg->height);
 
