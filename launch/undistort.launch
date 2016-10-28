@@ -11,7 +11,7 @@
 
   <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
     <remap from="image" to="/$(arg cam_ns)/image_raw"/>
-    <param name="zoom" value="0.5" />
+    <param name="zoom" value="1.0" />
   </node>
 
 </launch>
