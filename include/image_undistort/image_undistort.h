@@ -4,17 +4,15 @@
 #include <stdio.h>
 #include <Eigen/Eigen>
 
-// ros
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
+#include <image_transport/image_transport.h>
 
 #include <image_undistort/undistorter.h>
 
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
-
-#include <opencv2/opencv.hpp>
 
 class ImageUndistort {
  public:
@@ -31,13 +29,15 @@ class ImageUndistort {
 
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
+  image_transport::ImageTransport it_;
 
   // filters
-  ros::Subscriber image_sub_;
+  image_transport::Subscriber image_sub_;
   ros::Subscriber cam_info_sub_;
 
   // publishers
-  ros::Publisher image_pub_;
+  image_transport::Publisher image_pub_;
+  ros::Publisher cam_info_pub_;
 
   //undistorter
   std::shared_ptr<Undistorter> undistorter_ptr_;

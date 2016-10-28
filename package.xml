@@ -17,5 +17,6 @@
   <depend>roslib</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
 
 </package>

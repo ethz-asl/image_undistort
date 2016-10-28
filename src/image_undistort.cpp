@@ -3,12 +3,13 @@
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                                const ros::NodeHandle& private_nh)
-    : nh_(nh), private_nh_(private_nh), undistorter_ptr_(nullptr) {
-  image_sub_ = nh_.subscribe("image", kQueueSize,
+    : nh_(nh), private_nh_(private_nh), it_(nh_), undistorter_ptr_(nullptr) {
+  image_sub_ = it_.subscribe("image", kQueueSize,
                              &ImageUndistort::newFrameCallback, this);
   cam_info_sub_ = nh_.subscribe("cam_info", kQueueSize,
                                 &ImageUndistort::camInfoCallback, this);
-  image_pub_ = nh_.advertise<sensor_msgs::Image>("undistorted_image", 0);
+  image_pub_ = it_.advertise("undistorted_image", 0);
+  cam_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>("undistorted_cam_info", 0, true);
 }
 
 void ImageUndistort::newFrameCallback(
@@ -29,7 +30,7 @@ void ImageUndistort::newFrameCallback(
   out_msg.encoding = image_msg->encoding;
   out_msg.image = image_undistorted;
 
-  image_pub_.publish(out_msg);
+  image_pub_.publish(out_msg.toImageMsg());
 }
 
 void ImageUndistort::camInfoCallback(
@@ -58,4 +59,12 @@ void ImageUndistort::camInfoCallback(
 
   undistorter_ptr_ = std::make_shared<Undistorter>(K, camera_msg->D, resolution,
                                                    using_radtan, zoom);
+
+  sensor_msgs::CameraInfo undistorted_camera_msg = *camera_msg;
+  undistorted_camera_msg.K[0] *= zoom;
+  undistorted_camera_msg.K[4] *= zoom;
+  for(double& d : undistorted_camera_msg.D){
+    d = 0;
+  }
+  cam_info_pub_.publish(undistorted_camera_msg);
 }
