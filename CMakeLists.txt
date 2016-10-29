@@ -12,21 +12,16 @@ add_definitions(-std=c++11)
 cs_add_library(${PROJECT_NAME}
  src/image_undistort.cpp
  src/undistorter.cpp
- src/cam_info_reader.cpp
  )
 
 ############
 # BINARIES #
 ############
-cs_add_executable(cam_info_reader_node
-  src/cam_info_reader_node.cpp
-)
 cs_add_executable(image_undistort_node
   src/image_undistort_node.cpp
 )
 
 target_link_libraries(image_undistort_node ${PROJECT_NAME})
-target_link_libraries(cam_info_reader_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

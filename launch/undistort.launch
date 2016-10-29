@@ -1,17 +1,14 @@
 <launch>
   
-  <arg name="calib_path" default="/path/to/your/calib.yaml" />
-  <arg name="cam_ns" default="cam0" />
+  <arg name="calib_path" default="/home/z/Desktop/bag/a.yaml" />
+  <arg name="cam_ns" default="cam0"/>
 
   <rosparam file="$(arg calib_path)"/>
 
-  <node name="cam_info_reader_node" pkg="image_undistort" type="cam_info_reader_node" output="screen" clear_params="true">
-    <param name="cam_ns" value="cam0" />
-  </node>
-
   <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
-    <remap from="image" to="/$(arg cam_ns)/image_raw"/>
-    <param name="zoom" value="1.0" />
+    <param name="cam_ns" value="$(arg cam_ns)"/>
+    <remap from="image" to="/uvc_camera/cam_0/image_raw"/>
+    <param name="zoom" value="1.0"/>
   </node>
 
 </launch>
