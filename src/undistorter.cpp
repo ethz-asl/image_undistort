@@ -30,39 +30,36 @@ void Undistorter::distortPixel(const Eigen::Matrix3d& K,
                                const std::vector<double>& D, const double zoom, const double u,
                                const double v, double* ud, double* vd) {
   // Transform image coordinates to be size and focus independent
-  double x = (u - K(0, 2)) / K(0, 0);
-  double y = (v - K(1, 2)) / K(1, 1);
-
-  x *= 1.0/zoom;
-  y *= 1.0/zoom;
+  const double x = ((u - K(0, 2)) / K(0, 0)) * zoom;
+  const double y = ((v - K(1, 2)) / K(1, 1)) * zoom;
 
   double xd, yd;
 
   if (using_radtan_) {
     // Split out distortion parameters for easier reading
-    double k1 = D[0];
-    double k2 = D[1];
-    double k3 = D[4];
-    double p1 = D[2];
-    double p2 = D[3];
+    const double& k1 = D[0];
+    const double& k2 = D[1];
+    const double& k3 = D[4];
+    const double& p1 = D[2];
+    const double& p2 = D[3];
 
     // Undistort
-    double r2 = x * x + y * y;
-    double r4 = r2 * r2;
-    double r6 = r4 * r2;
-    double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
+    const double r2 = x * x + y * y;
+    const double r4 = r2 * r2;
+    const double r6 = r4 * r2;
+    const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
     xd = x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x);
     yd = y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y);
 
   } else {
     // Split out distortion parameters for easier reading
-    double k1 = D[0];
-    double k2 = D[1];
-    double k3 = D[2];
-    double k4 = D[3];
+    const double& k1 = D[0];
+    const double& k2 = D[1];
+    const double& k3 = D[2];
+    const double& k4 = D[3];
 
     // Undistort
-    double r = std::sqrt(x * x + y * y);
+    const double r = std::sqrt(x * x + y * y);
     if (r < 1e-10) {
       *ud = u;
       *vd = v;

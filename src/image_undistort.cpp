@@ -3,17 +3,37 @@
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                                const ros::NodeHandle& private_nh)
-    : nh_(nh), private_nh_(private_nh), it_(nh_), undistorter_ptr_(nullptr) {
+    : nh_(nh), private_nh_(private_nh), it_(nh_), undistorter_ptr_(nullptr), frame_counter_(0) {
+  
+  //set parameters from ros
   bool cam_info_from_yaml;
   private_nh_.param("cam_info_from_yaml", cam_info_from_yaml,
                     kDefaultCamInfoFromYaml);
-
   std::string cam_ns;
   private_nh_.param("cam_ns", cam_ns, kDefaultCamNameSpace);
+  private_nh_.param("queue_size", queue_size_, kQueueSize);
+  if(queue_size_ < 1){
+    ROS_ERROR("Queue size must be >= 1, setting to 1");
+    queue_size_ = 1;
+  }
+  private_nh_.param("process_image", process_image_, kDefaultProcessImage);
+  private_nh_.param("undistort_image", undistort_image_, kDefaultUndistortImage);
+  private_nh_.param("center_focus", center_focus_, kDefaultCenterFocus);
+  private_nh_.param("zoom_factor", zoom_factor_, kDefaultZoomFactor);
+  if(zoom_factor_ <= 0){
+    ROS_ERROR("Zoom factor must be > 0, setting to 1.0");
+    zoom_factor_ = 1.0;
+  }
+  private_nh_.param("resize_factor", resize_factor_, kDefaultResizeFactor);
+  if(resize_factor_ <= 0){
+    ROS_ERROR("Resize factor must be > 0, setting to 1.0");
+    resize_factor_ = 1.0;
+  }
+  private_nh_.param("process_every_nth_frame", process_every_nth_frame_, kDefaultProcessEveryNthFrame);
 
-  private_nh_.param("zoom", zoom_, kDefaultZoom);
-
+  //setup subscribers
   if (cam_info_from_yaml) {
+    //load camera information from file
     sensor_msgs::CameraInfo new_raw_cam_info;
     if (!loadCamParams(cam_ns, &new_raw_cam_info)) {
       ROS_FATAL("Loading of camera parameters failed, exiting");
@@ -21,14 +41,19 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       exit(EXIT_FAILURE);
     }
     updateCamInfo(new_raw_cam_info);
-    raw_image_sub_ = it_.subscribe("image", kQueueSize,
+    raw_image_sub_ = it_.subscribe("image", queue_size_,
                                    &ImageUndistort::imageCallback, this);
   } else {
     raw_camera_sub_ = it_.subscribeCamera(
-        cam_ns, kQueueSize, &ImageUndistort::cameraCallback, this);
+        cam_ns, queue_size_, &ImageUndistort::cameraCallback, this);
   }
 
-  undistorted_camera_pub_ = it_.advertiseCamera("undistorted", kQueueSize);
+  //setup publishers
+  if(process_image_){
+    undistorted_camera_pub_ = it_.advertiseCamera("output_image", queue_size_);
+  }
+  else{
+    cam_info_pub_ = nh_.advertise<sensor_msgs::camera_info>("cam_info", queue_size_);
 }
 
 void ImageUndistort::imageCallback(
@@ -100,8 +125,7 @@ void ImageUndistort::updateCamInfo(
   }
 }
 
-bool ImageUndistort::loadCamParams(const std::string& cam_ns,
-                                   sensor_msgs::CameraInfo* new_raw_cam_info) {
+bool ImageUndistort::loadCamParams(const std::string& cam_ns, sensor_msgs::CameraInfo* new_raw_cam_info) {
   ROS_INFO("Loading camera parameters");
 
   std::vector<double> intrinsics_in;
