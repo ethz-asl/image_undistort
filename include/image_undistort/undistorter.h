@@ -12,16 +12,19 @@
 
 class Undistorter {
  public:
-  Undistorter(const Eigen::Matrix3d& K, const std::vector<double>& D,
-              const cv::Size& resolution, const bool using_radtan,
-              const double zoom = 1.0);
+  Undistorter(const cv::Size& resolution,
+              const Eigen::Matrix<double, 3, 4>& P_in,
+              const Eigen::Matrix<double, 3, 4>& P_out, const bool using_radtan,
+              const std::vector<double>& D);
 
   void undistortImage(const cv::Mat& image, cv::Mat* undistored_image);
 
  private:
-  void distortPixel(const Eigen::Matrix3d& K, const std::vector<double>& D,
-                    const double zoom, const double u, const double v,
-                    double* ud, double* vd);
+  void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+                    const Eigen::Matrix<double, 3, 4>& P_out,
+                    const bool using_radtan, const std::vector<double>& D,
+                    const Eigen::Vector2d& pixel_location,
+                    Eigen::Vector2d* distorted_pixel_location);
 
   cv::Mat map_x_;
   cv::Mat map_y_;

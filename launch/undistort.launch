@@ -7,8 +7,19 @@
 
   <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
     <param name="cam_ns" value="$(arg cam_ns)"/>
+
     <remap from="image" to="/uvc_camera/cam_0/image_raw"/>
-    <param name="zoom" value="1.0"/>
+
+    <!--optional arguments, currently all set to their default values, see image_undistort.h for further infomation -->
+    <param name = "cam_info_from_yaml" value = "true"/>
+    <param name = "queue_size" value = "100"/>
+    <param name = "process_image" value = "true"/>
+    <param name = "undistort_image" value = "true"/>
+    <param name = "center_focus" value = "false"/>
+    <param name = "zoom_factor" value = "1.0"/>
+    <param name = "resize_factor" value = "2.0"/>
+    <param name = "process_every_nth_frame" value = "1"/>
+    <param name = "zoom" value = "1.0"/>
   </node>
 
 </launch>

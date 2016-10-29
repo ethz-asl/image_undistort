@@ -20,25 +20,23 @@
 constexpr int kQueueSize = 100;
 // true to load cam_info from kalibr yaml file, false to get it from a
 // cam_info topic
-constexpr bool kDefaultCamInfoFromYaml = true;
+constexpr bool kDefaultCameraInfoFromYaml = true;
 // namespace to use when reading yaml file
-const std::string kDefaultCamNameSpace = "";
+const std::string kDefaultCameraNameSpace = "";
 // true to process images, false if you only wish to generate a cam_info topic
 // from a yaml file (the image topic must still be subscribed to so that the
 // cam_info message is published at the correct times).
 constexpr bool kDefaultProcessImage = true;
-// true to undistort, false if you only wish to use the other operations
-// (zoom,
-// downsampling, center focus, etc)
+// true to undistort, false if you only wish to modify the intrinsics
 constexpr bool kDefaultUndistortImage = true;
-// if true the image is translated so that center of the image is the location
-// of the focal point
-constexpr bool kDefaultCenterFocus = false;
-// zoom factor to apply to image (does not change size of image)
-constexpr double kDefaultZoomFactor = 1.0;
-// factor to increase image size by (output_image_size = ceil( resize_factor *
-// input_image_size )
-constexpr double kDefaultResizeFactor = 1.0;
+// true if the output image size should not match the input images (If true, a
+// parameter output_image_size which holds two ints (width, height) must also be
+// given)
+constexpr bool kDefaultModifyImageSize = false;
+// true if the output image intrinsics should not match the input images (If
+// true, a parameter output_intrinsics which holds four doubles (fx, fy, cx, cy)
+// must also be given)
+constexpr bool kDefaultModifyIntrinsics = false;
 // downsamples output rate if <= 1, every frame is processed.
 constexpr int kDefaultProcessEveryNthFrame = 1;
 
@@ -50,15 +48,14 @@ class ImageUndistort {
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
                        cv::Mat* image);
 
-  void updateCamInfo(const sensor_msgs::CameraInfo& new_raw_cam_info);
+  void updateCameraInfo(const sensor_msgs::CameraInfo& camera_info_in);
 
-  bool loadCamParams(const std::string& cam_ns,
-                     sensor_msgs::CameraInfo* new_raw_cam_info);
+  bool loadCameraParams(sensor_msgs::CameraInfo* loaded_camera_info);
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& raw_image_msg);
+  void imageCallback(const sensor_msgs::ImageConstPtr& image_msg_in);
 
-  void cameraCallback(const sensor_msgs::ImageConstPtr& raw_image_msg,
-                      const sensor_msgs::CameraInfoConstPtr& new_raw_cam_info);
+  void cameraCallback(const sensor_msgs::ImageConstPtr& image_msg_in,
+                      const sensor_msgs::CameraInfoConstPtr& cam_info_in);
 
   // nodes
   ros::NodeHandle nh_;
@@ -66,27 +63,28 @@ class ImageUndistort {
   image_transport::ImageTransport it_;
 
   // subscribers
-  image_transport::Subscriber raw_image_sub_;
-  image_transport::CameraSubscriber raw_camera_sub_;
+  image_transport::Subscriber image_sub_;
+  image_transport::CameraSubscriber camera_sub_;
 
   // publishers
-  image_transport::CameraPublisher undistorted_camera_pub_;
-  ros::Publisher cam_info_pub_;
+  image_transport::CameraPublisher camera_pub_;
+  ros::Publisher camera_info_pub_;
 
   // undistorter
   std::shared_ptr<Undistorter> undistorter_ptr_;
 
   // camera info
-  sensor_msgs::CameraInfo raw_cam_info_;
-  sensor_msgs::CameraInfo undistorted_cam_info_;
+  sensor_msgs::CameraInfo camera_info_in_;
+  sensor_msgs::CameraInfo camera_info_out_;
 
   // other variables
   int queue_size_;
   bool process_image_;
   bool undistort_image_;
-  bool center_focus_;
-  double zoom_factor_;
-  double resize_factor_;
+  bool modify_image_size_;
+  std::vector<int> output_image_size_;
+  bool modify_intrinsics_;
+  std::vector<double> output_intrinsics_;
   int process_every_nth_frame_;
 
   int frame_counter_;
