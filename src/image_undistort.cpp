@@ -9,9 +9,12 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       undistorter_ptr_(nullptr),
       frame_counter_(0) {
   // set parameters from ros
-  bool camera_info_from_yaml;
-  private_nh_.param("camera_info_from_yaml", camera_info_from_yaml,
-                    kDefaultCameraInfoFromYaml);
+  bool input_camera_info_from_yaml;
+  private_nh_.param("input_camera_info_from_yaml", input_camera_info_from_yaml,
+                    kDefaultInputCameraInfoFromYaml);
+  private_nh_.param("output_camera_info_from_yaml",
+                    output_camera_info_from_yaml_,
+                    kDefaultOutputCameraInfoFromYaml);
   private_nh_.param("queue_size", queue_size_, kQueueSize);
   if (queue_size_ < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
@@ -20,68 +23,45 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   private_nh_.param("process_image", process_image_, kDefaultProcessImage);
   private_nh_.param("undistort_image", undistort_image_,
                     kDefaultUndistortImage);
-  private_nh_.param("modify_image_size", modify_image_size_,
-                    kDefaultModifyImageSize);
-  if (modify_image_size_) {
-    if (private_nh_.getParam("output_image_size", output_image_size_)) {
-      if (output_image_size_.size() != 2) {
-        ROS_ERROR(
-            "output_image_size requires exactly two values (width, height). "
-            "Setting output image size to be the same as the input.");
-        modify_image_size_ = false;
-      }
-    } else {
-      ROS_ERROR(
-          "modify_image_size is true, but output_image_size is not set. "
-          "Setting output image size to be the same as the input.");
-      modify_image_size_ = false;
-    }
-  }
-
-  private_nh_.param("modify_intrinsics", modify_intrinsics_,
-                    kDefaultModifyIntrinsics);
-  if (modify_intrinsics_) {
-    if (private_nh_.getParam("output_intrinsics", output_intrinsics_)) {
-      if (output_image_size_.size() != 4) {
-        ROS_ERROR(
-            "output_intrinsics requires exactly four values (fx, fy, cx, cy). "
-            "Setting output intrinsics to be the same as the input.");
-        modify_intrinsics_ = false;
-      }
-    } else {
-      ROS_ERROR(
-          "modify_intrinsics is true, but output_intrinsics is not set. "
-          "Setting output intrinsics to be the same as the input.");
-      modify_intrinsics_ = false;
-    }
-  }
-
   private_nh_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
 
+  // setup publishers
+  if (process_image_) {
+    std::string image_topic;
+    if (output_camera_info_from_yaml_) {
+      // load camera information from file (for correct operation when loading
+      // from file this must be done before first call to updateCameraInfo)
+      if (!loadCameraParameters(&camera_info_out_, &image_topic, false)) {
+        ROS_FATAL("Loading of output camera parameters failed, exiting");
+        ros::shutdown();
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      image_topic = "output_image";
+    }
+    camera_pub_ = it_.advertiseCamera(image_topic, queue_size_);
+  } else {
+    camera_info_pub_ =
+        nh_.advertise<sensor_msgs::CameraInfo>("cam_info", queue_size_);
+  }
+
   // setup subscribers
-  if (camera_info_from_yaml) {
+  if (input_camera_info_from_yaml) {
     // load camera information from file
     sensor_msgs::CameraInfo loaded_camera_info;
-    if (!loadCameraParams(&loaded_camera_info)) {
-      ROS_FATAL("Loading of camera parameters failed, exiting");
+    std::string image_topic;
+    if (!loadCameraParameters(&loaded_camera_info, &image_topic, true)) {
+      ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
     updateCameraInfo(loaded_camera_info);
-    image_sub_ = it_.subscribe("image", queue_size_,
+    image_sub_ = it_.subscribe(image_topic, queue_size_,
                                &ImageUndistort::imageCallback, this);
   } else {
     camera_sub_ = it_.subscribeCamera("", queue_size_,
                                       &ImageUndistort::cameraCallback, this);
-  }
-
-  // setup publishers
-  if (process_image_) {
-    camera_pub_ = it_.advertiseCamera("output_image", queue_size_);
-  } else {
-    camera_info_pub_ =
-        nh_.advertise<sensor_msgs::CameraInfo>("cam_info", queue_size_);
   }
 }
 
@@ -97,11 +77,10 @@ void ImageUndistort::imageCallback(
     camera_info_in_.header.frame_id = image_msg_in->header.frame_id;
     camera_info_pub_.publish(camera_info_in_);
   }
-
   cv_bridge::CvImageConstPtr image_in_ptr =
       cv_bridge::toCvShare(image_msg_in, "");
   cv_bridge::CvImagePtr image_out_ptr(
-      new cv_bridge::CvImage(image_out_ptr->header, image_out_ptr->encoding));
+      new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
 
   if (undistorter_ptr_) {
     undistorter_ptr_->undistortImage(image_in_ptr->image,
@@ -124,153 +103,133 @@ void ImageUndistort::cameraCallback(
 }
 
 void ImageUndistort::updateCameraInfo(
-    const sensor_msgs::CameraInfo& camera_info_in) {
+    const sensor_msgs::CameraInfo& camera_info) {
   // only update if camera parameters have changed
-  if ((camera_info_in.K == camera_info_in_.K) &&
-      (camera_info_in.width == camera_info_in_.width) &&
-      (camera_info_in.height == camera_info_in_.height) &&
-      (camera_info_in.distortion_model == camera_info_in_.distortion_model) &&
-      (camera_info_in.D == camera_info_in_.D)) {
+  if ((camera_info.K == camera_info_in_.K) &&
+      (camera_info.width == camera_info_in_.width) &&
+      (camera_info.height == camera_info_in_.height) &&
+      (camera_info.distortion_model == camera_info_in_.distortion_model) &&
+      (camera_info.D == camera_info_in_.D)) {
     return;
   }
-
-  camera_info_in_ = camera_info_in;
-  camera_info_out_ = camera_info_in_;
-
-  Eigen::Matrix<double, 3, 4> P_in =
-      Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
-          camera_info_in.P.elems);
-
-  cv::Size resolution;
-  if (modify_image_size_) {
-    resolution.width = output_image_size_[0];
-    resolution.height = output_image_size_[1];
-  } else {
-    resolution.width = camera_info_in_.width;
-    resolution.height = camera_info_in_.height;
+  camera_info_in_ = camera_info;
+  if (!output_camera_info_from_yaml_) {
+    camera_info_out_ = camera_info_in_;
   }
-  camera_info_out_.width = resolution.width;
-  camera_info_out_.height = resolution.height;
+
+  for (size_t i = 0; i < camera_info.D.size(); ++i) {
+    if (!undistort_image_) {
+      camera_info_in_.D[i] = 0;
+      camera_info_out_.D[i] = camera_info.D[i];
+    } else {
+      camera_info_in_.D[i] = camera_info.D[i];
+      camera_info_out_.D[i] = 0;
+    }
+  }
+
+  Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>> P_in(
+      camera_info_in_.P.data());
+
+  Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>> P_out(
+      camera_info_out_.P.data());
+
+  cv::Size resolution(camera_info_out_.width, camera_info_out_.height);
 
   bool using_radtan;
-  if ((camera_info_in.distortion_model == std::string("Plumb Bob")) ||
-      (camera_info_in.distortion_model == std::string("radtan"))) {
+  if ((camera_info.distortion_model == std::string("Plumb Bob")) ||
+      (camera_info.distortion_model == std::string("radtan"))) {
     using_radtan = true;
-  } else if (camera_info_in.distortion_model == std::string("equidistant")) {
+  } else if (camera_info.distortion_model == std::string("equidistant")) {
     using_radtan = false;
   } else {
     ROS_ERROR_STREAM(
         "Unrecognized distortion model "
-        << camera_info_in.distortion_model
+        << camera_info.distortion_model
         << ". Valid options are 'radtan', 'Plumb Bob' and 'equidistant'");
     undistorter_ptr_ = nullptr;
     return;
   }
 
-  std::vector<double> dist_vec = camera_info_in.D;
-  if (!undistort_image_) {
-    for (double& d : dist_vec) {
-      d = 0;
-    }
-  } else {
-    for (double& d : camera_info_out_.D) {
-      d = 0;
-    }
-  }
-
-  // set output rotation to identity
-  camera_info_out_.R[0] = 1.0;
-  camera_info_out_.R[1] = 0.0;
-  camera_info_out_.R[2] = 0.0;
-  camera_info_out_.R[3] = 1.0;
-  camera_info_out_.R[4] = 0.0;
-  camera_info_out_.R[5] = 0.0;
-  camera_info_out_.R[6] = 1.0;
-  camera_info_out_.R[7] = 0.0;
-  camera_info_out_.R[8] = 0.0;
-
-  // set intrinsics
-  if (modify_intrinsics_) {
-    camera_info_out_.K[0] = output_intrinsics_[0];
-    camera_info_out_.K[1] = 0.0;
-    camera_info_out_.K[2] = output_intrinsics_[2];
-    camera_info_out_.K[3] = 0.0;
-    camera_info_out_.K[4] = output_intrinsics_[1];
-    camera_info_out_.K[5] = output_intrinsics_[3];
-    camera_info_out_.K[6] = 0.0;
-    camera_info_out_.K[7] = 0.0;
-    camera_info_out_.K[8] = 1.0;
-  }
-
-  // set projection matrix to the same as K
-  camera_info_out_.P[0] = camera_info_out_.K[0];
-  camera_info_out_.P[1] = camera_info_out_.K[1];
-  camera_info_out_.P[2] = camera_info_out_.K[2];
-  camera_info_out_.P[3] = 0.0;
-  camera_info_out_.P[4] = camera_info_out_.K[3];
-  camera_info_out_.P[5] = camera_info_out_.K[4];
-  camera_info_out_.P[6] = camera_info_out_.K[5];
-  camera_info_out_.P[7] = 0.0;
-  camera_info_out_.P[8] = camera_info_out_.K[6];
-  camera_info_out_.P[9] = camera_info_out_.K[7];
-  camera_info_out_.P[10] = camera_info_out_.K[8];
-  camera_info_out_.P[11] = 0.0;
-
-  Eigen::Matrix<double, 3, 4> P_out =
-      Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
-          camera_info_out_.P.elems);
-
-  undistorter_ptr_ = std::make_shared<Undistorter>(resolution, P_in, P_out,
-                                                   using_radtan, dist_vec);
+  undistorter_ptr_ = std::make_shared<Undistorter>(
+      resolution, P_in, P_out, using_radtan, camera_info_in_.D);
 }
 
-bool ImageUndistort::loadCameraParams(
-    sensor_msgs::CameraInfo* loaded_camera_info) {
+bool ImageUndistort::loadCameraParameters(
+    sensor_msgs::CameraInfo* loaded_camera_info, std::string* image_topic,
+    const bool is_input) {
   ROS_INFO("Loading camera parameters");
 
-  std::string camera_namespace;
-  private_nh_.param("camera_namespace", camera_namespace,
-                    kDefaultCameraNameSpace);
+  std::string camera_name_space;
+  if (is_input) {
+    private_nh_.param("input_camera_name_space", camera_name_space,
+                      kDefaultInputCameraNameSpace);
+  } else {
+    private_nh_.param("output_camera_name_space", camera_name_space,
+                      kDefaultOutputCameraNameSpace);
+  }
+
+  Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> K(
+      loaded_camera_info->K.data());
+
+  XmlRpc::XmlRpcValue K_in;
+  bool K_set = false;
+  if (nh_.getParam(camera_name_space + "/K", K_in)) {
+    if (xmlRpcToMatrix(K_in, &K)) {
+      K_set = true;
+    } else {
+      return false;
+    }
+  }
 
   std::vector<double> intrinsics_in;
-  if (!nh_.getParam(camera_namespace + "/intrinsics", intrinsics_in)) {
-    ROS_FATAL("Could not find camera intrinsics");
-    return false;
-  }
-  if (intrinsics_in.size() != 4) {
-    ROS_FATAL("Intrinsics must have exactly 4 values (Fx,Fy,Cx,Cy)");
+  if (nh_.getParam(camera_name_space + "/intrinsics", intrinsics_in)) {
+    if (K_set) {
+      ROS_WARN(
+          "Both K and intrinsics vector given, ignoring intrinsics vector");
+    } else if (intrinsics_in.size() != 4) {
+      ROS_FATAL("Intrinsics vector must have exactly 4 values (Fx,Fy,Cx,Cy)");
+      return false;
+    }
+
+    K = Eigen::Matrix3d::Identity();
+    K(0, 0) = intrinsics_in[0];
+    K(1, 1) = intrinsics_in[1];
+    K(0, 2) = intrinsics_in[2];
+    K(1, 2) = intrinsics_in[3];
+  } else if (!K_set && is_input) {
+    ROS_FATAL("Could not find K or camera intrinsics vector");
     return false;
   }
 
-  loaded_camera_info->K[0] = intrinsics_in[0];
-  loaded_camera_info->K[1] = 0.0;
-  loaded_camera_info->K[2] = intrinsics_in[2];
-  loaded_camera_info->K[3] = 0.0;
-  loaded_camera_info->K[4] = intrinsics_in[1];
-  loaded_camera_info->K[5] = intrinsics_in[3];
-  loaded_camera_info->K[6] = 0.0;
-  loaded_camera_info->K[7] = 0.0;
-  loaded_camera_info->K[8] = 1.0;
+  ROS_ERROR_STREAM(" " << K(0, 0) << " " << loaded_camera_info->K[0]);
 
   std::vector<double> resolution_in;
-  if (!nh_.getParam(camera_namespace + "/resolution", resolution_in)) {
+  if (nh_.getParam(camera_name_space + "/resolution", resolution_in)) {
+    if (resolution_in.size() != 2) {
+      ROS_FATAL("Resolution must have exactly 2 values (x,y)");
+      return false;
+    }
+    loaded_camera_info->width = resolution_in[0];
+    loaded_camera_info->height = resolution_in[1];
+  } else if (is_input) {
     ROS_FATAL("Could not find camera resolution");
     return false;
   }
-  if (resolution_in.size() != 2) {
-    ROS_FATAL("Resolution must have exactly 2 values (x,y)");
-    return false;
-  }
-  loaded_camera_info->width = resolution_in[0];
-  loaded_camera_info->height = resolution_in[1];
 
-  if (!nh_.getParam(camera_namespace + "/distortion_model",
+  if (is_input &&
+      !nh_.getParam(camera_name_space + "/distortion_model",
                     loaded_camera_info->distortion_model)) {
     ROS_WARN("No distortion model given, assuming radtan");
   }
 
-  if (!nh_.getParam(camera_namespace + "/distortion_coeffs",
-                    loaded_camera_info->D)) {
+  if (nh_.getParam(camera_name_space + "/distortion_coeffs",
+                   loaded_camera_info->D)) {
+    if (!is_input) {
+      ROS_WARN(
+          "Distortion coefficients cannot be set for the output image, "
+          "ignoring");
+    }
+  } else if (is_input) {
     ROS_WARN(
         "No distortion coefficients found, assuming images are "
         "undistorted");
@@ -282,30 +241,39 @@ bool ImageUndistort::loadCameraParams(
     loaded_camera_info->D.push_back(0);
   }
 
-  // assume no rotation
-  loaded_camera_info->R[0] = 1.0;
-  loaded_camera_info->R[1] = 0.0;
-  loaded_camera_info->R[2] = 0.0;
-  loaded_camera_info->R[3] = 1.0;
-  loaded_camera_info->R[4] = 0.0;
-  loaded_camera_info->R[5] = 0.0;
-  loaded_camera_info->R[6] = 1.0;
-  loaded_camera_info->R[7] = 0.0;
-  loaded_camera_info->R[8] = 0.0;
+  Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> R(
+      loaded_camera_info->R.data());
 
-  // set projection matrix to the same as K
-  loaded_camera_info->P[0] = loaded_camera_info->K[0];
-  loaded_camera_info->P[1] = loaded_camera_info->K[1];
-  loaded_camera_info->P[2] = loaded_camera_info->K[2];
-  loaded_camera_info->P[3] = 0.0;
-  loaded_camera_info->P[4] = loaded_camera_info->K[3];
-  loaded_camera_info->P[5] = loaded_camera_info->K[4];
-  loaded_camera_info->P[6] = loaded_camera_info->K[5];
-  loaded_camera_info->P[7] = 0.0;
-  loaded_camera_info->P[8] = loaded_camera_info->K[6];
-  loaded_camera_info->P[9] = loaded_camera_info->K[7];
-  loaded_camera_info->P[10] = loaded_camera_info->K[8];
-  loaded_camera_info->P[11] = 0.0;
+  XmlRpc::XmlRpcValue R_in;
+  if (nh_.getParam(camera_name_space + "/R", R_in)) {
+    if (!xmlRpcToMatrix(R_in, &R)) {
+      return false;
+    }
+  } else {
+    R = Eigen::Matrix3d::Identity();
+  }
+
+  Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>> P(
+      loaded_camera_info->P.data());
+
+  XmlRpc::XmlRpcValue P_in;
+  if (nh_.getParam(camera_name_space + "/P", P_in)) {
+    if (!xmlRpcToMatrix(P_in, &P)) {
+      return false;
+    }
+  } else {
+    P.topLeftCorner<3, 3>() = R * K;
+  }
+
+  // find rostopic name
+  if (!nh_.getParam(camera_name_space + "/rostopic", *image_topic)) {
+    if (is_input) {
+      ROS_WARN("No rostopic found, setting topic to 'image'");
+      *image_topic = "image";
+    } else {
+      *image_topic = "output_image";
+    }
+  }
 
   return true;
 }
