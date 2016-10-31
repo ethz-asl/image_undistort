@@ -1,0 +1,10 @@
+<launch>
+  
+  <arg name="calib_path" default="/path/to/your/kalibr.yaml" />
+  <arg name="input_camera_name_space" default="cam0"/>
+
+  <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
+    <rosparam file="$(arg calib_path)"/>
+  </node>
+
+</launch>

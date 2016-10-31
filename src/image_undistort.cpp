@@ -173,7 +173,7 @@ bool ImageUndistort::loadCameraParameters(
 
   XmlRpc::XmlRpcValue K_in;
   bool K_set = false;
-  if (nh_.getParam(camera_name_space + "/K", K_in)) {
+  if (private_nh_.getParam(camera_name_space + "/K", K_in)) {
     if (xmlRpcToMatrix(K_in, &K)) {
       K_set = true;
     } else {
@@ -182,7 +182,7 @@ bool ImageUndistort::loadCameraParameters(
   }
 
   std::vector<double> intrinsics_in;
-  if (nh_.getParam(camera_name_space + "/intrinsics", intrinsics_in)) {
+  if (private_nh_.getParam(camera_name_space + "/intrinsics", intrinsics_in)) {
     if (K_set) {
       ROS_WARN(
           "Both K and intrinsics vector given, ignoring intrinsics vector");
@@ -196,34 +196,32 @@ bool ImageUndistort::loadCameraParameters(
     K(1, 1) = intrinsics_in[1];
     K(0, 2) = intrinsics_in[2];
     K(1, 2) = intrinsics_in[3];
-  } else if (!K_set && is_input) {
+  } else if (!K_set) {
     ROS_FATAL("Could not find K or camera intrinsics vector");
     return false;
   }
 
-  ROS_ERROR_STREAM(" " << K(0, 0) << " " << loaded_camera_info->K[0]);
-
   std::vector<double> resolution_in;
-  if (nh_.getParam(camera_name_space + "/resolution", resolution_in)) {
+  if (private_nh_.getParam(camera_name_space + "/resolution", resolution_in)) {
     if (resolution_in.size() != 2) {
       ROS_FATAL("Resolution must have exactly 2 values (x,y)");
       return false;
     }
     loaded_camera_info->width = resolution_in[0];
     loaded_camera_info->height = resolution_in[1];
-  } else if (is_input) {
+  } else {
     ROS_FATAL("Could not find camera resolution");
     return false;
   }
 
   if (is_input &&
-      !nh_.getParam(camera_name_space + "/distortion_model",
-                    loaded_camera_info->distortion_model)) {
+      !private_nh_.getParam(camera_name_space + "/distortion_model",
+                            loaded_camera_info->distortion_model)) {
     ROS_WARN("No distortion model given, assuming radtan");
   }
 
-  if (nh_.getParam(camera_name_space + "/distortion_coeffs",
-                   loaded_camera_info->D)) {
+  if (private_nh_.getParam(camera_name_space + "/distortion_coeffs",
+                           loaded_camera_info->D)) {
     if (!is_input) {
       ROS_WARN(
           "Distortion coefficients cannot be set for the output image, "
@@ -245,7 +243,7 @@ bool ImageUndistort::loadCameraParameters(
       loaded_camera_info->R.data());
 
   XmlRpc::XmlRpcValue R_in;
-  if (nh_.getParam(camera_name_space + "/R", R_in)) {
+  if (private_nh_.getParam(camera_name_space + "/R", R_in)) {
     if (!xmlRpcToMatrix(R_in, &R)) {
       return false;
     }
@@ -257,16 +255,23 @@ bool ImageUndistort::loadCameraParameters(
       loaded_camera_info->P.data());
 
   XmlRpc::XmlRpcValue P_in;
-  if (nh_.getParam(camera_name_space + "/P", P_in)) {
+  if (private_nh_.getParam(camera_name_space + "/P", P_in)) {
     if (!xmlRpcToMatrix(P_in, &P)) {
       return false;
     }
   } else {
     P.topLeftCorner<3, 3>() = R * K;
+    P.topRightCorner<3, 1>() = Eigen::Vector3d::Zero();
+  }
+
+  if (!P.bottomLeftCorner<1, 4>().isApprox(
+          (Eigen::Matrix<double, 1, 4>() << 0, 0, 1, 0).finished())) {
+    ROS_ERROR_STREAM("input P is not a projection matrix");
+    return false;
   }
 
   // find rostopic name
-  if (!nh_.getParam(camera_name_space + "/rostopic", *image_topic)) {
+  if (!private_nh_.getParam(camera_name_space + "/rostopic", *image_topic)) {
     if (is_input) {
       ROS_WARN("No rostopic found, setting topic to 'image'");
       *image_topic = "image";

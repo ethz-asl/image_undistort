@@ -1,0 +1,6 @@
+example_input_camera:
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: equidistant
+  intrinsics: [470.62641670233427, 470.4093161660629, 382.2395912089362, 229.696143305312]
+  resolution: [752, 480]
+  rostopic: /example_input

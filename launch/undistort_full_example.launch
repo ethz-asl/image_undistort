@@ -1,0 +1,23 @@
+<launch>
+  
+  <arg name="input_calib_path" default="($find image_undistort)/cfg/example_input_config.yaml" />
+  <arg name="input_camera_name_space" default="example_input_camera"/>
+  <arg name="output_calib_path" default="($find image_undistort)/cfg/example_output_config.yaml" />
+  <arg name="output_camera_name_space" default="example_output_camera"/>
+
+  <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
+    <param name="input_camera_info_from_yaml" value = "true"/>
+    <param name="input_camera_name_space" value="$(arg input_camera_name_space)"/>
+    <rosparam file="$(arg input_calib_path)"/>
+
+    <param name = "output_camera_info_from_yaml" value = "true"/>
+    <param name="output_camera_name_space" value="$(arg output_camera_name_space)"/>
+    <rosparam file="$(arg output_calib_path)"/>
+
+    <param name = "queue_size" value = "100"/>
+    <param name = "process_image" value = "true"/>
+    <param name = "undistort_image" value = "true"/>
+    <param name = "process_every_nth_frame" value = "1"/>
+  </node>
+
+</launch>

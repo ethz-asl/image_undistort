@@ -9,6 +9,9 @@ Undistorter::Undistorter(const cv::Size& resolution,
   cv::Mat map_x_float(resolution, CV_32FC1);
   cv::Mat map_y_float(resolution, CV_32FC1);
 
+  ROS_ERROR_STREAM(" " << P_in);
+  ROS_ERROR_STREAM(" " << P_out);
+
   // Compute the remap maps
   for (size_t v = 0; v < resolution.height; ++v) {
     for (size_t u = 0; u < resolution.width; ++u) {
@@ -31,8 +34,8 @@ Undistorter::Undistorter(const cv::Size& resolution,
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  cv::remap(image, *undistorted_image, map_x_, map_y_, CV_INTER_LINEAR,
-            cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+  cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+            cv::BORDER_CONSTANT);
 }
 
 void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
@@ -42,9 +45,9 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                                const Eigen::Vector2d& pixel_location,
                                Eigen::Vector2d* distorted_pixel_location) {
   // Transform image coordinates to be size and focus independent
-  Eigen::Vector4d norm_pixel_location = P_in.colPivHouseholderQr().solve(
-      (Eigen::Vector4d() << pixel_location.x(), pixel_location.y(), 1.0, 1.0)
-          .finished());
+  Eigen::Vector2d norm_pixel_location =
+      P_out.topLeftCorner<2, 2>().inverse() *
+      (pixel_location - P_out.block<2, 1>(0, 2) - P_out.block<2, 1>(0, 3));
 
   const double& x = norm_pixel_location.x();
   const double& y = norm_pixel_location.y();
@@ -96,5 +99,5 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   }
 
   *distorted_pixel_location =
-      P_out.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
+      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
 };
