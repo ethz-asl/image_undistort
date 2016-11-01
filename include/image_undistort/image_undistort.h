@@ -48,8 +48,9 @@ class ImageUndistort {
 
   void updateCameraInfo(const sensor_msgs::CameraInfo& camera_info);
 
-  bool loadCameraParameters(sensor_msgs::CameraInfo* loaded_camera_info,
-                            std::string* image_topic, const bool is_input);
+  bool loadCameraParameters(const bool is_input,
+                            sensor_msgs::CameraInfo* loaded_camera_info,
+                            std::string* image_topic);
 
   void imageCallback(const sensor_msgs::ImageConstPtr& image_msg_in);
 
@@ -60,8 +61,8 @@ class ImageUndistort {
   static bool xmlRpcToMatrix(const XmlRpc::XmlRpcValue& const_input,
                              Eigen::MatrixBase<Derived>* output) {
     // A local copy is required as the methods that allow you to access the
-    // XmlRpc
-    // values as doubles are not const and so cannot be used with the const ref
+    // XmlRpc values as doubles are not const and so cannot be used with the
+    // const ref
     XmlRpc::XmlRpcValue input = const_input;
 
     if (input.size() != output->rows()) {

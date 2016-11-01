@@ -32,7 +32,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     if (output_camera_info_from_yaml_) {
       // load camera information from file (for correct operation when loading
       // from file this must be done before first call to updateCameraInfo)
-      if (!loadCameraParameters(&camera_info_out_, &image_topic, false)) {
+      if (!loadCameraParameters(false, &camera_info_out_, &image_topic)) {
         ROS_FATAL("Loading of output camera parameters failed, exiting");
         ros::shutdown();
         exit(EXIT_FAILURE);
@@ -51,7 +51,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     // load camera information from file
     sensor_msgs::CameraInfo loaded_camera_info;
     std::string image_topic;
-    if (!loadCameraParameters(&loaded_camera_info, &image_topic, true)) {
+    if (!loadCameraParameters(true, &loaded_camera_info, &image_topic)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
@@ -136,10 +136,14 @@ void ImageUndistort::updateCameraInfo(
   cv::Size resolution(camera_info_out_.width, camera_info_out_.height);
 
   bool using_radtan;
-  if ((camera_info.distortion_model == std::string("Plumb Bob")) ||
-      (camera_info.distortion_model == std::string("radtan"))) {
+  std::string lower_case_distortion_model = camera_info.distortion_model;
+  transform(lower_case_distortion_model.begin(),
+            lower_case_distortion_model.end(),
+            lower_case_distortion_model.begin(), ::tolower);
+  if ((lower_case_distortion_model == std::string("plumb bob")) ||
+      (lower_case_distortion_model == std::string("radtan"))) {
     using_radtan = true;
-  } else if (camera_info.distortion_model == std::string("equidistant")) {
+  } else if (lower_case_distortion_model == std::string("equidistant")) {
     using_radtan = false;
   } else {
     ROS_ERROR_STREAM(
@@ -155,8 +159,8 @@ void ImageUndistort::updateCameraInfo(
 }
 
 bool ImageUndistort::loadCameraParameters(
-    sensor_msgs::CameraInfo* loaded_camera_info, std::string* image_topic,
-    const bool is_input) {
+    const bool is_input, sensor_msgs::CameraInfo* loaded_camera_info,
+    std::string* image_topic) {
   ROS_INFO("Loading camera parameters");
 
   std::string camera_name_space;
