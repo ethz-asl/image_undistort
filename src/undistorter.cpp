@@ -1,71 +1,88 @@
 #include <image_undistort/undistorter.h>
 
-Undistorter::Undistorter(const Eigen::Matrix3d& K, const std::vector<double>& D,
-                         const cv::Size& resolution, const bool using_radtan, const double zoom)
-    : using_radtan_(using_radtan) {
+Undistorter::Undistorter(const cv::Size& resolution,
+                         const Eigen::Matrix<double, 3, 4>& P_in,
+                         const Eigen::Matrix<double, 3, 4>& P_out,
+                         const bool using_radtan,
+                         const std::vector<double>& D) {
   // Initialize maps
-  map_x_.create(resolution, CV_32FC1);
-  map_y_.create(resolution, CV_32FC1);
+  cv::Mat map_x_float(resolution, CV_32FC1);
+  cv::Mat map_y_float(resolution, CV_32FC1);
+
+  ROS_ERROR_STREAM(" " << P_in);
+  ROS_ERROR_STREAM(" " << P_out);
 
   // Compute the remap maps
   for (size_t v = 0; v < resolution.height; ++v) {
     for (size_t u = 0; u < resolution.width; ++u) {
-      double ud, vd;
-      distortPixel(K, D, zoom, u, v, &ud, &vd);
+      Eigen::Vector2d pixel_location(u, v);
+      Eigen::Vector2d distorted_pixel_location;
+      distortPixel(P_in, P_out, using_radtan, D, pixel_location,
+                   &distorted_pixel_location);
 
       // Insert in map
-      map_x_.at<float>(v, u) = ud;
-      map_y_.at<float>(v, u) = vd;
+      map_x_float.at<float>(v, u) =
+          static_cast<float>(distorted_pixel_location.x());
+      map_y_float.at<float>(v, u) =
+          static_cast<float>(distorted_pixel_location.y());
     };
   }
+
+  // convert to fixed point maps for increased speed
+  cv::convertMaps(map_x_float, map_y_float, map_x_, map_y_, CV_16SC2);
 }
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  cv::remap(image, *undistorted_image, map_x_, map_y_, CV_INTER_LINEAR,
-            cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+  cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+            cv::BORDER_CONSTANT);
 }
 
-void Undistorter::distortPixel(const Eigen::Matrix3d& K,
-                               const std::vector<double>& D, const double zoom, const double u,
-                               const double v, double* ud, double* vd) {
+void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+                               const Eigen::Matrix<double, 3, 4>& P_out,
+                               const bool using_radtan,
+                               const std::vector<double>& D,
+                               const Eigen::Vector2d& pixel_location,
+                               Eigen::Vector2d* distorted_pixel_location) {
   // Transform image coordinates to be size and focus independent
-  double x = (u - K(0, 2)) / K(0, 0);
-  double y = (v - K(1, 2)) / K(1, 1);
+  Eigen::Vector2d norm_pixel_location =
+      P_out.topLeftCorner<2, 2>().inverse() *
+      (pixel_location - P_out.block<2, 1>(0, 2) - P_out.block<2, 1>(0, 3));
 
-  x *= 1.0/zoom;
-  y *= 1.0/zoom;
+  const double& x = norm_pixel_location.x();
+  const double& y = norm_pixel_location.y();
 
-  double xd, yd;
+  Eigen::Vector4d norm_distorted_pixel_location(0, 0, 1, 1);
+  double& xd = norm_distorted_pixel_location.x();
+  double& yd = norm_distorted_pixel_location.y();
 
   if (using_radtan_) {
-    // Split out distortion parameters for easier reading
-    double k1 = D[0];
-    double k2 = D[1];
-    double k3 = D[4];
-    double p1 = D[2];
-    double p2 = D[3];
+    // Split out parameters for easier reading
+    const double& k1 = D[0];
+    const double& k2 = D[1];
+    const double& k3 = D[4];
+    const double& p1 = D[2];
+    const double& p2 = D[3];
 
     // Undistort
-    double r2 = x * x + y * y;
-    double r4 = r2 * r2;
-    double r6 = r4 * r2;
-    double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
+    const double r2 = x * x + y * y;
+    const double r4 = r2 * r2;
+    const double r6 = r4 * r2;
+    const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
     xd = x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x);
     yd = y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y);
 
   } else {
     // Split out distortion parameters for easier reading
-    double k1 = D[0];
-    double k2 = D[1];
-    double k3 = D[2];
-    double k4 = D[3];
+    const double& k1 = D[0];
+    const double& k2 = D[1];
+    const double& k3 = D[2];
+    const double& k4 = D[3];
 
     // Undistort
-    double r = std::sqrt(x * x + y * y);
+    const double r = std::sqrt(x * x + y * y);
     if (r < 1e-10) {
-      *ud = u;
-      *vd = v;
+      *distorted_pixel_location = pixel_location;
       return;
     }
     const double theta = atan(r);
@@ -74,14 +91,13 @@ void Undistorter::distortPixel(const Eigen::Matrix3d& K,
     const double theta6 = theta2 * theta4;
     const double theta8 = theta4 * theta4;
     const double thetad =
-        theta * (1 + k1*theta2 + k2*theta4 + k3*theta6 + k4*theta8);
+        theta * (1 + k1 * theta2 + k2 * theta4 + k3 * theta6 + k4 * theta8);
 
     const double scaling = (r > 1e-8) ? thetad / r : 1.0;
     xd = x * scaling;
     yd = y * scaling;
   }
 
-  // Shift and scale back
-  *ud = K(0, 0) * xd + K(0, 2);
-  *vd = K(1, 1) * yd + K(1, 2);
+  *distorted_pixel_location =
+      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
 };
