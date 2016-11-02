@@ -154,6 +154,8 @@ void ImageUndistort::updateCameraInfo(
     return;
   }
 
+  ROS_ERROR_STREAM(" " << resolution.width << " "<< resolution.height);
+
   undistorter_ptr_ = std::make_shared<Undistorter>(
       resolution, P_in, P_out, using_radtan, camera_info_in_.D);
 }

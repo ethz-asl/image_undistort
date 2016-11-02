@@ -28,8 +28,6 @@ class Undistorter {
 
   cv::Mat map_x_;
   cv::Mat map_y_;
-
-  bool using_radtan_;
 };
 
 #endif

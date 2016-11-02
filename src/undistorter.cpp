@@ -56,7 +56,7 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
-  if (using_radtan_) {
+  if (using_radtan) {
     // Split out parameters for easier reading
     const double& k1 = D[0];
     const double& k2 = D[1];
