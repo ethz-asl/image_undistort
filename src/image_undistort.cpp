@@ -285,7 +285,7 @@ bool ImageUndistort::loadCameraParameters(
   }
 
   // Strip leading slash from rostopic name if the param is set.
-  bool relative_camera_topic = false;
+  bool relative_camera_topic = kDefaultRelativeCameraTopic;
   private_nh_.param("relative_camera_topic", relative_camera_topic,
                     relative_camera_topic);
   if (relative_camera_topic && image_topic->front() == '/') {
