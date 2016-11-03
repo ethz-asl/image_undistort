@@ -37,6 +37,9 @@ constexpr bool kDefaultProcessImage = true;
 constexpr bool kDefaultUndistortImage = true;
 // downsamples output rate if <= 1, every frame is processed.
 constexpr int kDefaultProcessEveryNthFrame = 1;
+// whether to strip the leading slash from the ros camera topic name for
+// input images, which makes the name resolution relative rather than absolute
+constexpr bool kDefaultRelativeCameraTopic = false;
 
 class ImageUndistort {
  public:
