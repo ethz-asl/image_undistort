@@ -20,12 +20,12 @@
 constexpr int kQueueSize = 100;
 // true to load input cam_info from a yaml file, false to get it from a cam_info
 // topic
-constexpr bool kDefaultInputCameraInfoFromYaml = true;
+constexpr bool kDefaultInputCamerasInfoFromYaml = true;
 // true to load output cam_info from a yaml file, false to copy the input
 // cam_info (with distortion removed, unless undistort_image is false)
-constexpr bool kDefaultOutputCameraInfoFromYaml = false;
+constexpr bool kDefaultOutputCamerasInfoFromYaml = false;
 // namespace to use when reading input yaml file
-const std::string kDefaultInputCameraNameSpace = "";
+const std::string kDefaultInputCameraNameSpace = "input_camera";
 // namespace to use when reading output yaml file (cannot be the same as input
 // namespace)
 const std::string kDefaultOutputCameraNameSpace = "output_camera";
@@ -40,6 +40,10 @@ constexpr int kDefaultProcessEveryNthFrame = 1;
 // whether to strip the leading slash from the ros camera topic name for
 // input images, which makes the name resolution relative rather than absolute
 constexpr bool kDefaultRelativeCameraTopic = false;
+
+const std::string kDefaultOutputImageType = "";
+
+constexpr bool kDefaultPublishTFFrame = true;
 
 class ImageUndistort {
  public:

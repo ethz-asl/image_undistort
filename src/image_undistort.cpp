@@ -25,13 +25,29 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                     kDefaultUndistortImage);
   private_nh_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
+  private_nh_.param("output_image_type", output_image_type_,
+                    kDefaultOutputImageType);
+  // check output type string is correctly formatted
+  if (!output_image_type_.empty()) {
+    try {
+      cv_bridge::getCvType(output_image_type_)
+    } catch (const cv_brdige::exception& e) {
+      ROS_ERROR_STREAM(
+          "cv_bridge error while setting output_image_type, output will match "
+          "input type. "
+          << e.what());
+      output_image_type_ = "";
+    }
+  }
 
   // setup publishers
   if (process_image_) {
     std::string image_topic;
     if (output_camera_info_from_yaml_) {
-      // load camera information from file (for correct operation when loading
-      // from file this must be done before first call to updateCameraInfo)
+      // load camera information from file (for correct operation when
+      // loading
+      // from file this must be done before first call to
+      // updateCameraInfo)
       if (!loadCameraParameters(false, &camera_info_out_, &image_topic)) {
         ROS_FATAL("Loading of output camera parameters failed, exiting");
         ros::shutdown();
@@ -40,7 +56,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     } else {
       image_topic = "output_image";
     }
-    camera_pub_ = it_.advertiseCamera(image_topic, queue_size_);
+    first_camera_pub_ = it_.advertiseCamera(image_topic, queue_size_);
+    if (perform_stereo_rectification_) {
+      second_camera_pub_ = it_.advertiseCamera(image_topic, queue_size_);
+    }
   } else {
     camera_info_pub_ =
         nh_.advertise<sensor_msgs::CameraInfo>("cam_info", queue_size_);
@@ -176,10 +195,10 @@ bool ImageUndistort::loadCameraParameters(
       loaded_camera_info->K.data());
 
   XmlRpc::XmlRpcValue K_in;
-  bool K_set = false;
+  bool K_loaded = false;
   if (private_nh_.getParam(camera_name_space + "/K", K_in)) {
     if (xmlRpcToMatrix(K_in, &K)) {
-      K_set = true;
+      K_loaded = true;
     } else {
       return false;
     }
@@ -187,9 +206,10 @@ bool ImageUndistort::loadCameraParameters(
 
   std::vector<double> intrinsics_in;
   if (private_nh_.getParam(camera_name_space + "/intrinsics", intrinsics_in)) {
-    if (K_set) {
+    if (K_loaded) {
       ROS_WARN(
-          "Both K and intrinsics vector given, ignoring intrinsics vector");
+          "Both K and intrinsics vector given, ignoring intrinsics "
+          "vector");
     } else if (intrinsics_in.size() != 4) {
       ROS_FATAL("Intrinsics vector must have exactly 4 values (Fx,Fy,Cx,Cy)");
       return false;
@@ -200,7 +220,7 @@ bool ImageUndistort::loadCameraParameters(
     K(1, 1) = intrinsics_in[1];
     K(0, 2) = intrinsics_in[2];
     K(1, 2) = intrinsics_in[3];
-  } else if (!K_set) {
+  } else if (!K_loaded) {
     ROS_FATAL("Could not find K or camera intrinsics vector");
     return false;
   }
@@ -246,12 +266,31 @@ bool ImageUndistort::loadCameraParameters(
   Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> R(
       loaded_camera_info->R.data());
 
-  XmlRpc::XmlRpcValue R_in;
-  if (private_nh_.getParam(camera_name_space + "/R", R_in)) {
-    if (!xmlRpcToMatrix(R_in, &R)) {
+  Eigen::Matrix<double, 4, 4> T;
+  XmlRpc::XmlRpcValue T_in;
+  bool T_loaded = false;
+  if (private_nh_.getParam(camera_name_space + "/T_cn_cnm1", T_in) ||
+      private_nh_.getParam(camera_name_space + "/T", T_in)) {
+    if (!xmlRpcToMatrix(T_in, &T)) {
       return false;
     }
-  } else {
+    T_loaded = true;
+    R = T.topLeftCorner<3, 3>();
+  }
+
+  XmlRpc::XmlRpcValue R_in;
+  if (private_nh_.getParam(camera_name_space + "/R", R_in)) {
+    if (T_loaded) {
+      ROS_ERROR(
+          "Both rotation matrix and transformation matrix given, ignoring "
+          "Rotation matrix");
+
+    } else {
+      if (!xmlRpcToMatrix(R_in, &R)) {
+        return false;
+      }
+    }
+  } else if (!T_loaded) {
     R = Eigen::Matrix3d::Identity();
   }
 
