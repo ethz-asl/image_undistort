@@ -1,14 +1,14 @@
 #include <image_undistort/undistorter.h>
 
-Undistorter::Undistorter(const CameraParametersPair& camera_parameters_pair) {
-  if (!camera_parameters_pair.hasNewData()) {
-    return;
+Undistorter::Undistorter(
+    const CameraParametersPair& input_camera_parameters_pair)
+    : used_camera_parameters_pair_(input_camera_parameters_pair) {
+  if (!used_camera_parameters_pair_.valid()) {
+    throw std::runtime_error(
+        "Attempted to create undistorter from invalid camera parameters");
   }
-  if (!camera_parameters_pair.vaild()) {
-    ROS_ERROR("Attempted to create undistorter from invalid camera parameters");
-    return
-  }
-  cv::Size& resolution = camera_parameters_pair.getOutput->resolution();
+  const cv::Size& resolution =
+      used_camera_parameters_pair_.getOutput()->resolution();
   // Initialize maps
   cv::Mat map_x_float(resolution, CV_32FC1);
   cv::Mat map_y_float(resolution, CV_32FC1);
@@ -18,11 +18,12 @@ Undistorter::Undistorter(const CameraParametersPair& camera_parameters_pair) {
     for (size_t u = 0; u < resolution.width; ++u) {
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
-      distortPixel(camera_parameters_pair.getInput->P(),
-                   camera_parameters_pair.getOutput->P(),
-                   camera_parameters_pair.getInput->UsingRadtanDistortion(),
-                   camera_parameters_pair->getInput.D(), pixel_location,
-                   &distorted_pixel_location);
+      distortPixel(
+          used_camera_parameters_pair_.getInput()->P(),
+          used_camera_parameters_pair_.getOutput()->P(),
+          used_camera_parameters_pair_.getInput()->usingRadtanDistortion(),
+          used_camera_parameters_pair_.getInput()->D(), pixel_location,
+          &distorted_pixel_location);
 
       // Insert in map
       map_x_float.at<float>(v, u) =
@@ -42,12 +43,15 @@ void Undistorter::undistortImage(const cv::Mat& image,
             cv::BORDER_CONSTANT);
 }
 
-void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
-                               const Eigen::Matrix<double, 3, 4>& P_out,
-                               const bool using_radtan,
-                               const std::vector<double>& D,
-                               const Eigen::Vector2d& pixel_location,
-                               Eigen::Vector2d* distorted_pixel_location) {
+const CameraParametersPair& getCameraParametersPair() {
+  return used_camera_parameters_pair_;
+};
+
+static void Undistorter::distortPixel(
+    const Eigen::Matrix<double, 3, 4>& P_in,
+    const Eigen::Matrix<double, 3, 4>& P_out, const bool using_radtan,
+    const std::vector<double>& D, const Eigen::Vector2d& pixel_location,
+    Eigen::Vector2d* distorted_pixel_location) {
   // Transform image coordinates to be size and focus independent
   Eigen::Vector2d norm_pixel_location =
       P_out.topLeftCorner<2, 2>().inverse() *

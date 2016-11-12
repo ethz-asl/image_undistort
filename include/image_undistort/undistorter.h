@@ -11,16 +11,21 @@
 
 class Undistorter {
  public:
-  Undistorter(const CameraParametersPair& camera_parameters_pair);
+  Undistorter(const CameraParametersPair& input_camera_parameters_pair);
 
   void undistortImage(const cv::Mat& image, cv::Mat* undistored_image);
 
+  //get camera parameters used to build undistorter
+  const CameraParametersPair& getCameraParametersPair();
+
  private:
-  void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+  static void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                     const Eigen::Matrix<double, 3, 4>& P_out,
                     const bool using_radtan, const std::vector<double>& D,
                     const Eigen::Vector2d& pixel_location,
                     Eigen::Vector2d* distorted_pixel_location);
+
+  const CameraParametersPair used_camera_parameters_pair_;
 
   cv::Mat map_x_;
   cv::Mat map_y_;

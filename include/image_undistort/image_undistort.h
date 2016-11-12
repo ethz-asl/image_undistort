@@ -20,15 +20,15 @@
 constexpr int kQueueSize = 100;
 // true to load input cam_info from a yaml file, false to get it from a cam_info
 // topic
-constexpr bool kDefaultInputCamerasInfoFromYaml = true;
+constexpr bool kDefaultInputCameraInfoFromYaml = true;
 // true to load output cam_info from a yaml file, false to copy the input
 // cam_info (with distortion removed, unless undistort_image is false)
-constexpr bool kDefaultOutputCamerasInfoFromYaml = false;
+constexpr bool kDefaultOutputCameraInfoFromYaml = false;
 // namespace to use when reading input yaml file
-const std::string kDefaultInputCameraNameSpace = "input_camera";
+const std::string kDefaultInputCameraNamespace = "input_camera";
 // namespace to use when reading output yaml file (cannot be the same as input
 // namespace)
-const std::string kDefaultOutputCameraNameSpace = "output_camera";
+const std::string kDefaultOutputCameraNamespace = "output_camera";
 // true to process images, false if you only wish to generate a cam_info topic
 // from a yaml file (the image topic must still be subscribed to so that the
 // cam_info message is published at the correct times).
@@ -37,9 +37,6 @@ constexpr bool kDefaultProcessImage = true;
 constexpr bool kDefaultUndistortImage = true;
 // downsamples output rate if <= 1, every frame is processed.
 constexpr int kDefaultProcessEveryNthFrame = 1;
-// whether to strip the leading slash from the ros camera topic name for
-// input images, which makes the name resolution relative rather than absolute
-constexpr bool kDefaultRelativeCameraTopic = false;
 
 const std::string kDefaultOutputImageType = "";
 
@@ -63,33 +60,6 @@ class ImageUndistort {
 
   void cameraCallback(const sensor_msgs::ImageConstPtr& image_msg_in,
                       const sensor_msgs::CameraInfoConstPtr& cam_info_in);
-
-  template <typename Derived>
-  static bool xmlRpcToMatrix(const XmlRpc::XmlRpcValue& const_input,
-                             Eigen::MatrixBase<Derived>* output) {
-    // A local copy is required as the methods that allow you to access the
-    // XmlRpc values as doubles are not const and so cannot be used with the
-    // const ref
-    XmlRpc::XmlRpcValue input = const_input;
-
-    if (input.size() != output->rows()) {
-      ROS_ERROR_STREAM("Loaded matrix has "
-                       << input.size() << " rows, expected " << output->rows());
-      return false;
-    }
-    for (size_t i = 0; i < output->rows(); ++i) {
-      if (input[i].size() != output->cols()) {
-        ROS_ERROR_STREAM("Loaded matrix has "
-                         << input[i].size() << " columns in its " << i
-                         << " row, expected " << output->cols());
-        return false;
-      }
-      for (size_t j = 0; j < output->cols(); ++j) {
-        output->coeffRef(i, j) = input[i][j];
-      }
-    }
-    return true;
-  }
 
   // nodes
   ros::NodeHandle nh_;
@@ -115,6 +85,7 @@ class ImageUndistort {
   bool process_image_;
   bool output_camera_info_from_yaml_;
   int process_every_nth_frame_;
+  std::string output_image_type_;
 
   int frame_counter_;
 };

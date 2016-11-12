@@ -32,6 +32,29 @@ class BaseCameraParameters {
   bool operator==(const BaseCameraParameters& B) const;
 
  private:
+  template <typename Derived>
+  static void xmlRpcToMatrix(const XmlRpc::XmlRpcValue& const_input,
+                             Eigen::MatrixBase<Derived>* output) {
+    // A local copy is required as the methods that allow you to access the
+    // XmlRpc values as doubles are not const and so cannot be used with the
+    // const ref
+    XmlRpc::XmlRpcValue input = const_input;
+
+    if (input.size() != output->rows()) {
+      throw std::runtime_error("Loaded matrix has incorrect number of rows");
+    }
+    for (size_t i = 0; i < output->rows(); ++i) {
+      if (input[i].size() != output->cols()) {
+        throw std::runtime_error(
+            "Loaded matrix has incorrect number of columns");
+      }
+      for (size_t j = 0; j < output->cols(); ++j) {
+        output->coeffRef(i, j) = input[i][j];
+      }
+    }
+    return true;
+  }
+
   cv::Size resolution_;
   Eigen::Matrix<double, 4, 4> T_;
   Eigen::Matrix<double, 3, 3> P_;
@@ -54,6 +77,8 @@ class InputCameraParameters : public BaseCameraParameters {
 
   const std::vector<double>& D() const;       // get distortion vector
   const bool& usingRadtanDistortion() const;  // gets if using radtan distortion
+
+  bool operator==(const InputCameraParameters& B) const;
 
  private:
   static bool is_radtan_distortion(const std::string& distortion_model);
@@ -101,6 +126,8 @@ class CameraParametersPair {
 
   bool valid() const;
   bool valid(const bool check_input_camera) const;
+
+  bool operator==(const CameraParametersPair& B) const;
 
  private:
   std::shared_ptr<InputCameraParameters> input_;

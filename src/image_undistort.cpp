@@ -33,7 +33,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   bool undistort_image;
   private_nh_.param("undistort_image", undistort_image, kDefaultUndistortImage);
   camera_parameters_pair_ptr_ =
-      std::make_shared<CameraParamatersPair>(undistort_image);
+      std::make_shared<CameraParametersPair>(undistort_image);
 
   private_nh_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
@@ -42,7 +42,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   // check output type string is correctly formatted
   if (!output_image_type_.empty()) {
     try {
-      cv_bridge::getCvType(output_image_type_)
+      cv_bridge::getCvType(output_image_type_);
     } catch (const cv_brdige::exception& e) {
       ROS_ERROR_STREAM(
           "cv_bridge error while setting output_image_type, output will match "
@@ -116,9 +116,16 @@ void ImageUndistort::imageCallback(
   cv_bridge::CvImagePtr image_out_ptr(
       new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
 
-  if (camera_parameters_pair_ptr_->hasNewData()) {
-    undistorter_ptr_ =
-        std::make_shared<Undistorter>(*camera_parameters_pair_ptr_);
+  // if undistorter not built or built using old data update it
+  if (!undistorter_ptr || (undistorter_ptr->getCameraParametersPair !=
+                           *camera_parameters_pair_ptr_)) {
+    try {
+      undistorter_ptr_ =
+          std::make_shared<Undistorter>(*camera_parameters_pair_ptr_);
+    } catch (std::runtime_error e) {
+      ROS_ERROR(e.what());
+      return;
+    }
   }
 
   undistorter_ptr_->undistortImage(image_in_ptr->image,

@@ -46,10 +46,10 @@ BaseCameraParameters::BaseCameraParameters(
   bool T_loaded = false;
   if (nh.getParam(camera_namespace + "/T_cn_cnm1", T_in) ||
       nh.getParam(camera_namespace + "/T", T_in)) {
-    xmlRpcToMatrix(T_in, &T);
+    xmlRpcToMatrix(T_in, &T_);
     T_loaded = true;
   } else {
-    T = Eigen::Matrix4d::Identity();
+    T_ = Eigen::Matrix4d::Identity();
   }
 
   XmlRpc::XmlRpcValue P_in;
@@ -60,13 +60,13 @@ BaseCameraParameters::BaseCameraParameters(
       T_.topLeftCorner<3, 3>() = K_.inverse() * P_.topLeftCorner<3, 3>();
       T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
       T_(3, 3) = 1;
-    } else if (!P.isApprox(
-                   (Eigen::Matrix<double, 3, 4>() << K, 0, 0, 0).finished() *
-                   T)) {
+    } else if (!P_.isApprox(
+                   (Eigen::Matrix<double, 3, 4>() << K_, 0, 0, 0).finished() *
+                   T_)) {
       throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
     }
   } else {
-    P_ = (Eigen::Matrix<double, 3, 4>() << K, 0, 0, 0).finished() * T;
+    P_ = (Eigen::Matrix<double, 3, 4>() << K_, 0, 0, 0).finished() * T_;
   }
 }
 
@@ -75,15 +75,15 @@ BaseCameraParameters::BaseCameraParameters(
   resolution_.height = camera_info.height;
   resolution_.width = camera_info.width;
 
-  K_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+  K_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
       camera_info.K.data());
 
   T_.topLeftCorner<3, 3>() =
-      Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+      Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
           camera_info.R.data());
   T_(3, 3) = 1;
 
-  P_ = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
+  P_ = Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
       camera_info.P.data());
 
   T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
@@ -240,7 +240,7 @@ bool CameraParametersPair::setInputCameraParameters(
     const bool radtan_distortion) {
   try {
     input_ = std::shared_ptr<InputCameraParameters>(resolution, T, K, D,
-                                                     radtan_distortion);
+                                                    radtan_distortion);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR(e.what());
@@ -332,6 +332,10 @@ bool CameraParametersPair::valid(const bool check_input_camera) const {
   } else {
     return output_ != nullptr;
   }
+}
+
+bool operator==(const CameraParametersPair& B) const {
+  return getInput() == B.getInput() && (getOutput() == getOutput());
 }
 
 bool StereoCameraParameters::setInputCameraParameters(
