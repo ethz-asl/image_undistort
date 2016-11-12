@@ -43,11 +43,11 @@ void Undistorter::undistortImage(const cv::Mat& image,
             cv::BORDER_CONSTANT);
 }
 
-const CameraParametersPair& getCameraParametersPair() {
+const CameraParametersPair& Undistorter::getCameraParametersPair() {
   return used_camera_parameters_pair_;
 };
 
-static void Undistorter::distortPixel(
+void Undistorter::distortPixel(
     const Eigen::Matrix<double, 3, 4>& P_in,
     const Eigen::Matrix<double, 3, 4>& P_out, const bool using_radtan,
     const std::vector<double>& D, const Eigen::Vector2d& pixel_location,

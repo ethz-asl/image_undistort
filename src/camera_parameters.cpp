@@ -88,20 +88,20 @@ BaseCameraParameters::BaseCameraParameters(
 
   T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
 
-  if (!P.topLeftCorner<3, 3>().isApprox(K * T_.topLeftCorner<3, 3>())) {
+  if (!P_.topLeftCorner<3, 3>().isApprox(K_ * T_.topLeftCorner<3, 3>())) {
     throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
   }
 }
 
-BaseCameraParameters::BaseCameraParameters(const cv::Size& resolution,
-                                           const Eigen::Matrix<double, 4, 4>& T,
-                                           const Eigen::Matrix<double, 3, 4>& K)
-    : resolution_(resolution),
-      T_(T),
-      P((Eigen::Matrix<double, 3, 4>() << K, 0, 0, 0).finished() * T),
-      K_(K) {}
+BaseCameraParameters::BaseCameraParameters(const cv::Size& resolution_in,
+                                           const Eigen::Matrix<double, 4, 4>& T_in,
+                                           const Eigen::Matrix<double, 3, 4>& K_in)
+    : resolution_(resolution_in),
+      T_(T_in),
+      P_((Eigen::Matrix<double, 3, 4>() << K_in, 0, 0, 0).finished() * T_in),
+      K_(K_in) {}
 
-const cv::Size& BaseCameraParameters::resolution() const {return resolution_};
+const cv::Size& BaseCameraParameters::resolution() const {return resolution_;}
 
 const Eigen::Matrix<double, 4, 4>& BaseCameraParameters::T() const {
   return T_;
@@ -116,7 +116,7 @@ const Eigen::Matrix<double, 3, 1>& BaseCameraParameters::p() const {
 const Eigen::Matrix<double, 3, 4>& BaseCameraParameters::P() const {
   return P_;
 };
-const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::K() const {return K_};
+const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::K() const {return K_;}
 
 bool BaseCameraParameters::operator==(const BaseCameraParameters& B) const {
   return (resolution() == B.resolution()) && (T() == B.T()) && (P() == B.P()) &&
@@ -151,8 +151,8 @@ InputCameraParameters::InputCameraParameters(
 InputCameraParameters::InputCameraParameters(
     const sensor_msgs::CameraInfo& camera_info)
     : BaseCameraParameters(camera_info),
-      D_(D),
-      radtan_distortion_(is_radtan_distortion(camera_info->distortion_model)) {
+      D_(camera_info.D),
+      radtan_distortion_(is_radtan_distortion(camera_info.distortion_model)) {
   // ensure D always has at least 5 elements
   while (D_.size() < 5) {
     D_.push_back(0);
@@ -160,19 +160,19 @@ InputCameraParameters::InputCameraParameters(
 }
 
 InputCameraParameters::InputCameraParameters(
-    const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
-    const Eigen::Matrix<double, 3, 4>& K, const std::Vector<double>& D,
-    const bool R_loadedradtan_distortion)
-    : BaseCameraParameters(resolution_, T, K), D_(D) {
+    const cv::Size& resolution_in, const Eigen::Matrix<double, 4, 4>& T_in,
+    const Eigen::Matrix<double, 3, 4>& K_in, const std::vector<double>& D_in,
+    const bool radtan_distortion)
+    : BaseCameraParameters(resolution_in, T_in, K_in), D_(D_in) {
   // ensure D always has at least 5 elements
   while (D_.size() < 5) {
     D_.push_back(0);
   }
 }
 
-const std::Vector<double>& InputCameraParameters::D() const {return D_};
-const bool& InputCameraParameters::usingRadtanDistortion(){
-    return radtan_distortion_};
+const std::vector<double>& InputCameraParameters::D() const {return D_;}
+const bool InputCameraParameters::usingRadtanDistortion() const {
+    return radtan_distortion_;}
 
 static bool InputCameraParameters::is_radtan_distortion(
     const std::string& distortion_model) {
@@ -236,7 +236,7 @@ bool CameraParametersPair::setCameraParameters(
 
 bool CameraParametersPair::setInputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
-    const Eigen::Matrix<double, 3, 4>& K, const std::Vector<double>& D,
+    const Eigen::Matrix<double, 3, 4>& K, const std::vector<double>& D,
     const bool radtan_distortion) {
   try {
     input_ = std::shared_ptr<InputCameraParameters>(resolution, T, K, D,
@@ -371,7 +371,7 @@ bool StereoCameraParameters::setInputCameraParameters(
 
 bool StereoCameraParameters::setInputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
-    const Eigen::Matrix<double, 3, 4>& P, const std::Vector<double>& D,
+    const Eigen::Matrix<double, 3, 4>& P, const std::vector<double>& D,
     const bool radtan_distortion, const bool updating_left_camera) {
   try {
     if (updating_left_camera) {

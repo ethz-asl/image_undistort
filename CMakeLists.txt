@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(image_undistort)
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 

@@ -1,6 +1,6 @@
-#include <image_undistort/camera_parameters.h>
-#include <image_undistort/image_undistort.h>
-#include <image_undistort/undistorter.h>
+#include "image_undistort/camera_parameters.h"
+#include "image_undistort/image_undistort.h"
+#include "image_undistort/undistorter.h"
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                                const ros::NodeHandle& private_nh)
@@ -43,7 +43,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   if (!output_image_type_.empty()) {
     try {
       cv_bridge::getCvType(output_image_type_);
-    } catch (const cv_brdige::exception& e) {
+    } catch (const cv_bridge::Exception& e) {
       ROS_ERROR_STREAM(
           "cv_bridge error while setting output_image_type, output will match "
           "input type. "
@@ -53,6 +53,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   }
 
   // setup subscribers
+  std::string input_camera_namespace;
   if (input_camera_info_from_yaml) {
     private_nh_.param("input_camera_namespace", input_camera_namespace,
                       kDefaultInputCameraNamespace);
@@ -62,7 +63,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
-    image_sub_ = it_.subscribe(image_topic, queue_size_,
+    image_sub_ = it_.subscribe("input_image", queue_size_,
                                &ImageUndistort::imageCallback, this);
   } else {
     camera_sub_ = it_.subscribeCamera("", queue_size_,

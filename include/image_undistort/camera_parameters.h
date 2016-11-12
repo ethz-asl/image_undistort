@@ -16,9 +16,9 @@ class BaseCameraParameters {
 
   BaseCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
-  BaseCameraParameters(const cv::Size& resolution,
-                       const Eigen::Matrix<double, 4, 4>& T,
-                       const Eigen::Matrix<double, 3, 4>& K);
+  BaseCameraParameters(const cv::Size& resolution_in,
+                       const Eigen::Matrix<double, 4, 4>& T_in,
+                       const Eigen::Matrix<double, 3, 4>& K_in);
 
   const cv::Size& resolution() const;  // get image size
 
@@ -69,14 +69,14 @@ class InputCameraParameters : public BaseCameraParameters {
 
   InputCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
-  InputCameraParameters(const cv::Size& resolution,
-                        const Eigen::Matrix<double, 4, 4>& T,
-                        const Eigen::Matrix<double, 3, 4>& K,
-                        const std::vector<double>& D,
+  InputCameraParameters(const cv::Size& resolution_in,
+                        const Eigen::Matrix<double, 4, 4>& T_in,
+                        const Eigen::Matrix<double, 3, 4>& K_in,
+                        const std::vector<double>& D_in,
                         const bool radtan_distortion);
 
   const std::vector<double>& D() const;       // get distortion vector
-  const bool& usingRadtanDistortion() const;  // gets if using radtan distortion
+  const bool usingRadtanDistortion() const;  // gets if using radtan distortion
 
   bool operator==(const InputCameraParameters& B) const;
 
