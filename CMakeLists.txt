@@ -12,6 +12,7 @@ add_definitions(-std=c++11)
 cs_add_library(${PROJECT_NAME}
  src/image_undistort.cpp
  src/undistorter.cpp
+ src/camera_parameters.cpp
  )
 
 ############

@@ -1,23 +1,27 @@
 #include <image_undistort/undistorter.h>
 
-Undistorter::Undistorter(const cv::Size& resolution,
-                         const Eigen::Matrix<double, 3, 4>& P_in,
-                         const Eigen::Matrix<double, 3, 4>& P_out,
-                         const bool using_radtan,
-                         const std::vector<double>& D) {
+Undistorter::Undistorter(const CameraParametersPair& camera_parameters_pair) {
+  if (!camera_parameters_pair.hasNewData()) {
+    return;
+  }
+  if (!camera_parameters_pair.vaild()) {
+    ROS_ERROR("Attempted to create undistorter from invalid camera parameters");
+    return
+  }
+  cv::Size& resolution = camera_parameters_pair.getOutput->resolution();
   // Initialize maps
   cv::Mat map_x_float(resolution, CV_32FC1);
   cv::Mat map_y_float(resolution, CV_32FC1);
-
-  ROS_ERROR_STREAM(" " << P_in);
-  ROS_ERROR_STREAM(" " << P_out);
 
   // Compute the remap maps
   for (size_t v = 0; v < resolution.height; ++v) {
     for (size_t u = 0; u < resolution.width; ++u) {
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
-      distortPixel(P_in, P_out, using_radtan, D, pixel_location,
+      distortPixel(camera_parameters_pair.getInput->P(),
+                   camera_parameters_pair.getOutput->P(),
+                   camera_parameters_pair.getInput->UsingRadtanDistortion(),
+                   camera_parameters_pair->getInput.D(), pixel_location,
                    &distorted_pixel_location);
 
       // Insert in map

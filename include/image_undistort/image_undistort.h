@@ -108,13 +108,11 @@ class ImageUndistort {
   std::shared_ptr<Undistorter> undistorter_ptr_;
 
   // camera info
-  sensor_msgs::CameraInfo camera_info_in_;
-  sensor_msgs::CameraInfo camera_info_out_;
+  std::shared_ptr<CameraParametersPair> camera_parameters_pair_ptr_;
 
   // other variables
   int queue_size_;
   bool process_image_;
-  bool undistort_image_;
   bool output_camera_info_from_yaml_;
   int process_every_nth_frame_;
 

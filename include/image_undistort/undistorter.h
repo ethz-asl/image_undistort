@@ -3,19 +3,15 @@
 
 #include <Eigen/Eigen>
 
-#include <ros/ros.h>
-#include <iostream>
-
 #include <cv.h>
 #include <highgui.h>
-#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include "image_undistort/camera_parameters.h"
 
 class Undistorter {
  public:
-  Undistorter(const cv::Size& resolution,
-              const Eigen::Matrix<double, 3, 4>& P_in,
-              const Eigen::Matrix<double, 3, 4>& P_out, const bool using_radtan,
-              const std::vector<double>& D);
+  Undistorter(const CameraParametersPair& camera_parameters_pair);
 
   void undistortImage(const cv::Mat& image, cv::Mat* undistored_image);
 

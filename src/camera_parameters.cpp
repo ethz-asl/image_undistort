@@ -1,17 +1,18 @@
+#include <image_undistort/camera_parameters.h>
 
-BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
-                                           const std::string& namespace) {
+BaseCameraParameters::BaseCameraParameters(
+    const ros::NodeHandle& nh, const std::string& camera_namespace) {
   ROS_INFO("Loading camera parameters");
 
   XmlRpc::XmlRpcValue K_in;
   bool K_loaded = false;
-  if (private_nh_.getParam(namespace + "/K", K_in)) {
+  if (nh.getParam(camera_namespace + "/K", K_in)) {
     xmlRpcToMatrix(K_in, &K_);
     K_loaded = true;
   }
 
   std::vector<double> intrinsics_in;
-  if (private_nh_.getParam(namespace + "/intrinsics", intrinsics_in)) {
+  if (nh.getParam(camera_namespace + "/intrinsics", intrinsics_in)) {
     if (K_loaded) {
       ROS_WARN(
           "Both K and intrinsics vector given, ignoring intrinsics "
@@ -31,7 +32,7 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
   }
 
   std::vector<double> resolution_in;
-  if (private_nh_.getParam(namespace + "/resolution", resolution_in)) {
+  if (nh.getParam(camera_namespace + "/resolution", resolution_in)) {
     if (resolution_in.size() != 2) {
       throw std::runtime_error("Resolution must have exactly 2 values (x,y)");
     }
@@ -43,8 +44,8 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
 
   XmlRpc::XmlRpcValue T_in;
   bool T_loaded = false;
-  if (private_nh_.getParam(namespace + "/T_cn_cnm1", T_in) ||
-      private_nh_.getParam(namespace + "/T", T_in)) {
+  if (nh.getParam(camera_namespace + "/T_cn_cnm1", T_in) ||
+      nh.getParam(camera_namespace + "/T", T_in)) {
     xmlRpcToMatrix(T_in, &T);
     T_loaded = true;
   } else {
@@ -52,7 +53,7 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
   }
 
   XmlRpc::XmlRpcValue P_in;
-  if (private_nh_.getParam(namespace + "/P", P_in)) {
+  if (nh.getParam(camera_namespace + "/P", P_in)) {
     xmlRpcToMatrix(P_in, &P_);
 
     if (!T_loaded) {
@@ -100,32 +101,41 @@ BaseCameraParameters::BaseCameraParameters(const cv::Size& resolution,
       P((Eigen::Matrix<double, 3, 4>() << K, 0, 0, 0).finished() * T),
       K_(K) {}
 
-const cv::Size& BaseCameraParameters::resolution(){return resolution_};
+const cv::Size& BaseCameraParameters::resolution() const {return resolution_};
 
-const Eigen::Matrix<double, 4, 4>& BaseCameraParameters::T() { return T_; }
-const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::R() {
+const Eigen::Matrix<double, 4, 4>& BaseCameraParameters::T() const {
+  return T_;
+}
+const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::R() const {
   return T_.topLeftCorner<3, 3>();
 }
-const Eigen::Matrix<double, 3, 1>& BaseCameraParameters::p() {
+const Eigen::Matrix<double, 3, 1>& BaseCameraParameters::p() const {
   return T_.topRightCorner<3, 1>();
 }
 
-const Eigen::Matrix<double, 3, 4>& BaseCameraParameters::P() { return P_; };
-const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::K(){return K_};
+const Eigen::Matrix<double, 3, 4>& BaseCameraParameters::P() const {
+  return P_;
+};
+const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::K() const {return K_};
 
-InputCameraParameters::InputCameraParameters(const ros::NodeHandle& nh,
-                                             const std::string& namespace)
-    : BaseCameraParameters(nh, namespace) {
+bool BaseCameraParameters::operator==(const BaseCameraParameters& B) const {
+  return (resolution() == B.resolution()) && (T() == B.T()) && (P() == B.P()) &&
+         (K() == B.K());
+}
+
+InputCameraParameters::InputCameraParameters(
+    const ros::NodeHandle& nh, const std::string& camera_namespace)
+    : BaseCameraParameters(nh, camera_namespace) {
   std::string distortion_model_in;
-  if (!private_nh_.getParam(namespace + "/distortion_model",
-                            distortion_model_in)) {
+  if (!nh.getParam(camera_namespace + "/distortion_model",
+                   distortion_model_in)) {
     ROS_WARN("No distortion model given, assuming radtan");
     radtan_distortion_ = true;
   } else {
     radtan_distortion_ = is_radtan_distortion(distortion_model_in);
   }
 
-  if (!private_nh_.getParam(namespace + "/distortion_coeffs", D_)) {
+  if (!nh.getParam(camera_namespace + "/distortion_coeffs", D_)) {
     ROS_WARN(
         "No distortion coefficients found, assuming images are "
         "undistorted");
@@ -160,7 +170,7 @@ InputCameraParameters::InputCameraParameters(
   }
 }
 
-const std::Vector<double>& InputCameraParameters::D(){return D_};
+const std::Vector<double>& InputCameraParameters::D() const {return D_};
 const bool& InputCameraParameters::usingRadtanDistortion(){
     return radtan_distortion_};
 
@@ -183,55 +193,24 @@ static bool InputCameraParameters::is_radtan_distortion(
   }
 }
 
-OutputCameraParameters::OutputCameraParameters(const ros::NodeHandle& nh,
-                                               const std::string& namespace)
-    : BaseCameraParameters(nh, namespace){};
-
-OutputCameraParameters::OutputCameraParameters(
-    const sensor_msgs::CameraInfo& camera_info)
-    : BaseCameraParameters(camera_info){};
-
-OutputCameraParameters::OutputCameraParameters(
-    const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
-    const Eigen::Matrix<double, 3, 4>& K)
-    : BaseCameraParameters(resolution, T, K) {}
-
-void OutputCameraParameters::generateCameraInfoMessage(
-    sensor_msgs::CameraInfo* camera_info) {
-  camera_info->height = resolution_.height;
-  camera_info->width = resolution_.width;
-
-  Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-      camera_info->K.data()) = K_;
-
-  Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-      camera_info->R.data()) = T_.topLeftCorner<3, 3>();
-
-  Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
-      camera_info->P.data()) = P_;
-
-  camera_info->D = D_;
-  if (radtan_distortion_) {
-    camera_info->distortion_model = "radtan"
-  } else {
-    camera_info->distortion_model = "equidistant";
-  }
+bool InputCameraParameters::operator==(const IntputCameraParameters& B) const {
+  return (dynamic_cast<BaseCameraParameters>(*this) ==
+          dynamic_cast<BaseCameraParameters>(B)) &&
+         (D() == B.D()) && (distortion_model == B.distortion_model);
 }
 
 // holds the camera parameters of the input camera and virtual output camera
 CameraParametersPair::CameraParametersPair(const bool undistort)
     : undistort_(undistort){};
 
-bool CameraParametersPair::setCameraParameters(const ros::NodeHandle& nh,
-                                               const std::string& namespace,
-                                               bool updating_input_camera) {
+bool CameraParametersPair::setCameraParameters(
+    const ros::NodeHandle& nh, const std::string& camera_namespace,
+    bool updating_input_camera) {
   try {
     if (updating_input_camera) {
-      input_ = std::shared_ptr<InputCameraParameters>(
-          new InputCameraParameters(nh, namespace));
+      input_ = std::shared_ptr<InputCameraParameters>(nh, camera_namespace);
     } else {
-      output_ = std::shared_ptr<OutputCameraParameters>(
-          new OutputCameraParameters(nh, namespace));
+      output_ = std::shared_ptr<OutputCameraParameters>(nh, camera_namespace);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -244,11 +223,9 @@ bool CameraParametersPair::setCameraParameters(
     const sensor_msgs::CameraInfo& camera_info, bool updating_input_camera) {
   try {
     if (updating_input_camera) {
-      input_ = std::shared_ptr<InputCameraParameters>(
-          new InputCameraParameters(camera_info));
+      input_ = std::shared_ptr<InputCameraParameters>(camera_info);
     } else {
-      output_ = std::shared_ptr<OutputCameraParameters>(
-          new OutputCameraParameters(camera_info));
+      output_ = std::shared_ptr<OutputCameraParameters>(camera_info);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -262,8 +239,8 @@ bool CameraParametersPair::setInputCameraParameters(
     const Eigen::Matrix<double, 3, 4>& K, const std::Vector<double>& D,
     const bool radtan_distortion) {
   try {
-    input_ = std::shared_ptr<InputCameraParameters>(
-        new InputCameraParameters(resolution, T, K, D, radtan_distortion));
+    input_ = std::shared_ptr<InputCameraParameters>(resolution, T, K, D,
+                                                     radtan_distortion);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR(e.what());
@@ -275,8 +252,7 @@ bool CameraParametersPair::setOutputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
     const Eigen::Matrix<double, 3, 4>& K) {
   try {
-    output_ = std::shared_ptr<InputCameraParameters>(
-        new InputCameraParameters(resolution, T, K));
+    output_ = std::shared_ptr<OutputCameraParameters>(resolution, T, K);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR(e.what());
@@ -285,22 +261,46 @@ bool CameraParametersPair::setOutputCameraParameters(
 }
 
 void CameraParametersPair::generateOutputCameraInfoMessage(
-    sensor_msgs::CameraInfo* camera_info) {
-  if (output_ == nullptr) {
+    sensor_msgs::CameraInfo* camera_info) const {
+  if (!valid()) {
     throw std::runtime_error(
-        "Attempted to get output camera_info before a valid output has been "
-        "set");
+        "Attempted to get output camera_info before a valid input and output "
+        "has been set");
   } else {
-    output_.generateCameraInfoMessage(camera_info);
+    camera_info->height = output_.resolution().height;
+    camera_info->width = output_.resolution().width;
+
+    Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        camera_info->K.data()) = output_.K();
+
+    Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        camera_info->R.data()) = output_.R();
+
+    Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
+        camera_info->P.data()) = output_.P();
+
+    if (undistort_) {
+      for (double& d : camera_info->D) {
+        d = 0;
+      }
+    } else {
+      camera_info->D = input_.D();
+    }
+    if (input_.usingRadtanDistortion()) {
+      camera_info->distortion_model = "radtan"
+    } else {
+      camera_info->distortion_model = "equidistant";
+    }
   }
 }
 
-const bool& CameraParametersPair::undistort(){return undistort_};
+const bool& CameraParametersPair::undistort() const {return undistort_};
 
 const Eigen::Matrix<double, 3, 4>& CameraParametersPair::P_input() {
   if (input_ == nullptr) {
     throw std::runtime_error(
-        "Attempted to get projection matrix of input before a valid input had "
+        "Attempted to get projection matrix of input before a valid input "
+        "had "
         "been set");
   } else {
     return input_.P();
@@ -317,11 +317,16 @@ const Eigen::Matrix<double, 3, 4>& CameraParametersPair::P_output() {
   }
 }
 
-bool CameraParametersPair::valid() {
+const std::shared_ptr<InputCameraParameters>& CameraParametersPair::getInput(){
+    return input};
+const std::shared_ptr<OutputCameraParameters>& CameraParametersPair::getOutput()
+    const {return output};
+
+bool CameraParametersPair::valid() const {
   return (input_ != nullptr) && (output_ != nullptr);
 }
 
-bool CameraParametersPair::valid(const bool check_input_camera) {
+bool CameraParametersPair::valid(const bool check_input_camera) const {
   if (check_input_camera) {
     return input_ != nullptr;
   } else {
@@ -330,13 +335,13 @@ bool CameraParametersPair::valid(const bool check_input_camera) {
 }
 
 bool StereoCameraParameters::setInputCameraParameters(
-    const ros::NodeHandle& nh, const std::string& namespace,
+    const ros::NodeHandle& nh, const std::string& camera_namespace,
     bool updating_left_camera) {
   try {
     if (updating_left_camera) {
-      left_.setInputCameraParameters(nh, namespace);
+      left_.setInputCameraParameters(nh, camera_namespace);
     } else {
-      right_.setInputCameraParameters(nh, namespace);
+      right_.setInputCameraParameters(nh, camera_namespace);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -380,7 +385,8 @@ bool StereoCameraParameters::setInputCameraParameters(
 }
 
 void StereoCameraParameters::generateOutputCameraInfoMessage(
-    const bool get_left_camera_info, sensor_msgs::CameraInfo* camera_info) {
+    const bool get_left_camera_info,
+    sensor_msgs::CameraInfo* camera_info) const {
   if (get_left_camera_info) {
     left_->generateCameraInfoMessage(camera_info);
   } else {
@@ -388,17 +394,11 @@ void StereoCameraParameters::generateOutputCameraInfoMessage(
   }
 }
 
-const Eigen::Matrix<double, 3, 4>& P_left_input() { return left_.P_input(); }
-const Eigen::Matrix<double, 3, 4>& P_left_output() { return left_.P_output(); }
-
-const Eigen::Matrix<double, 3, 4>& P_right_input() { return right_.P_input(); }
-const Eigen::Matrix<double, 3, 4>& P_right_output() { return right_.P_input(); }
-
-bool StereoCameraParameters::valid() {
+bool StereoCameraParameters::valid() const {
   return input_.valid() && output_.valid();
 }
 bool StereoCameraParameters::valid(const bool check_left,
-                                   const bool check_input) {
+                                   const bool check_input) const {
   if (check_left) {
     return left_.valid(check_input);
   } else {

@@ -1,10 +1,18 @@
 #ifndef CAMERA_PARAMETERS_H
 #define CAMERA_PARAMETERS_H
 
+#include <ros/ros.h>
+#include <sensor_msgs/CameraInfo.h>
+
+#include <cv_bridge/cv_bridge.h>
+
+#include <Eigen/Eigen>
+
 // holds basic properties of a camera
 class BaseCameraParameters {
  public:
-  BaseCameraParameters(const ros::NodeHandle& nh, const std::string& namespace);
+  BaseCameraParameters(const ros::NodeHandle& nh,
+                       const std::string& camera_namespace);
 
   BaseCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
@@ -12,14 +20,16 @@ class BaseCameraParameters {
                        const Eigen::Matrix<double, 4, 4>& T,
                        const Eigen::Matrix<double, 3, 4>& K);
 
-  const cv::Size& resolution();  // get image size
+  const cv::Size& resolution() const;  // get image size
 
-  const Eigen::Matrix<double, 4, 4>& T();  // get transformation matrix
-  const Eigen::Matrix<double, 3, 3>& R();  // get rotation matrix
-  const Eigen::Matrix<double, 3, 1>& p();  // get position vector
+  const Eigen::Matrix<double, 4, 4>& T() const;  // get transformation matrix
+  const Eigen::Matrix<double, 3, 3>& R() const;  // get rotation matrix
+  const Eigen::Matrix<double, 3, 1>& p() const;  // get position vector
 
-  const Eigen::Matrix<double, 3, 4>& P();  // get projection matrix
-  const Eigen::Matrix<double, 3, 3>& K();  // get camera matrix
+  const Eigen::Matrix<double, 3, 4>& P() const;  // get projection matrix
+  const Eigen::Matrix<double, 3, 3>& K() const;  // get camera matrix
+
+  bool operator==(const BaseCameraParameters& B) const;
 
  private:
   cv::Size resolution_;
@@ -32,39 +42,31 @@ class BaseCameraParameters {
 class InputCameraParameters : public BaseCameraParameters {
  public:
   InputCameraParameters(const ros::NodeHandle& nh,
-                        const std::string& namespace);
+                        const std::string& camera_namespace);
 
   InputCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
   InputCameraParameters(const cv::Size& resolution,
                         const Eigen::Matrix<double, 4, 4>& T,
                         const Eigen::Matrix<double, 3, 4>& K,
-                        const std::Vector<double>& D,
-                        const bool R_loadedradtan_distortion);
+                        const std::vector<double>& D,
+                        const bool radtan_distortion);
 
-  const std::Vector<double>& D();       // get distortion vector
-  const bool& usingRadtanDistortion();  // gets if using radtan distortion
+  const std::vector<double>& D() const;       // get distortion vector
+  const bool& usingRadtanDistortion() const;  // gets if using radtan distortion
 
  private:
   static bool is_radtan_distortion(const std::string& distortion_model);
 
-  std::Vector<double> D_;
+  std::vector<double> D_;
   bool radtan_distortion_;
 };
 
-// basic camera properties + if undistortion needs to be performed
+// basic camera properties + anything special to output cameras (currently
+// nothing)
 class OutputCameraParameters : public BaseCameraParameters {
  public:
-  OutputCameraParameters(const ros::NodeHandle& nh,
-                         const std::string& namespace);
-
-  OutputCameraParameters(const sensor_msgs::CameraInfo& camera_info);
-
-  OutputCameraParameters(const cv::Size& resolution,
-                         const Eigen::Matrix<double, 4, 4>& T,
-                         const Eigen::Matrix<double, 3, 4>& K);
-
-  void generateCameraInfoMessage(sensor_msgs::CameraInfo* camera_info);
+  using BaseCameraParameters::BaseCameraParameters;
 };
 
 // holds the camera parameters of the input camera and virtual output camera
@@ -73,7 +75,8 @@ class CameraParametersPair {
   CameraParametersPair(const bool undistort = true);
 
   bool setCameraParameters(const ros::NodeHandle& nh,
-                           const std::string& namespace, bool updating_input_camera);
+                           const std::string& camera_namespace,
+                           bool updating_input_camera);
 
   bool setCameraParameters(const sensor_msgs::CameraInfo& camera_info,
                            bool updating_input_camera);
@@ -81,22 +84,23 @@ class CameraParametersPair {
   bool setInputCameraParameters(const cv::Size& resolution,
                                 const Eigen::Matrix<double, 4, 4>& T,
                                 const Eigen::Matrix<double, 3, 4>& K,
-                                const std::Vector<double>& D,
+                                const std::vector<double>& D,
                                 const bool radtan_distortion);
 
   bool setOutputCameraParameters(const cv::Size& resolution,
                                  const Eigen::Matrix<double, 4, 4>& T,
                                  const Eigen::Matrix<double, 3, 4>& K);
 
-  const bool& undistort();  // if the camera output will be undistorted
+  bool undistort() const;  // if the camera output will be undistorted
 
-  void generateOutputCameraInfoMessage(sensor_msgs::CameraInfo* camera_info);
+  void generateOutputCameraInfoMessage(
+      sensor_msgs::CameraInfo* camera_info) const;
 
-  const Eigen::Matrix<double, 3, 4>& P_input();
-  const Eigen::Matrix<double, 3, 4>& P_output();
+  const std::shared_ptr<InputCameraParameters>& getInput() const;
+  const std::shared_ptr<OutputCameraParameters>& getOutput() const;
 
-  bool valid();
-  bool valid(const bool check_input_camera);
+  bool valid() const;
+  bool valid(const bool check_input_camera) const;
 
  private:
   std::shared_ptr<InputCameraParameters> input_;
@@ -111,7 +115,8 @@ class CameraParametersPair {
 class StereoCameraParameters {
  public:
   bool setInputCameraParameters(const ros::NodeHandle& nh,
-                                const std::string& namespace, bool updating_left_camera);
+                                const std::string& camera_namespace,
+                                bool updating_left_camera);
 
   bool setInputCameraParameters(const sensor_msgs::CameraInfo& camera_info,
                                 bool updating_left_camera);
@@ -119,24 +124,20 @@ class StereoCameraParameters {
   bool setInputCameraParameters(const cv::Size& resolution,
                                 const Eigen::Matrix<double, 4, 4>& T,
                                 const Eigen::Matrix<double, 3, 4>& P,
-                                const std::Vector<double>& D,
-                                const bool radtan_distortion, const bool updating_left_camera);
+                                const std::vector<double>& D,
+                                const bool radtan_distortion,
+                                const bool updating_left_camera);
 
-  void generateOutputCameraInfoMessage(const bool get_left_camera_info,
-                                       sensor_msgs::CameraInfo* camera_info);
+  void generateOutputCameraInfoMessage(
+      const bool get_left_camera_info,
+      sensor_msgs::CameraInfo* camera_info) const;
 
-  const Eigen::Matrix<double, 3, 4>& P_left_input();
-  const Eigen::Matrix<double, 3, 4>& P_left_output();
-
-  const Eigen::Matrix<double, 3, 4>& P_right_input();
-  const Eigen::Matrix<double, 3, 4>& P_right_output();
-
-  bool valid();
-  bool valid(const bool left, const bool input);
+  bool valid() const;
+  bool valid(const bool left, const bool input) const;
 
  private:
   CameraParametersPair left_;
   CameraParametersPair right_;
-}
+};
 
 #endif  // CAMERA_PARAMETERS_H
