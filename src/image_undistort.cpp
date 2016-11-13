@@ -106,7 +106,7 @@ void ImageUndistort::imageCallback(
   frame_counter_ = 0;
 
   if (!process_image_) {
-    sensor_msgs::CameraInfo* camera_info;
+    sensor_msgs::CameraInfo camera_info;
     camera_info.header.stamp = image_msg_in->header.stamp;
     camera_info.header.frame_id = image_msg_in->header.frame_id;
     camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
@@ -118,13 +118,13 @@ void ImageUndistort::imageCallback(
       new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
 
   // if undistorter not built or built using old data update it
-  if (!undistorter_ptr || (undistorter_ptr->getCameraParametersPair !=
+  if (!undistorter_ptr_ || (undistorter_ptr_->getCameraParametersPair() !=
                            *camera_parameters_pair_ptr_)) {
     try {
       undistorter_ptr_ =
           std::make_shared<Undistorter>(*camera_parameters_pair_ptr_);
     } catch (std::runtime_error e) {
-      ROS_ERROR(e.what());
+      ROS_ERROR("%s", e.what());
       return;
     }
   }
@@ -132,17 +132,19 @@ void ImageUndistort::imageCallback(
   undistorter_ptr_->undistortImage(image_in_ptr->image,
                                    &(image_out_ptr->image));
 
-  camera_info_out_.header.stamp = image_out_ptr->header.stamp;
-  camera_info_out_.header.frame_id = image_out_ptr->header.frame_id;
-  camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info_out_);
+  sensor_msgs::CameraInfo camera_info;
+  camera_info.header.stamp = image_out_ptr->header.stamp;
+  camera_info.header.frame_id = image_out_ptr->header.frame_id;
+  camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
+  camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
 }
 
 void ImageUndistort::cameraCallback(
     const sensor_msgs::ImageConstPtr& image_msg_in,
     const sensor_msgs::CameraInfoConstPtr& camera_info_in) {
-  camera_parameters_pair_ptr_->setCameraParameters(camera_info_in, true);
+  camera_parameters_pair_ptr_->setCameraParameters(*camera_info_in, true);
   if (!output_camera_info_from_yaml_) {
-    camera_parameters_pair_ptr_->setCameraParameters(camera_info_in, false);
+    camera_parameters_pair_ptr_->setCameraParameters(*camera_info_in, false);
   }
 
   imageCallback(image_msg_in);

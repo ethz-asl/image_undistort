@@ -18,18 +18,22 @@ class BaseCameraParameters {
 
   BaseCameraParameters(const cv::Size& resolution_in,
                        const Eigen::Matrix<double, 4, 4>& T_in,
-                       const Eigen::Matrix<double, 3, 4>& K_in);
+                       const Eigen::Matrix<double, 3, 3>& K_in);
 
   const cv::Size& resolution() const;  // get image size
 
   const Eigen::Matrix<double, 4, 4>& T() const;  // get transformation matrix
-  const Eigen::Matrix<double, 3, 3>& R() const;  // get rotation matrix
-  const Eigen::Matrix<double, 3, 1>& p() const;  // get position vector
+  const Eigen::Ref<const Eigen::Matrix<double, 3, 3>> R()
+      const;  // get rotation matrix
+  const Eigen::Ref<const Eigen::Matrix<double, 3, 1>> p()
+      const;  // get position vector
 
   const Eigen::Matrix<double, 3, 4>& P() const;  // get projection matrix
-  const Eigen::Matrix<double, 3, 3>& K() const;  // get camera matrix
+  const Eigen::Ref<const Eigen::Matrix<double, 3, 3>> K()
+      const;  // get camera matrix
 
   bool operator==(const BaseCameraParameters& B) const;
+  bool operator!=(const BaseCameraParameters& B) const;
 
  private:
   template <typename Derived>
@@ -52,12 +56,11 @@ class BaseCameraParameters {
         output->coeffRef(i, j) = input[i][j];
       }
     }
-    return true;
   }
 
   cv::Size resolution_;
   Eigen::Matrix<double, 4, 4> T_;
-  Eigen::Matrix<double, 3, 3> P_;
+  Eigen::Matrix<double, 3, 4> P_;
   Eigen::Matrix<double, 3, 3> K_;
 };
 
@@ -71,14 +74,15 @@ class InputCameraParameters : public BaseCameraParameters {
 
   InputCameraParameters(const cv::Size& resolution_in,
                         const Eigen::Matrix<double, 4, 4>& T_in,
-                        const Eigen::Matrix<double, 3, 4>& K_in,
+                        const Eigen::Matrix<double, 3, 3>& K_in,
                         const std::vector<double>& D_in,
                         const bool radtan_distortion);
 
-  const std::vector<double>& D() const;       // get distortion vector
+  const std::vector<double>& D() const;      // get distortion vector
   const bool usingRadtanDistortion() const;  // gets if using radtan distortion
 
   bool operator==(const InputCameraParameters& B) const;
+  bool operator!=(const InputCameraParameters& B) const;
 
  private:
   static bool is_radtan_distortion(const std::string& distortion_model);
@@ -108,13 +112,13 @@ class CameraParametersPair {
 
   bool setInputCameraParameters(const cv::Size& resolution,
                                 const Eigen::Matrix<double, 4, 4>& T,
-                                const Eigen::Matrix<double, 3, 4>& K,
+                                const Eigen::Matrix<double, 3, 3>& K,
                                 const std::vector<double>& D,
                                 const bool radtan_distortion);
 
   bool setOutputCameraParameters(const cv::Size& resolution,
                                  const Eigen::Matrix<double, 4, 4>& T,
-                                 const Eigen::Matrix<double, 3, 4>& K);
+                                 const Eigen::Matrix<double, 3, 3>& K);
 
   bool undistort() const;  // if the camera output will be undistorted
 
@@ -128,6 +132,7 @@ class CameraParametersPair {
   bool valid(const bool check_input_camera) const;
 
   bool operator==(const CameraParametersPair& B) const;
+  bool operator!=(const CameraParametersPair& B) const;
 
  private:
   std::shared_ptr<InputCameraParameters> input_;
@@ -150,7 +155,7 @@ class StereoCameraParameters {
 
   bool setInputCameraParameters(const cv::Size& resolution,
                                 const Eigen::Matrix<double, 4, 4>& T,
-                                const Eigen::Matrix<double, 3, 4>& P,
+                                const Eigen::Matrix<double, 3, 3>& K,
                                 const std::vector<double>& D,
                                 const bool radtan_distortion,
                                 const bool updating_left_camera);
