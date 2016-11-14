@@ -1,5 +1,5 @@
-#include "image_undistort/camera_parameters.h"
 #include "image_undistort/image_undistort.h"
+#include "image_undistort/camera_parameters.h"
 #include "image_undistort/undistorter.h"
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
@@ -29,6 +29,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     ros::shutdown();
     exit(EXIT_SUCCESS);
   }
+  private_nh_.param("scale", scale_, kDefaultScale);
 
   bool undistort_image;
   private_nh_.param("undistort_image", undistort_image, kDefaultUndistortImage);
@@ -82,16 +83,12 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
         ros::shutdown();
         exit(EXIT_FAILURE);
       }
+    } else {
+      camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
     }
     camera_pub_ = it_.advertiseCamera("output", queue_size_);
   } else {
-    // no processing so load input camera to output camera as well
-    if (!camera_parameters_pair_ptr_->setCameraParameters(
-            private_nh_, input_camera_namespace, false)) {
-      ROS_FATAL("Loading of input camera parameters failed, exiting");
-      ros::shutdown();
-      exit(EXIT_FAILURE);
-    }
+    camera_parameters_pair_ptr_->setOutputFromInput();
 
     camera_info_pub_ =
         nh_.advertise<sensor_msgs::CameraInfo>("cam_info", queue_size_);
@@ -119,7 +116,7 @@ void ImageUndistort::imageCallback(
 
   // if undistorter not built or built using old data update it
   if (!undistorter_ptr_ || (undistorter_ptr_->getCameraParametersPair() !=
-                           *camera_parameters_pair_ptr_)) {
+                            *camera_parameters_pair_ptr_)) {
     try {
       undistorter_ptr_ =
           std::make_shared<Undistorter>(*camera_parameters_pair_ptr_);
@@ -144,7 +141,7 @@ void ImageUndistort::cameraCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info_in) {
   camera_parameters_pair_ptr_->setCameraParameters(*camera_info_in, true);
   if (!output_camera_info_from_yaml_) {
-    camera_parameters_pair_ptr_->setCameraParameters(*camera_info_in, false);
+    camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
   }
 
   imageCallback(image_msg_in);

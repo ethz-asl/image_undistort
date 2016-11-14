@@ -1,4 +1,5 @@
 #include <image_undistort/camera_parameters.h>
+#include <image_undistort/undistorter.h>
 
 BaseCameraParameters::BaseCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace) {
@@ -60,13 +61,16 @@ BaseCameraParameters::BaseCameraParameters(
       T_.topLeftCorner<3, 3>() = K_.inverse() * P_.topLeftCorner<3, 3>();
       T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
       T_(3, 3) = 1;
-    } else if (!P_.isApprox(
-                   (Eigen::Matrix<double, 3, 4>() << K_, 0, 0, 0).finished() *
-                   T_)) {
+    } else if (!P_.isApprox((Eigen::Matrix<double, 3, 4>() << K_,
+                             Eigen::Vector3d::Constant(0))
+                                .finished() *
+                            T_)) {
       throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
     }
   } else {
-    P_ = (Eigen::Matrix<double, 3, 4>() << K_, 0, 0, 0).finished() * T_;
+    P_ = (Eigen::Matrix<double, 3, 4>() << K_, Eigen::Vector3d::Constant(0))
+             .finished() *
+         T_;
   }
 }
 
@@ -78,10 +82,10 @@ BaseCameraParameters::BaseCameraParameters(
   K_ = Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
       camera_info.K.data());
 
+  T_ = Eigen::Matrix4d::Identity();
   T_.topLeftCorner<3, 3>() =
       Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
           camera_info.R.data());
-  T_(3, 3) = 1;
 
   P_ = Eigen::Map<const Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
       camera_info.P.data());
@@ -98,7 +102,9 @@ BaseCameraParameters::BaseCameraParameters(
     const Eigen::Matrix<double, 3, 3>& K_in)
     : resolution_(resolution_in),
       T_(T_in),
-      P_((Eigen::Matrix<double, 3, 4>() << K_in, 0, 0, 0).finished() * T_in),
+      P_((Eigen::Matrix<double, 3, 4>() << K_in, Eigen::Vector3d::Constant(0))
+             .finished() *
+         T_in),
       K_(K_in) {}
 
 const cv::Size& BaseCameraParameters::resolution() const { return resolution_; }
@@ -118,8 +124,7 @@ const Eigen::Ref<const Eigen::Matrix<double, 3, 1>> BaseCameraParameters::p()
 const Eigen::Matrix<double, 3, 4>& BaseCameraParameters::P() const {
   return P_;
 }
-const Eigen::Ref<const Eigen::Matrix<double, 3, 3>> BaseCameraParameters::K()
-    const {
+const Eigen::Matrix<double, 3, 3>& BaseCameraParameters::K() const {
   return K_;
 }
 
@@ -272,6 +277,110 @@ bool CameraParametersPair::setOutputCameraParameters(
     ROS_ERROR("%s", e.what());
     return false;
   }
+}
+
+bool CameraParametersPair::setOutputFromInput() {
+  if (!valid(true)) {
+    ROS_ERROR(
+        "Cannot set output to same values as input, as input is not currently "
+        "set");
+    return false;
+  } else {
+    setOutputCameraParameters(input_->resolution(), input_->T(), input_->K());
+    return true;
+  }
+}
+
+bool CameraParametersPair::setOptimalOutputCameraParameters(
+    const double scale) {
+  if (!valid(true)) {
+    ROS_ERROR(
+        "Optimal output camera parameters cannot be set until the input camera "
+        "parameters have been given");
+    return false;
+  }
+  cv::Size resolution_estimate(input_->resolution().width,
+                               input_->resolution().height);
+  double focal_length = scale * (input_->K()(0, 0) + input_->K()(1, 1)) / 2;
+  Eigen::Matrix<double, 3, 4> P = Eigen::Matrix<double, 3, 4>::Zero();
+  P(0, 0) = focal_length;
+  P(1, 1) = focal_length;
+  P(2, 2) = 1;
+  P(0, 2) = static_cast<double>(resolution_estimate.width) / 2.0;
+  P(1, 2) = static_cast<double>(resolution_estimate.height) / 2.0;
+  P.topRightCorner<3, 1>() = focal_length * input_->T().topRightCorner<3, 1>();
+
+  // Find the resolution of the output image
+  // Thanks to weird corner cases this is way more complex then it should be.
+  // The general case is even more of a nightmare, so we constrain the problem
+  // such that the center of focus must be in the center of the final image.
+
+  // as we are missing the forward projection model we iteratively estimate
+  // image size assuming a linear relationship between warping and size at each
+  // step
+  for (size_t i = 0; i < kFocalLengthEstimationAttempts; ++i) {
+    // get list of edge points to check
+    std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d>>
+        pixel_locations;
+    for (size_t v = 0; v < resolution_estimate.height; ++v) {
+      pixel_locations.emplace_back(0, v);
+      pixel_locations.emplace_back(resolution_estimate.width - 1, v);
+    }
+    for (size_t u = 1; u < (resolution_estimate.width - 1); ++u) {
+      pixel_locations.emplace_back(u, 0);
+      pixel_locations.emplace_back(u, resolution_estimate.height - 1);
+    }
+
+    // find extreme points
+    double max_x = 0;
+    double max_y = 0;
+    for (Eigen::Vector2d pixel_location : pixel_locations) {
+      Eigen::Vector2d distorted_pixel_location;
+      Undistorter::distortPixel(input_->P(), P, input_->usingRadtanDistortion(),
+                                input_->D(), pixel_location,
+                                &distorted_pixel_location);
+
+      max_x = std::max(
+          max_x, std::abs(static_cast<double>(input_->resolution().width) / 2.0 -
+                          distorted_pixel_location.x()));
+      max_y = std::max(
+          max_y,
+          std::abs(static_cast<double>(input_->resolution().height) / 2.0 -
+                   distorted_pixel_location.y()));
+    }
+
+    ROS_ERROR_STREAM(" " << max_x << " " << max_y);
+
+    // change resolution estimate so that extreme points lie on edges (under the
+    // aforementioned linear assumption)
+    cv::Size resolution_update;
+    resolution_update.width = std::floor(
+        static_cast<double>(resolution_estimate.width) *
+        std::abs(static_cast<double>(input_->resolution().width) - max_x) /
+        (static_cast<double>(input_->resolution().width) / 2.0));
+    resolution_update.height = std::floor(
+        static_cast<double>(resolution_estimate.height) *
+        std::abs(static_cast<double>(input_->resolution().height) - max_y) /
+        (static_cast<double>(input_->resolution().height) / 2.0));
+
+    if (resolution_update == resolution_estimate) {
+      break;
+    } else {
+      resolution_estimate = resolution_update;
+      P(0, 2) = static_cast<double>(resolution_estimate.width) / 2.0;
+      P(1, 2) = static_cast<double>(resolution_estimate.height) / 2.0;
+    }
+  }
+
+  // resolution_estimate.height += 20;
+  // resolution_estimate.width += 400;
+
+  // create final camera parameters
+  Eigen::Matrix3d K = P.topLeftCorner<3, 3>();
+  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+  T.topRightCorner<3, 1>() = input_->T().topRightCorner<3, 1>();
+
+  return setOutputCameraParameters(resolution_estimate, T, K);
 }
 
 void CameraParametersPair::generateOutputCameraInfoMessage(

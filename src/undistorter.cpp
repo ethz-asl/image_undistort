@@ -47,11 +47,12 @@ const CameraParametersPair& Undistorter::getCameraParametersPair() {
   return used_camera_parameters_pair_;
 };
 
-void Undistorter::distortPixel(
-    const Eigen::Matrix<double, 3, 4>& P_in,
-    const Eigen::Matrix<double, 3, 4>& P_out, const bool using_radtan,
-    const std::vector<double>& D, const Eigen::Vector2d& pixel_location,
-    Eigen::Vector2d* distorted_pixel_location) {
+void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+                               const Eigen::Matrix<double, 3, 4>& P_out,
+                               const bool using_radtan,
+                               const std::vector<double>& D,
+                               const Eigen::Vector2d& pixel_location,
+                               Eigen::Vector2d* distorted_pixel_location) {
   // Transform image coordinates to be size and focus independent
   Eigen::Vector2d norm_pixel_location =
       P_out.topLeftCorner<2, 2>().inverse() *
@@ -107,5 +108,6 @@ void Undistorter::distortPixel(
   }
 
   *distorted_pixel_location =
-      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
+      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location /
+      (P_in.bottomLeftCorner<1, 4>() * norm_distorted_pixel_location);
 };

@@ -40,7 +40,7 @@ constexpr int kDefaultProcessEveryNthFrame = 1;
 
 const std::string kDefaultOutputImageType = "";
 
-constexpr bool kDefaultPublishTFFrame = true;
+constexpr double kDefaultScale = 1.0;
 
 class ImageUndistort {
  public:
@@ -86,6 +86,7 @@ class ImageUndistort {
   bool output_camera_info_from_yaml_;
   int process_every_nth_frame_;
   std::string output_image_type_;
+  double scale_;
 
   int frame_counter_;
 };

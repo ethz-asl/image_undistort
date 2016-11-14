@@ -29,8 +29,7 @@ class BaseCameraParameters {
       const;  // get position vector
 
   const Eigen::Matrix<double, 3, 4>& P() const;  // get projection matrix
-  const Eigen::Ref<const Eigen::Matrix<double, 3, 3>> K()
-      const;  // get camera matrix
+  const Eigen::Matrix<double, 3, 3>& K() const;  // get camera matrix
 
   bool operator==(const BaseCameraParameters& B) const;
   bool operator!=(const BaseCameraParameters& B) const;
@@ -120,6 +119,10 @@ class CameraParametersPair {
                                  const Eigen::Matrix<double, 4, 4>& T,
                                  const Eigen::Matrix<double, 3, 3>& K);
 
+  bool setOutputFromInput();
+
+  bool setOptimalOutputCameraParameters(const double scale);
+
   bool undistort() const;  // if the camera output will be undistorted
 
   void generateOutputCameraInfoMessage(
@@ -139,6 +142,8 @@ class CameraParametersPair {
   std::shared_ptr<OutputCameraParameters> output_;
 
   bool undistort_;
+
+  static constexpr double kFocalLengthEstimationAttempts = 10;
 };
 
 // holds the camera parameters of the left and right camera and uses them to
