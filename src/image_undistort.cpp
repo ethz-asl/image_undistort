@@ -140,8 +140,7 @@ void ImageUndistort::imageCallback(
 
   if (!process_image_) {
     sensor_msgs::CameraInfo camera_info;
-    camera_info.header.stamp = image_msg_in->header.stamp;
-    camera_info.header.frame_id = image_msg_in->header.frame_id;
+    camera_info.header = image_msg_in->header;
     camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
     camera_info_pub_.publish(camera_info);
   }
@@ -170,8 +169,7 @@ void ImageUndistort::imageCallback(
     image_pub_.publish(*(image_out_ptr->toImageMsg()));
   } else {
     sensor_msgs::CameraInfo camera_info;
-    camera_info.header.stamp = image_out_ptr->header.stamp;
-    camera_info.header.frame_id = image_out_ptr->header.frame_id;
+    camera_info.header = image_out_ptr->header;
     camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
     camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
   }
