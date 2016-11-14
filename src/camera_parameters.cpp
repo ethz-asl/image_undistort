@@ -349,8 +349,6 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
                    distorted_pixel_location.y()));
     }
 
-    ROS_ERROR_STREAM(" " << max_x << " " << max_y);
-
     // change resolution estimate so that extreme points lie on edges (under the
     // aforementioned linear assumption)
     cv::Size resolution_update;

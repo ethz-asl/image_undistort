@@ -10,19 +10,37 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       undistorter_ptr_(nullptr),
       frame_counter_(0) {
   // set parameters from ros
-  bool input_camera_info_from_yaml;
-  private_nh_.param("input_camera_info_from_yaml", input_camera_info_from_yaml,
-                    kDefaultInputCameraInfoFromYaml);
-  private_nh_.param("output_camera_info_from_yaml",
-                    output_camera_info_from_yaml_,
-                    kDefaultOutputCameraInfoFromYaml);
+  bool input_camera_info_from_ros_params;
+  private_nh_.param("input_camera_info_from_ros_params",
+                    input_camera_info_from_ros_params,
+                    kDefaultInputCameraInfoFromROSParams);
+
+  std::string output_camera_info_source_in;
+  private_nh_.param("output_camera_info_source", output_camera_info_source_in,
+                    kDefaultOutputCameraInfoSource);
+  if (output_camera_info_source_in == "auto_generated") {
+    output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
+  } else if (output_camera_info_source_in == "match_input") {
+    output_camera_info_source_ = OutputInfoSource::MATCH_INPUT;
+  } else if (output_camera_info_source_in == "ros_params") {
+    output_camera_info_source_ = OutputInfoSource::ROS_PARAMS;
+  } else if (output_camera_info_source_in == "camera_info") {
+    output_camera_info_source_ = OutputInfoSource::CAMERA_INFO;
+  } else {
+    ROS_ERROR(
+        "Invalid camera source given, valid options are auto_generated, "
+        "match_input, ros_params and camera_info. Defaulting to "
+        "auto_generated");
+    output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
+  }
+
   private_nh_.param("queue_size", queue_size_, kQueueSize);
   if (queue_size_ < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
     queue_size_ = 1;
   }
   private_nh_.param("process_image", process_image_, kDefaultProcessImage);
-  if (!process_image_ && !input_camera_info_from_yaml) {
+  if (!process_image_ && !input_camera_info_from_ros_params) {
     ROS_FATAL(
         "Settings specify no image processing and not to generate camera info "
         "from file. This leaves nothing for the node to do, exiting");
@@ -55,7 +73,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
 
   // setup subscribers
   std::string input_camera_namespace;
-  if (input_camera_info_from_yaml) {
+  if (input_camera_info_from_ros_params) {
     private_nh_.param("input_camera_namespace", input_camera_namespace,
                       kDefaultInputCameraNamespace);
     if (!camera_parameters_pair_ptr_->setCameraParameters(
@@ -73,7 +91,8 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
 
   // setup publishers
   if (process_image_) {
-    if (output_camera_info_from_yaml_) {
+    bool pub_camera_info_output = true;
+    if (output_camera_info_source_ == OutputInfoSource::ROS_PARAMS) {
       std::string output_camera_namespace;
       private_nh_.param("output_camera_namespace", output_camera_namespace,
                         kDefaultOutputCameraNamespace);
@@ -83,15 +102,27 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
         ros::shutdown();
         exit(EXIT_FAILURE);
       }
-    } else {
+    } else if (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT) {
+      camera_parameters_pair_ptr_->setOutputFromInput();
+    } else if (output_camera_info_source_ == OutputInfoSource::AUTO_GENERATED) {
       camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
+    } else {
+      camera_info_sub_ =
+          nh_.subscribe("output/cam_info", queue_size_,
+                        &ImageUndistort::cameraInfoCallback, this);
+      pub_camera_info_output = false;
     }
-    camera_pub_ = it_.advertiseCamera("output", queue_size_);
+
+    if (pub_camera_info_output) {
+      camera_pub_ = it_.advertiseCamera("output", queue_size_);
+    } else {
+      image_pub_ = it_.advertise("output/image", queue_size_);
+    }
   } else {
     camera_parameters_pair_ptr_->setOutputFromInput();
 
     camera_info_pub_ =
-        nh_.advertise<sensor_msgs::CameraInfo>("cam_info", queue_size_);
+        nh_.advertise<sensor_msgs::CameraInfo>("output/cam_info", queue_size_);
   }
 }
 
@@ -129,20 +160,34 @@ void ImageUndistort::imageCallback(
   undistorter_ptr_->undistortImage(image_in_ptr->image,
                                    &(image_out_ptr->image));
 
-  sensor_msgs::CameraInfo camera_info;
-  camera_info.header.stamp = image_out_ptr->header.stamp;
-  camera_info.header.frame_id = image_out_ptr->header.frame_id;
-  camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
-  camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
+  // if camera info was just read in from a topic don't republish it
+  if (output_camera_info_source_ == OutputInfoSource::CAMERA_INFO) {
+    image_pub_.publish(*(image_out_ptr->toImageMsg()));
+  } else {
+    sensor_msgs::CameraInfo camera_info;
+    camera_info.header.stamp = image_out_ptr->header.stamp;
+    camera_info.header.frame_id = image_out_ptr->header.frame_id;
+    camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
+    camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
+  }
 }
 
 void ImageUndistort::cameraCallback(
-    const sensor_msgs::ImageConstPtr& image_msg_in,
-    const sensor_msgs::CameraInfoConstPtr& camera_info_in) {
-  camera_parameters_pair_ptr_->setCameraParameters(*camera_info_in, true);
-  if (!output_camera_info_from_yaml_) {
+    const sensor_msgs::ImageConstPtr& image_msg,
+    const sensor_msgs::CameraInfoConstPtr& camera_info) {
+  camera_parameters_pair_ptr_->setCameraParameters(*camera_info, true);
+  if (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT) {
+    camera_parameters_pair_ptr_->setOutputFromInput();
+  } else if (output_camera_info_source_ == OutputInfoSource::AUTO_GENERATED) {
     camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
   }
 
-  imageCallback(image_msg_in);
+  imageCallback(image_msg);
+}
+
+void ImageUndistort::cameraInfoCallback(
+    const sensor_msgs::CameraInfoConstPtr& camera_info) {
+  if (!camera_parameters_pair_ptr_->setCameraParameters(*camera_info, false)) {
+    ROS_ERROR("Setting output camera from ros message failed");
+  }
 }
