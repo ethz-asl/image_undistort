@@ -82,10 +82,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
-    image_sub_ = it_.subscribe("input_image", queue_size_,
+    image_sub_ = it_.subscribe("input/image", queue_size_,
                                &ImageUndistort::imageCallback, this);
   } else {
-    camera_sub_ = it_.subscribeCamera("", queue_size_,
+    camera_sub_ = it_.subscribeCamera("input", queue_size_,
                                       &ImageUndistort::cameraCallback, this);
   }
 

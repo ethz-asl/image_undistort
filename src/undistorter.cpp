@@ -8,10 +8,17 @@ Undistorter::Undistorter(
         "Attempted to create undistorter from invalid camera parameters");
   }
   const cv::Size& resolution =
-      used_camera_parameters_pair_.getOutput()->resolution();
+      used_camera_parameters_pair_.getOutputPtr()->resolution();
   // Initialize maps
   cv::Mat map_x_float(resolution, CV_32FC1);
   cv::Mat map_y_float(resolution, CV_32FC1);
+
+  std::vector<double> D;
+  if (used_camera_parameters_pair_.undistort()) {
+    D = used_camera_parameters_pair_.getInputPtr()->D();
+  } else {
+    D = std::vector<double>(0, 5);
+  }
 
   // Compute the remap maps
   for (size_t v = 0; v < resolution.height; ++v) {
@@ -19,11 +26,10 @@ Undistorter::Undistorter(
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
       distortPixel(
-          used_camera_parameters_pair_.getInput()->P(),
-          used_camera_parameters_pair_.getOutput()->P(),
-          used_camera_parameters_pair_.getInput()->usingRadtanDistortion(),
-          used_camera_parameters_pair_.getInput()->D(), pixel_location,
-          &distorted_pixel_location);
+          used_camera_parameters_pair_.getInputPtr()->P(),
+          used_camera_parameters_pair_.getOutputPtr()->P(),
+          used_camera_parameters_pair_.getInputPtr()->usingRadtanDistortion(),
+          D, pixel_location, &distorted_pixel_location);
 
       // Insert in map
       map_x_float.at<float>(v, u) =

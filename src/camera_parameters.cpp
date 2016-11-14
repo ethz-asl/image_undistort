@@ -224,12 +224,14 @@ CameraParametersPair::CameraParametersPair(const bool undistort)
 
 bool CameraParametersPair::setCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
-    bool updating_input_camera) {
+    bool updating_input_ptr_camera) {
   try {
-    if (updating_input_camera) {
-      input_ = std::make_shared<InputCameraParameters>(nh, camera_namespace);
+    if (updating_input_ptr_camera) {
+      input_ptr_ =
+          std::make_shared<InputCameraParameters>(nh, camera_namespace);
     } else {
-      output_ = std::make_shared<OutputCameraParameters>(nh, camera_namespace);
+      output_ptr_ =
+          std::make_shared<OutputCameraParameters>(nh, camera_namespace);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -239,12 +241,13 @@ bool CameraParametersPair::setCameraParameters(
 }
 
 bool CameraParametersPair::setCameraParameters(
-    const sensor_msgs::CameraInfo& camera_info, bool updating_input_camera) {
+    const sensor_msgs::CameraInfo& camera_info,
+    bool updating_input_ptr_camera) {
   try {
-    if (updating_input_camera) {
-      input_ = std::make_shared<InputCameraParameters>(camera_info);
+    if (updating_input_ptr_camera) {
+      input_ptr_ = std::make_shared<InputCameraParameters>(camera_info);
     } else {
-      output_ = std::make_shared<OutputCameraParameters>(camera_info);
+      output_ptr_ = std::make_shared<OutputCameraParameters>(camera_info);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -258,8 +261,8 @@ bool CameraParametersPair::setInputCameraParameters(
     const Eigen::Matrix<double, 3, 3>& K, const std::vector<double>& D,
     const bool radtan_distortion) {
   try {
-    input_ = std::make_shared<InputCameraParameters>(resolution, T, K, D,
-                                                     radtan_distortion);
+    input_ptr_ = std::make_shared<InputCameraParameters>(resolution, T, K, D,
+                                                         radtan_distortion);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR("%s", e.what());
@@ -271,7 +274,7 @@ bool CameraParametersPair::setOutputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
     const Eigen::Matrix<double, 3, 3>& K) {
   try {
-    output_ = std::make_shared<OutputCameraParameters>(resolution, T, K);
+    output_ptr_ = std::make_shared<OutputCameraParameters>(resolution, T, K);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR("%s", e.what());
@@ -286,7 +289,8 @@ bool CameraParametersPair::setOutputFromInput() {
         "set");
     return false;
   } else {
-    setOutputCameraParameters(input_->resolution(), input_->T(), input_->K());
+    setOutputCameraParameters(input_ptr_->resolution(), input_ptr_->T(),
+                              input_ptr_->K());
     return true;
   }
 }
@@ -299,16 +303,24 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
         "parameters have been given");
     return false;
   }
-  cv::Size resolution_estimate(input_->resolution().width,
-                               input_->resolution().height);
-  double focal_length = scale * (input_->K()(0, 0) + input_->K()(1, 1)) / 2;
+  cv::Size resolution_estimate(input_ptr_->resolution().width,
+                               input_ptr_->resolution().height);
+  double focal_length =
+      scale * (input_ptr_->K()(0, 0) + input_ptr_->K()(1, 1)) / 2;
   Eigen::Matrix<double, 3, 4> P = Eigen::Matrix<double, 3, 4>::Zero();
   P(0, 0) = focal_length;
   P(1, 1) = focal_length;
   P(2, 2) = 1;
   P(0, 2) = static_cast<double>(resolution_estimate.width) / 2.0;
   P(1, 2) = static_cast<double>(resolution_estimate.height) / 2.0;
-  P.topRightCorner<3, 1>() = focal_length * input_->T().topRightCorner<3, 1>();
+  P(0, 3) = focal_length * input_ptr_->T()(0, 3);
+
+  std::vector<double> D;
+  if (undistort_) {
+    D = input_ptr_->D();
+  } else {
+    D = std::vector<double>(0, 5);
+  }
 
   // Find the resolution of the output image
   // Thanks to weird corner cases this is way more complex then it should be.
@@ -316,7 +328,8 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   // such that the center of focus must be in the center of the final image.
 
   // as we are missing the forward projection model we iteratively estimate
-  // image size assuming a linear relationship between warping and size at each
+  // image size assuming a linear relationship between warping and size at
+  // each
   // step
   for (size_t i = 0; i < kFocalLengthEstimationAttempts; ++i) {
     // get list of edge points to check
@@ -336,30 +349,32 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     double max_y = 0;
     for (Eigen::Vector2d pixel_location : pixel_locations) {
       Eigen::Vector2d distorted_pixel_location;
-      Undistorter::distortPixel(input_->P(), P, input_->usingRadtanDistortion(),
-                                input_->D(), pixel_location,
-                                &distorted_pixel_location);
+      Undistorter::distortPixel(input_ptr_->P(), P,
+                                input_ptr_->usingRadtanDistortion(), D,
+                                pixel_location, &distorted_pixel_location);
 
       max_x = std::max(
-          max_x, std::abs(static_cast<double>(input_->resolution().width) / 2.0 -
-                          distorted_pixel_location.x()));
+          max_x,
+          std::abs(static_cast<double>(input_ptr_->resolution().width) / 2.0 -
+                   distorted_pixel_location.x()));
       max_y = std::max(
           max_y,
-          std::abs(static_cast<double>(input_->resolution().height) / 2.0 -
+          std::abs(static_cast<double>(input_ptr_->resolution().height) / 2.0 -
                    distorted_pixel_location.y()));
     }
 
-    // change resolution estimate so that extreme points lie on edges (under the
+    // change resolution estimate so that extreme points lie on edges (under
+    // the
     // aforementioned linear assumption)
     cv::Size resolution_update;
     resolution_update.width = std::floor(
         static_cast<double>(resolution_estimate.width) *
-        std::abs(static_cast<double>(input_->resolution().width) - max_x) /
-        (static_cast<double>(input_->resolution().width) / 2.0));
+        std::abs(static_cast<double>(input_ptr_->resolution().width) - max_x) /
+        (static_cast<double>(input_ptr_->resolution().width) / 2.0));
     resolution_update.height = std::floor(
         static_cast<double>(resolution_estimate.height) *
-        std::abs(static_cast<double>(input_->resolution().height) - max_y) /
-        (static_cast<double>(input_->resolution().height) / 2.0));
+        std::abs(static_cast<double>(input_ptr_->resolution().height) - max_y) /
+        (static_cast<double>(input_ptr_->resolution().height) / 2.0));
 
     if (resolution_update == resolution_estimate) {
       break;
@@ -370,13 +385,10 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     }
   }
 
-  // resolution_estimate.height += 20;
-  // resolution_estimate.width += 400;
-
   // create final camera parameters
   Eigen::Matrix3d K = P.topLeftCorner<3, 3>();
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
-  T.topRightCorner<3, 1>() = input_->T().topRightCorner<3, 1>();
+  T(0, 3) = input_ptr_->T()(0, 3);
 
   return setOutputCameraParameters(resolution_estimate, T, K);
 }
@@ -388,26 +400,26 @@ void CameraParametersPair::generateOutputCameraInfoMessage(
         "Attempted to get output camera_info before a valid input and output "
         "has been set");
   } else {
-    camera_info->height = output_->resolution().height;
-    camera_info->width = output_->resolution().width;
+    camera_info->height = output_ptr_->resolution().height;
+    camera_info->width = output_ptr_->resolution().width;
 
     Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        camera_info->K.data()) = output_->K();
+        camera_info->K.data()) = output_ptr_->K();
 
     Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        camera_info->R.data()) = output_->R();
+        camera_info->R.data()) = output_ptr_->R();
 
     Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
-        camera_info->P.data()) = output_->P();
+        camera_info->P.data()) = output_ptr_->P();
 
     if (undistort_) {
       for (double& d : camera_info->D) {
         d = 0;
       }
     } else {
-      camera_info->D = input_->D();
+      camera_info->D = input_ptr_->D();
     }
-    if (input_->usingRadtanDistortion()) {
+    if (input_ptr_->usingRadtanDistortion()) {
       camera_info->distortion_model = "radtan";
     } else {
       camera_info->distortion_model = "equidistant";
@@ -417,34 +429,38 @@ void CameraParametersPair::generateOutputCameraInfoMessage(
 
 bool CameraParametersPair::undistort() const { return undistort_; }
 
-const std::shared_ptr<InputCameraParameters>& CameraParametersPair::getInput()
-    const {
-  return input_;
+const std::shared_ptr<InputCameraParameters>&
+CameraParametersPair::getInputPtr() const {
+  return input_ptr_;
 }
-const std::shared_ptr<OutputCameraParameters>& CameraParametersPair::getOutput()
-    const {
-  return output_;
+const std::shared_ptr<OutputCameraParameters>&
+CameraParametersPair::getOutputPtr() const {
+  return output_ptr_;
 }
 
 bool CameraParametersPair::valid() const {
-  return (input_ != nullptr) && (output_ != nullptr);
+  return (input_ptr_ != nullptr) && (output_ptr_ != nullptr);
 }
 
-bool CameraParametersPair::valid(const bool check_input_camera) const {
-  if (check_input_camera) {
-    return input_ != nullptr;
+bool CameraParametersPair::valid(const bool check_input_ptr_camera) const {
+  if (check_input_ptr_camera) {
+    return input_ptr_ != nullptr;
   } else {
-    return output_ != nullptr;
+    return output_ptr_ != nullptr;
   }
 }
 
 bool CameraParametersPair::operator==(const CameraParametersPair& B) const {
-  return getInput() == B.getInput() && (getOutput() == B.getOutput());
+  return getInputPtr() == B.getInputPtr() &&
+         (getOutputPtr() == B.getOutputPtr());
 }
 
 bool CameraParametersPair::operator!=(const CameraParametersPair& B) const {
   return !(*this == B);
 }
+
+StereoCameraParameters::StereoCameraParameters(const double scale)
+    : scale_(scale){};
 
 bool StereoCameraParameters::setInputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
@@ -454,6 +470,9 @@ bool StereoCameraParameters::setInputCameraParameters(
       left_.setCameraParameters(nh, camera_namespace, true);
     } else {
       right_.setCameraParameters(nh, camera_namespace, true);
+    }
+    if (valid(true, false) && valid(false, false)) {
+      generateOutputCameraParameters();
     }
     return true;
   } catch (std::runtime_error e) {
@@ -469,6 +488,9 @@ bool StereoCameraParameters::setInputCameraParameters(
       left_.setCameraParameters(camera_info, true);
     } else {
       right_.setCameraParameters(camera_info, true);
+    }
+    if (valid(true, false) && valid(false, false)) {
+      generateOutputCameraParameters();
     }
     return true;
   } catch (std::runtime_error e) {
@@ -486,6 +508,9 @@ bool StereoCameraParameters::setInputCameraParameters(
       left_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
     } else {
       right_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
+    }
+    if (valid(true, false) && valid(false, false)) {
+      generateOutputCameraParameters();
     }
     return true;
   } catch (std::runtime_error e) {
@@ -514,4 +539,38 @@ bool StereoCameraParameters::valid(const bool check_left,
   } else {
     return right_.valid(check_input);
   }
+}
+
+bool StereoCameraParameters::generateOutputCameraParameters() {
+  // set individual outputs
+  if (!left_.setOptimalOutputCameraParameters(scale_) ||
+      !right_.setOptimalOutputCameraParameters(scale_)) {
+    ROS_ERROR("Automatic generation of stereo output parameters failed");
+    return false;
+  }
+
+  // grab most conservative values
+  cv::Size resolution(std::min(left_.getOutputPtr()->resolution().width,
+                               right_.getOutputPtr()->resolution().width),
+                      std::min(left_.getOutputPtr()->resolution().height,
+                               right_.getOutputPtr()->resolution().height));
+
+  Eigen::Matrix3d K = Eigen::Matrix3d::Zero();
+  K(0, 0) = std::max(left_.getOutputPtr()->K()(0, 0),
+                     right_.getOutputPtr()->K()(0, 0));
+  K(1, 1) = K(0, 0);
+  K(0, 2) = static_cast<double>(resolution.width) / 2.0;
+  K(1, 2) = static_cast<double>(resolution.height) / 2.0;
+  K(2, 2) = 1;
+
+  // set the new consistent outputs
+  if (!left_.setOutputCameraParameters(resolution, left_.getOutputPtr()->T(),
+                                       K) ||
+      !right_.setOutputCameraParameters(resolution, right_.getOutputPtr()->T(),
+                                        K)) {
+    ROS_ERROR("Automatic generation of stereo output parameters failed");
+    return false;
+  }
+
+  return true;
 }

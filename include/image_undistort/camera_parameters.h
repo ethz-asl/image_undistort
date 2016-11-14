@@ -128,8 +128,8 @@ class CameraParametersPair {
   void generateOutputCameraInfoMessage(
       sensor_msgs::CameraInfo* camera_info) const;
 
-  const std::shared_ptr<InputCameraParameters>& getInput() const;
-  const std::shared_ptr<OutputCameraParameters>& getOutput() const;
+  const std::shared_ptr<InputCameraParameters>& getInputPtr() const;
+  const std::shared_ptr<OutputCameraParameters>& getOutputPtr() const;
 
   bool valid() const;
   bool valid(const bool check_input_camera) const;
@@ -138,8 +138,8 @@ class CameraParametersPair {
   bool operator!=(const CameraParametersPair& B) const;
 
  private:
-  std::shared_ptr<InputCameraParameters> input_;
-  std::shared_ptr<OutputCameraParameters> output_;
+  std::shared_ptr<InputCameraParameters> input_ptr_;
+  std::shared_ptr<OutputCameraParameters> output_ptr_;
 
   bool undistort_;
 
@@ -151,6 +151,8 @@ class CameraParametersPair {
 // rectified images
 class StereoCameraParameters {
  public:
+  StereoCameraParameters(const double scale = 1.0);
+
   bool setInputCameraParameters(const ros::NodeHandle& nh,
                                 const std::string& camera_namespace,
                                 bool updating_left_camera);
@@ -173,6 +175,10 @@ class StereoCameraParameters {
   bool valid(const bool left, const bool input) const;
 
  private:
+
+  bool generateOutputCameraParameters();
+
+  double scale_;
   CameraParametersPair left_;
   CameraParametersPair right_;
 };
