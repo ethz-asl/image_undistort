@@ -413,9 +413,7 @@ void CameraParametersPair::generateOutputCameraInfoMessage(
         camera_info->P.data()) = output_ptr_->P();
 
     if (undistort_) {
-      for (double& d : camera_info->D) {
-        d = 0;
-      }
+      camera_info->D = std::vector<double>(5,0);
     } else {
       camera_info->D = input_ptr_->D();
     }

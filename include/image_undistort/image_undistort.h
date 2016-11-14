@@ -55,7 +55,9 @@ constexpr double kDefaultScale = 1.0;
 
 class ImageUndistort {
  public:
-  ImageUndistort(const ros::NodeHandle& nh, const ros::NodeHandle& private_nh);
+  ImageUndistort(const ros::NodeHandle& nh, const ros::NodeHandle& nh_input,
+                 const ros::NodeHandle& nh_output,
+                 const ros::NodeHandle& nh_private);
 
  private:
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
@@ -76,8 +78,15 @@ class ImageUndistort {
 
   // nodes
   ros::NodeHandle nh_;
-  ros::NodeHandle private_nh_;
-  image_transport::ImageTransport it_;
+  ros::NodeHandle nh_private_;
+
+  // image_transport cameraSubscribe and cameraAdvertise use the same hard-coded
+  // topic name "camera_info", because we need both, we must use different
+  // namespaces for each.
+  ros::NodeHandle nh_input_;
+  ros::NodeHandle nh_output_;
+  image_transport::ImageTransport it_input_;
+  image_transport::ImageTransport it_output_;
 
   // subscribers
   image_transport::Subscriber image_sub_;         // input image

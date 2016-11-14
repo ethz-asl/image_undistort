@@ -3,20 +3,25 @@
 #include "image_undistort/undistorter.h"
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
-                               const ros::NodeHandle& private_nh)
+                               const ros::NodeHandle& nh_input,
+                               const ros::NodeHandle& nh_output,
+                               const ros::NodeHandle& nh_private)
     : nh_(nh),
-      private_nh_(private_nh),
-      it_(nh_),
+      nh_input_(nh_input),
+      nh_output_(nh_output),
+      nh_private_(nh_private),
+      it_input_(nh_input_),
+      it_output_(nh_output_),
       undistorter_ptr_(nullptr),
       frame_counter_(0) {
   // set parameters from ros
   bool input_camera_info_from_ros_params;
-  private_nh_.param("input_camera_info_from_ros_params",
+  nh_private_.param("input_camera_info_from_ros_params",
                     input_camera_info_from_ros_params,
                     kDefaultInputCameraInfoFromROSParams);
 
   std::string output_camera_info_source_in;
-  private_nh_.param("output_camera_info_source", output_camera_info_source_in,
+  nh_private_.param("output_camera_info_source", output_camera_info_source_in,
                     kDefaultOutputCameraInfoSource);
   if (output_camera_info_source_in == "auto_generated") {
     output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
@@ -34,12 +39,12 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
   }
 
-  private_nh_.param("queue_size", queue_size_, kQueueSize);
+  nh_private_.param("queue_size", queue_size_, kQueueSize);
   if (queue_size_ < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
     queue_size_ = 1;
   }
-  private_nh_.param("process_image", process_image_, kDefaultProcessImage);
+  nh_private_.param("process_image", process_image_, kDefaultProcessImage);
   if (!process_image_ && !input_camera_info_from_ros_params) {
     ROS_FATAL(
         "Settings specify no image processing and not to generate camera info "
@@ -47,16 +52,16 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     ros::shutdown();
     exit(EXIT_SUCCESS);
   }
-  private_nh_.param("scale", scale_, kDefaultScale);
+  nh_private_.param("scale", scale_, kDefaultScale);
 
   bool undistort_image;
-  private_nh_.param("undistort_image", undistort_image, kDefaultUndistortImage);
+  nh_private_.param("undistort_image", undistort_image, kDefaultUndistortImage);
   camera_parameters_pair_ptr_ =
       std::make_shared<CameraParametersPair>(undistort_image);
 
-  private_nh_.param("process_every_nth_frame", process_every_nth_frame_,
+  nh_private_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
-  private_nh_.param("output_image_type", output_image_type_,
+  nh_private_.param("output_image_type", output_image_type_,
                     kDefaultOutputImageType);
   // check output type string is correctly formatted
   if (!output_image_type_.empty()) {
@@ -74,19 +79,19 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   // setup subscribers
   std::string input_camera_namespace;
   if (input_camera_info_from_ros_params) {
-    private_nh_.param("input_camera_namespace", input_camera_namespace,
+    nh_private_.param("input_camera_namespace", input_camera_namespace,
                       kDefaultInputCameraNamespace);
     if (!camera_parameters_pair_ptr_->setCameraParameters(
-            private_nh_, input_camera_namespace, true)) {
+            nh_private_, input_camera_namespace, true)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
-    image_sub_ = it_.subscribe("input/image", queue_size_,
-                               &ImageUndistort::imageCallback, this);
+    image_sub_ = it_input_.subscribe("image", queue_size_,
+                                     &ImageUndistort::imageCallback, this);
   } else {
-    camera_sub_ = it_.subscribeCamera("input", queue_size_,
-                                      &ImageUndistort::cameraCallback, this);
+    camera_sub_ = it_input_.subscribeCamera(
+        "image", queue_size_, &ImageUndistort::cameraCallback, this);
   }
 
   // setup publishers
@@ -94,10 +99,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     bool pub_camera_info_output = true;
     if (output_camera_info_source_ == OutputInfoSource::ROS_PARAMS) {
       std::string output_camera_namespace;
-      private_nh_.param("output_camera_namespace", output_camera_namespace,
+      nh_private_.param("output_camera_namespace", output_camera_namespace,
                         kDefaultOutputCameraNamespace);
       if (!camera_parameters_pair_ptr_->setCameraParameters(
-              private_nh_, output_camera_namespace, false)) {
+              nh_private_, output_camera_namespace, false)) {
         ROS_FATAL("Loading of output camera parameters failed, exiting");
         ros::shutdown();
         exit(EXIT_FAILURE);
@@ -108,21 +113,21 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
     } else {
       camera_info_sub_ =
-          nh_.subscribe("output/cam_info", queue_size_,
-                        &ImageUndistort::cameraInfoCallback, this);
+          nh_output_.subscribe("camera_info", queue_size_,
+                               &ImageUndistort::cameraInfoCallback, this);
       pub_camera_info_output = false;
     }
 
     if (pub_camera_info_output) {
-      camera_pub_ = it_.advertiseCamera("output", queue_size_);
+      camera_pub_ = it_output_.advertiseCamera("image", queue_size_);
     } else {
-      image_pub_ = it_.advertise("output/image", queue_size_);
+      image_pub_ = it_output_.advertise("image", queue_size_);
     }
   } else {
     camera_parameters_pair_ptr_->setOutputFromInput();
 
-    camera_info_pub_ =
-        nh_.advertise<sensor_msgs::CameraInfo>("output/cam_info", queue_size_);
+    camera_info_pub_ = nh_output_.advertise<sensor_msgs::CameraInfo>(
+        "camera_info", queue_size_);
   }
 }
 
