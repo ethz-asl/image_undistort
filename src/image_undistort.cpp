@@ -3,15 +3,10 @@
 #include "image_undistort/undistorter.h"
 
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
-                               const ros::NodeHandle& nh_input,
-                               const ros::NodeHandle& nh_output,
                                const ros::NodeHandle& nh_private)
     : nh_(nh),
-      nh_input_(nh_input),
-      nh_output_(nh_output),
       nh_private_(nh_private),
-      it_input_(nh_input_),
-      it_output_(nh_output_),
+      it_(nh_),
       undistorter_ptr_(nullptr),
       frame_counter_(0) {
   // set parameters from ros
@@ -76,6 +71,9 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     }
   }
 
+  nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
+  nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
+
   // setup subscribers
   std::string input_camera_namespace;
   if (input_camera_info_from_ros_params) {
@@ -87,11 +85,11 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
-    image_sub_ = it_input_.subscribe("image", queue_size_,
-                                     &ImageUndistort::imageCallback, this);
+    image_sub_ = it_.subscribe("input/image", queue_size_,
+                               &ImageUndistort::imageCallback, this);
   } else {
-    camera_sub_ = it_input_.subscribeCamera(
-        "image", queue_size_, &ImageUndistort::cameraCallback, this);
+    camera_sub_ = it_.subscribeCamera("input/image", queue_size_,
+                                      &ImageUndistort::cameraCallback, this);
   }
 
   // setup publishers
@@ -113,21 +111,21 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
     } else {
       camera_info_sub_ =
-          nh_output_.subscribe("camera_info", queue_size_,
-                               &ImageUndistort::cameraInfoCallback, this);
+          nh_.subscribe("output/camera_info", queue_size_,
+                        &ImageUndistort::cameraInfoCallback, this);
       pub_camera_info_output = false;
     }
 
     if (pub_camera_info_output) {
-      camera_pub_ = it_output_.advertiseCamera("image", queue_size_);
+      camera_pub_ = it_.advertiseCamera("output/image", queue_size_);
     } else {
-      image_pub_ = it_output_.advertise("image", queue_size_);
+      image_pub_ = it_.advertise("output/image", queue_size_);
     }
   } else {
     camera_parameters_pair_ptr_->setOutputFromInput();
 
-    camera_info_pub_ = nh_output_.advertise<sensor_msgs::CameraInfo>(
-        "camera_info", queue_size_);
+    camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+        "output/camera_info", queue_size_);
   }
 }
 
@@ -143,6 +141,7 @@ void ImageUndistort::imageCallback(
     camera_info.header = image_msg_in->header;
     camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
     camera_info_pub_.publish(camera_info);
+    return;
   }
   cv_bridge::CvImageConstPtr image_in_ptr =
       cv_bridge::toCvShare(image_msg_in, output_image_type_);
@@ -163,6 +162,7 @@ void ImageUndistort::imageCallback(
 
   undistorter_ptr_->undistortImage(image_in_ptr->image,
                                    &(image_out_ptr->image));
+  image_out_ptr->header.frame_id = output_frame_;
 
   // if camera info was just read in from a topic don't republish it
   if (output_camera_info_source_ == OutputInfoSource::CAMERA_INFO) {
@@ -172,6 +172,22 @@ void ImageUndistort::imageCallback(
     camera_info.header = image_out_ptr->header;
     camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
     camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
+  }
+
+  if (publish_tf_) {
+    Eigen::Matrix4d T =
+        camera_parameters_pair_ptr_->getInputPtr()->T().inverse() *
+        camera_parameters_pair_ptr_->getOutputPtr()->T();
+
+    tf::Matrix3x3 R_ros;
+    tf::Vector3 p_ros;
+    tf::matrixEigenToTF(T.topLeftCorner<3, 3>(), R_ros);
+    tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
+    tf::Transform(R_ros, p_ros);
+
+    br.sendTransform(tf::StampedTransform(
+        tf::Transform(R_ros, p_ros), image_out_ptr->header.stamp,
+        image_in_ptr->header.frame_id, output_frame_));
   }
 }
 

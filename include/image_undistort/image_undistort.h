@@ -7,6 +7,8 @@
 #include <image_transport/image_transport.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
+#include <tf_conversions/tf_eigen.h>
+#include <tf/transform_broadcaster.h>
 
 #include <image_undistort/undistorter.h>
 
@@ -52,12 +54,14 @@ const std::string kDefaultOutputImageType = "";
 // length will be multiplied by this value. This has the effect of
 // resizing the image by this scale factor.
 constexpr double kDefaultScale = 1.0;
+// if a tf between the input and output frame should be created
+constexpr bool kDefaultPublishTF = true;
+// name of output image frame
+const std::string kDefaultOutputFrame = "output_camera";
 
 class ImageUndistort {
  public:
-  ImageUndistort(const ros::NodeHandle& nh, const ros::NodeHandle& nh_input,
-                 const ros::NodeHandle& nh_output,
-                 const ros::NodeHandle& nh_private);
+  ImageUndistort(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
  private:
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
@@ -79,14 +83,7 @@ class ImageUndistort {
   // nodes
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
-
-  // image_transport cameraSubscribe and cameraAdvertise use the same hard-coded
-  // topic name "camera_info", because we need both, we must use different
-  // namespaces for each.
-  ros::NodeHandle nh_input_;
-  ros::NodeHandle nh_output_;
-  image_transport::ImageTransport it_input_;
-  image_transport::ImageTransport it_output_;
+  image_transport::ImageTransport it_;
 
   // subscribers
   image_transport::Subscriber image_sub_;         // input image
@@ -100,6 +97,9 @@ class ImageUndistort {
 
   // undistorter
   std::shared_ptr<Undistorter> undistorter_ptr_;
+
+  // tf broadcaster
+  tf::TransformBroadcaster br;
 
   // camera info
   std::shared_ptr<CameraParametersPair> camera_parameters_pair_ptr_;
@@ -118,6 +118,8 @@ class ImageUndistort {
   int process_every_nth_frame_;
   std::string output_image_type_;
   double scale_;
+  bool publish_tf_;
+  std::string output_frame_;
 
   int frame_counter_;
 };

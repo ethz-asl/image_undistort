@@ -62,12 +62,12 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   // Transform image coordinates to be size and focus independent
   Eigen::Vector2d norm_pixel_location =
       P_out.topLeftCorner<2, 2>().inverse() *
-      (pixel_location - P_out.block<2, 1>(0, 2) - P_out.block<2, 1>(0, 3));
+      (pixel_location - P_out.block<2, 1>(0, 2));
 
   const double& x = norm_pixel_location.x();
   const double& y = norm_pixel_location.y();
 
-  Eigen::Vector4d norm_distorted_pixel_location(0, 0, 1, 1);
+  Eigen::Vector3d norm_distorted_pixel_location(0, 0, 1);
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
@@ -114,5 +114,5 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   }
 
   *distorted_pixel_location =
-      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
+      P_in.topLeftCorner<2, 3>() * norm_distorted_pixel_location;
 };

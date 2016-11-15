@@ -174,7 +174,7 @@ class StereoCameraParameters {
   bool valid(const bool left, const bool input) const;
 
  private:
-  bool generateOutputCameraParameters();
+  bool generateRectificationParameters();
 
   double scale_;
   CameraParametersPair left_;
