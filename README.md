@@ -29,7 +29,7 @@ A simple node for undistorting images. Handles both plumb bob (aka radial-tangen
 * **publish_tf** True to publish the tf between the input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "output_camera")
 
-##Input/Output topics
+##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
 **input/image** input image topic
 **input/camera_info** input camera info topic
@@ -58,7 +58,7 @@ A node that takes in the properties of two cameras and outputs the camera info r
 * **right_camera_namespace** If the right camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "right_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 
-##Input/Output topics
+##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
 **raw/left/image** left input image topic, only needed if loading camera parameters from ros params (used for timing information) 
 **raw/right/image** right input image topic, only needed if loading camera parameters from ros params (used for timing information) 
