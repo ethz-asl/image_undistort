@@ -20,7 +20,7 @@
 constexpr int kQueueSize = 100;
 // true to load input cam_info from ros parameters, false to get it from a
 // cam_info topic
-constexpr bool kDefaultInputCameraInfoFromROSParams = true;
+constexpr bool kDefaultInputCameraInfoFromROSParams = false;
 // source of output camera information, the options are as follows-
 //  "auto_generated": (default), automatically generated based on the input, the
 //    focal length is the average of fx and fy of the input, the center point is

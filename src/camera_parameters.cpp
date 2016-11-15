@@ -313,7 +313,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   P(2, 2) = 1;
   P(0, 2) = static_cast<double>(resolution_estimate.width) / 2.0;
   P(1, 2) = static_cast<double>(resolution_estimate.height) / 2.0;
-  P(0, 3) = focal_length * input_ptr_->T()(0, 3);
+  P.topRightCorner<3, 1>() = focal_length * input_ptr_->p();
 
   std::vector<double> D;
   if (undistort_) {
@@ -388,32 +388,41 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   // create final camera parameters
   Eigen::Matrix3d K = P.topLeftCorner<3, 3>();
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
-  T(0, 3) = input_ptr_->T()(0, 3);
+  T.topRightCorner<3, 1>() = input_ptr_->p();
 
   return setOutputCameraParameters(resolution_estimate, T, K);
 }
 
-void CameraParametersPair::generateOutputCameraInfoMessage(
+void CameraParametersPair::generateCameraInfoMessage(const bool input,
     sensor_msgs::CameraInfo* camera_info) const {
   if (!valid()) {
     throw std::runtime_error(
         "Attempted to get output camera_info before a valid input and output "
         "has been set");
   } else {
-    camera_info->height = output_ptr_->resolution().height;
-    camera_info->width = output_ptr_->resolution().width;
+
+    std::shared_ptr<BaseCameraParameters> camera_parameters_ptr;
+    if(input){
+       camera_parameters_ptr = input_ptr_;
+     }
+     else{
+      camera_parameters_ptr = output_ptr_;
+    }
+
+    camera_info->height = camera_parameters_ptr->resolution().height;
+    camera_info->width = camera_parameters_ptr->resolution().width;
 
     Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        camera_info->K.data()) = output_ptr_->K();
+        camera_info->K.data()) = camera_parameters_ptr->K();
 
     Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        camera_info->R.data()) = output_ptr_->R();
+        camera_info->R.data()) = camera_parameters_ptr->R();
 
     Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
-        camera_info->P.data()) = output_ptr_->P();
+        camera_info->P.data()) = camera_parameters_ptr->P();
 
-    if (undistort_) {
-      camera_info->D = std::vector<double>(5,0);
+    if (!input || undistort_) {
+      camera_info->D = std::vector<double>(5, 0);
     } else {
       camera_info->D = input_ptr_->D();
     }
@@ -463,20 +472,16 @@ StereoCameraParameters::StereoCameraParameters(const double scale)
 bool StereoCameraParameters::setInputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
     bool updating_left_camera) {
-  try {
-    if (updating_left_camera) {
-      left_.setCameraParameters(nh, camera_namespace, true);
-    } else {
-      right_.setCameraParameters(nh, camera_namespace, true);
-    }
-    if (valid(true, false) && valid(false, false)) {
-      generateOutputCameraParameters();
-    }
-    return true;
-  } catch (std::runtime_error e) {
-    ROS_ERROR("%s", e.what());
-    return false;
+  bool success;
+  if (updating_left_camera) {
+    success = left_.setCameraParameters(nh, camera_namespace, true);
+  } else {
+    success = right_.setCameraParameters(nh, camera_namespace, true);
   }
+  if (valid(true, true) && valid(false, true)) {
+    generateOutputCameraParameters();
+  }
+  return success;
 }
 
 bool StereoCameraParameters::setInputCameraParameters(
@@ -487,7 +492,7 @@ bool StereoCameraParameters::setInputCameraParameters(
     } else {
       right_.setCameraParameters(camera_info, true);
     }
-    if (valid(true, false) && valid(false, false)) {
+    if (valid(true, true) && valid(false, true)) {
       generateOutputCameraParameters();
     }
     return true;
@@ -507,7 +512,7 @@ bool StereoCameraParameters::setInputCameraParameters(
     } else {
       right_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
     }
-    if (valid(true, false) && valid(false, false)) {
+    if (valid(true, true) && valid(false, true)) {
       generateOutputCameraParameters();
     }
     return true;
@@ -517,13 +522,13 @@ bool StereoCameraParameters::setInputCameraParameters(
   }
 }
 
-void StereoCameraParameters::generateOutputCameraInfoMessage(
-    const bool get_left_camera_info,
+void StereoCameraParameters::generateCameraInfoMessage(
+    const bool left, const bool input,
     sensor_msgs::CameraInfo* camera_info) const {
-  if (get_left_camera_info) {
-    left_.generateOutputCameraInfoMessage(camera_info);
+  if (left) {
+    left_.generateCameraInfoMessage(input, camera_info);
   } else {
-    right_.generateOutputCameraInfoMessage(camera_info);
+    right_.generateCameraInfoMessage(input, camera_info);
   }
 }
 

@@ -125,8 +125,8 @@ class CameraParametersPair {
 
   bool undistort() const;  // if the camera output will be undistorted
 
-  void generateOutputCameraInfoMessage(
-      sensor_msgs::CameraInfo* camera_info) const;
+  void generateCameraInfoMessage(const bool input,
+                                 sensor_msgs::CameraInfo* camera_info) const;
 
   const std::shared_ptr<InputCameraParameters>& getInputPtr() const;
   const std::shared_ptr<OutputCameraParameters>& getOutputPtr() const;
@@ -167,15 +167,13 @@ class StereoCameraParameters {
                                 const bool radtan_distortion,
                                 const bool updating_left_camera);
 
-  void generateOutputCameraInfoMessage(
-      const bool get_left_camera_info,
-      sensor_msgs::CameraInfo* camera_info) const;
+  void generateCameraInfoMessage(const bool left, const bool input,
+                                 sensor_msgs::CameraInfo* camera_info) const;
 
   bool valid() const;
   bool valid(const bool left, const bool input) const;
 
  private:
-
   bool generateOutputCameraParameters();
 
   double scale_;

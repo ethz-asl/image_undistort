@@ -114,6 +114,5 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   }
 
   *distorted_pixel_location =
-      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location /
-      (P_in.bottomLeftCorner<1, 4>() * norm_distorted_pixel_location);
+      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
 };

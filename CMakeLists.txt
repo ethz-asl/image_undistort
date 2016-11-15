@@ -16,6 +16,7 @@ cs_add_library(${PROJECT_NAME}
  src/image_undistort.cpp
  src/undistorter.cpp
  src/camera_parameters.cpp
+ src/stereo_info.cpp
  )
 
 ############
@@ -24,8 +25,12 @@ cs_add_library(${PROJECT_NAME}
 cs_add_executable(image_undistort_node
   src/image_undistort_node.cpp
 )
+cs_add_executable(stereo_info_node
+  src/stereo_info_node.cpp
+)
 
 target_link_libraries(image_undistort_node ${PROJECT_NAME})
+target_link_libraries(stereo_info_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

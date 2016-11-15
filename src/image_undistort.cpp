@@ -141,7 +141,7 @@ void ImageUndistort::imageCallback(
   if (!process_image_) {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_msg_in->header;
-    camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
+    camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
     camera_info_pub_.publish(camera_info);
   }
   cv_bridge::CvImageConstPtr image_in_ptr =
@@ -170,7 +170,7 @@ void ImageUndistort::imageCallback(
   } else {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_out_ptr->header;
-    camera_parameters_pair_ptr_->generateOutputCameraInfoMessage(&camera_info);
+    camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
     camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
   }
 }
