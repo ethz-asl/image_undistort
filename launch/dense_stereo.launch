@@ -1,0 +1,61 @@
+<launch>
+
+<arg name="mav_name" default="elster" />
+<arg name="namespace" default="$(arg mav_name)" />
+<arg name="left_camera_name" default="cam0" />
+<arg name="right_camera_name" default="cam1" />
+<arg name="scale" default="0.5" />
+<arg name="process_every_nth_frame" default="2" />
+<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/elster/camchain_p23037.yaml"/>
+
+<group ns="$(arg namespace)">
+  <node name="stereo_info_node" pkg="image_undistort" type="stereo_info_node">
+    <param name="input_camera_info_from_ros_params" value = "true"/>
+    <param name="left_camera_namespace" value="$(arg left_camera_name)"/>
+    <param name="right_camera_namespace" value="$(arg right_camera_name)"/>
+    <param name="scale" value="0.5"/>
+    
+    <rosparam file="$(arg stereo_params_camchain)"/>
+
+    <remap from="raw/left/image" to="$(arg left_camera_name)/image_raw"/>
+    <remap from="raw/right/image" to="$(arg right_camera_name)/image_raw"/>
+
+    <remap from="raw/left/camera_info" to="$(arg left_camera_name)/camera_info"/>
+    <remap from="raw/right/camera_info" to="$(arg right_camera_name)/camera_info"/>
+
+    <remap from="rect/left/camera_info" to="left/camera_info"/>
+    <remap from="rect/right/camera_info" to="right/camera_info"/>
+  </node>
+
+  <node name="left_undistort_node" pkg="image_undistort" type="image_undistort_node">
+    <param name="output_camera_info_source" value="camera_info"/>
+    <param name="output_frame" value="left/image_rect"/>
+    <remap from="input/image" to="$(arg left_camera_name)/image_raw"/>
+    <remap from="output/camera_info" to="left/camera_info"/>
+    <remap from="output/image" to="left/image_rect"/>
+
+    <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
+  </node>
+
+  <node name="right_undistort_node" pkg="image_undistort" type="image_undistort_node">
+    <param name="output_camera_info_source" value="camera_info"/>
+    <param name="output_frame" value="right/image_rect"/>
+    <param name="publish_tf" value="false"/> <!-- the right vi sensor camera is published in the left sensors frame, will have to look into this-->
+    <remap from="input/image" to="$(arg right_camera_name)/image_raw"/>
+    <remap from="output/camera_info" to="right/camera_info"/>
+    <remap from="output/image" to="right/image_rect"/>
+
+    <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="disparity" args="standalone stereo_image_proc/disparity">
+    <param name="approximate_sync" value="true"/>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="pointcloud" args="standalone stereo_image_proc/point_cloud2">
+    <param name="approximate_sync" value="true"/>
+    <remap from="left/image_rect_color" to="left/image_rect"/>
+  </node>
+</group>
+
+</launch>
