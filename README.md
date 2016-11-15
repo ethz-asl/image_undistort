@@ -31,10 +31,10 @@ A simple node for undistorting images. Handles both plumb bob (aka radial-tangen
 
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-**input/image** input image topic
-**input/camera_info** input camera info topic
-**output/image** output image topic
-**output/camera_info** output camera info topic
+* **input/image** input image topic
+* **input/camera_info** input camera info topic
+* **output/image** output image topic
+* **output/camera_info** output camera info topic
 
 ##Loading Camera Information from ROS Parameters:
 
@@ -60,9 +60,9 @@ A node that takes in the properties of two cameras and outputs the camera info r
 
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-**raw/left/image** left input image topic, only needed if loading camera parameters from ros params (used for timing information) 
-**raw/right/image** right input image topic, only needed if loading camera parameters from ros params (used for timing information) 
-**raw/left/camera_info** left input camera info topic
-**raw/right/camera_info** right input camera info topic
-**rect/left/camera_info** left output camera info topic
-**rect/right/camera_info** right output camera info topic
+* **raw/left/image** left input image topic, only needed if loading camera parameters from ros params (used for timing information) 
+* **raw/right/image** right input image topic, only needed if loading camera parameters from ros params (used for timing information) 
+* **raw/left/camera_info** left input camera info topic
+* **raw/right/camera_info** right input camera info topic
+* **rect/left/camera_info** left output camera info topic
+* **rect/right/camera_info** right output camera info topic
