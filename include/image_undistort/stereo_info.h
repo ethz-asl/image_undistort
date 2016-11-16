@@ -11,6 +11,8 @@
 
 #include "image_undistort/camera_parameters.h"
 
+namespace image_undistort {
+
 // Default values
 
 // queue size
@@ -64,5 +66,6 @@ class StereoInfo {
 
   int queue_size_;
 };
+}
 
 #endif

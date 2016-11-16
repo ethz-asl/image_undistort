@@ -1,20 +1,23 @@
-#ifndef IMAGE_UNDISTORT_H
-#define IMAGE_UNDISTORT_H
+#ifndef IMAGE_UNDISTORT_NODELET_H
+#define IMAGE_UNDISTORT_NODELET_H
 
 #include <stdio.h>
 #include <Eigen/Eigen>
 
 #include <image_transport/image_transport.h>
+#include <nodelet/nodelet.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
-#include <tf_conversions/tf_eigen.h>
 #include <tf/transform_broadcaster.h>
+#include <tf_conversions/tf_eigen.h>
 
 #include <image_undistort/undistorter.h>
 
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
+
+namespace image_undistort {
 
 // Default values
 
@@ -61,9 +64,10 @@ const std::string kDefaultOutputFrame = "output_camera";
 
 class ImageUndistort {
  public:
-  ImageUndistort(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
+  ImageUndistort(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_);
 
  private:
+
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
                        cv::Mat* image);
 
@@ -123,5 +127,6 @@ class ImageUndistort {
 
   int frame_counter_;
 };
+}
 
 #endif

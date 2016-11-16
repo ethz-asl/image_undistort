@@ -1,6 +1,8 @@
 #include <image_undistort/camera_parameters.h>
 #include <image_undistort/undistorter.h>
 
+namespace image_undistort {
+
 BaseCameraParameters::BaseCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace) {
   ROS_INFO("Loading camera parameters");
@@ -595,4 +597,5 @@ bool StereoCameraParameters::generateRectificationParameters() {
   }
 
   return true;
+}
 }

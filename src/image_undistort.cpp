@@ -2,6 +2,8 @@
 #include "image_undistort/camera_parameters.h"
 #include "image_undistort/undistorter.h"
 
+namespace image_undistort {
+
 ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                                const ros::NodeHandle& nh_private)
     : nh_(nh),
@@ -86,10 +88,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       exit(EXIT_FAILURE);
     }
     image_sub_ = it_.subscribe("input/image", queue_size_,
-                               &ImageUndistort::imageCallback, this);
+                                    &ImageUndistort::imageCallback, this);
   } else {
-    camera_sub_ = it_.subscribeCamera("input/image", queue_size_,
-                                      &ImageUndistort::cameraCallback, this);
+    camera_sub_ = it_.subscribeCamera(
+        "input/image", queue_size_, &ImageUndistort::cameraCallback, this);
   }
 
   // setup publishers
@@ -209,4 +211,5 @@ void ImageUndistort::cameraInfoCallback(
   if (!camera_parameters_pair_ptr_->setCameraParameters(*camera_info, false)) {
     ROS_ERROR("Setting output camera from ros message failed");
   }
+}
 }

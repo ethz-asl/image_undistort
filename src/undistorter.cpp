@@ -1,5 +1,6 @@
 #include <image_undistort/undistorter.h>
 
+namespace image_undistort {
 Undistorter::Undistorter(
     const CameraParametersPair& input_camera_parameters_pair)
     : used_camera_parameters_pair_(input_camera_parameters_pair) {
@@ -51,7 +52,7 @@ void Undistorter::undistortImage(const cv::Mat& image,
 
 const CameraParametersPair& Undistorter::getCameraParametersPair() {
   return used_camera_parameters_pair_;
-};
+}
 
 void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                                const Eigen::Matrix<double, 3, 4>& P_out,
@@ -115,4 +116,5 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
 
   *distorted_pixel_location =
       P_in.topLeftCorner<2, 3>() * norm_distorted_pixel_location;
-};
+}
+}

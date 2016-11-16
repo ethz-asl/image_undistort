@@ -8,6 +8,8 @@
 
 #include <Eigen/Eigen>
 
+namespace image_undistort {
+
 // holds basic properties of a camera
 class BaseCameraParameters {
  public:
@@ -84,7 +86,7 @@ class InputCameraParameters : public BaseCameraParameters {
   bool operator!=(const InputCameraParameters& B) const;
 
  private:
-  static bool is_radtan_distortion(const std::string& distortion_model);
+  static bool isRadtanDistortion(const std::string& distortion_model);
 
   std::vector<double> D_;
   bool radtan_distortion_;
@@ -180,5 +182,5 @@ class StereoCameraParameters {
   CameraParametersPair left_;
   CameraParametersPair right_;
 };
-
+}
 #endif  // CAMERA_PARAMETERS_H

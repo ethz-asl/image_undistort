@@ -27,7 +27,7 @@
     <remap from="rect/right/camera_info" to="right/camera_info"/>
   </node>
 
-  <node name="left_undistort_node" pkg="image_undistort" type="image_undistort_node">
+  <node pkg="nodelet" type="nodelet" name="left_image_undistort" args="standalone image_undistort/ImageUndistortNodelet">
     <param name="output_camera_info_source" value="camera_info"/>
     <param name="output_frame" value="left/image_rect"/>
     <remap from="input/image" to="$(arg left_camera_name)/image_raw"/>
@@ -46,6 +46,9 @@
     <remap from="output/image" to="right/image_rect"/>
 
     <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="a" args="standalone image_undistort/StereoInfoNodelet">
   </node>
 
   <node pkg="nodelet" type="nodelet" name="disparity" args="standalone stereo_image_proc/disparity">

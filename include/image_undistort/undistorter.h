@@ -9,6 +9,8 @@
 
 #include "image_undistort/camera_parameters.h"
 
+namespace image_undistort {
+
 class Undistorter {
  public:
   Undistorter(const CameraParametersPair& input_camera_parameters_pair);
@@ -37,5 +39,6 @@ class Undistorter {
   cv::Mat map_x_;
   cv::Mat map_y_;
 };
+}
 
 #endif

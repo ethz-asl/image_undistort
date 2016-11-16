@@ -1,6 +1,8 @@
 #include "image_undistort/stereo_info.h"
 #include "image_undistort/camera_parameters.h"
 
+namespace image_undistort {
+
 StereoInfo::StereoInfo(const ros::NodeHandle& nh,
                        const ros::NodeHandle& nh_private)
     : nh_(nh), nh_private_(nh_private), it_(nh_) {
@@ -118,4 +120,5 @@ void StereoInfo::sendCameraInfo(const std_msgs::Header& header, const bool left,
       right_camera_info_output_pub_.publish(camera_info);
     }
   }
+}
 }
