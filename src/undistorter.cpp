@@ -8,11 +8,13 @@ Undistorter::Undistorter(
     throw std::runtime_error(
         "Attempted to create undistorter from invalid camera parameters");
   }
-  const cv::Size& resolution =
+  const cv::Size& resolution_out =
       used_camera_parameters_pair_.getOutputPtr()->resolution();
+  const cv::Size& resolution_in =
+      used_camera_parameters_pair_.getInputPtr()->resolution();
   // Initialize maps
-  cv::Mat map_x_float(resolution, CV_32FC1);
-  cv::Mat map_y_float(resolution, CV_32FC1);
+  cv::Mat map_x_float(resolution_out, CV_32FC1);
+  cv::Mat map_y_float(resolution_out, CV_32FC1);
 
   std::vector<double> D;
   if (used_camera_parameters_pair_.undistort()) {
@@ -21,9 +23,11 @@ Undistorter::Undistorter(
     D = std::vector<double>(0, 5);
   }
 
+  empty_pixels_ = false;
+
   // Compute the remap maps
-  for (size_t v = 0; v < resolution.height; ++v) {
-    for (size_t u = 0; u < resolution.width; ++u) {
+  for (size_t v = 0; v < resolution_out.height; ++v) {
+    for (size_t u = 0; u < resolution_out.width; ++u) {
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
       distortPixel(
@@ -37,7 +41,14 @@ Undistorter::Undistorter(
           static_cast<float>(distorted_pixel_location.x());
       map_y_float.at<float>(v, u) =
           static_cast<float>(distorted_pixel_location.y());
-    };
+
+      if ((distorted_pixel_location.x() < 0) ||
+          (distorted_pixel_location.y() < 0) ||
+          (distorted_pixel_location.x() >= resolution_in.width) ||
+          (distorted_pixel_location.y() >= resolution_in.height)) {
+        empty_pixels_ = true;
+      }
+    }
   }
 
   // convert to fixed point maps for increased speed
@@ -48,8 +59,14 @@ void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
   cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
   cv::UMat gpu_undistorted_image;
-  cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
-            cv::BORDER_CONSTANT);
+  if (empty_pixels_) {
+    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+              cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+  } else {
+    // replicate is more efficient for gpus to calculate
+    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+              cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+  }
   gpu_undistorted_image.copyTo(*undistorted_image);
 }
 

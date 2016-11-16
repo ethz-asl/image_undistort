@@ -38,6 +38,8 @@ class Undistorter {
 
   cv::UMat map_x_;
   cv::UMat map_y_;
+
+  double empty_pixels_;
 };
 }
 
