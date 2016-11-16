@@ -21,9 +21,6 @@
 
     <remap from="raw/$(arg left_camera_name)/image" to="$(arg left_camera_name)/image_raw"/>
     <remap from="raw/$(arg right_camera_name)/image" to="$(arg right_camera_name)/image_raw"/>
-
-    <remap from="raw/$(arg left_camera_name)/camera_info" to="$(arg left_camera_name)/camera_info"/>
-    <remap from="raw/$(arg right_camera_name)/camera_info" to="$(arg right_camera_name)/camera_info"/>
   </node>
 </group>
 

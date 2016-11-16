@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
 
   nodelet::M_string left_remap;
   left_remap["input/image"]= ros::names::resolve(std::string("raw/") + left_camera_name + "/image");
+  left_remap[left_camera_name + "/camera_info"]= ros::names::resolve(std::string("raw/") + left_camera_name + "/camera_info");
   left_remap["output/camera_info"] = std::string("rect/") + left_camera_name + "/camera_info";
   left_remap["output/image"] = std::string("rect/") + left_camera_name + "/image";
 
@@ -56,6 +57,7 @@ int main(int argc, char** argv) {
 
   nodelet::M_string right_remap;
   right_remap["input/image"]= ros::names::resolve(std::string("raw/") + right_camera_name + "/image");
+  right_remap[right_camera_name + "/camera_info"]= ros::names::resolve(std::string("raw/") + right_camera_name + "/camera_info");
   right_remap["output/camera_info"] = std::string("rect/") + right_camera_name + "/camera_info";
   right_remap["output/image"] = std::string("rect/") + right_camera_name + "/image";
 
