@@ -60,6 +60,11 @@ target_link_libraries(stereo_info_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(dense_stereo_node src/dense_stereo_node.cpp)
+target_link_libraries(dense_stereo_node
+  ${catkin_LIBRARIES}
+)
+
 # Install nodelet library
 install(TARGETS ${PROJECT_NAME}_nodelet
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
