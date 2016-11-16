@@ -73,7 +73,7 @@ A node for producing dense stereo images. Internally this node simply combines 5
 * **image_undsistort/ImageUndistort** This nodelet handles the left image rectification.
 * **image_undsistort/ImageUndistort** This nodelet handles the right image rectification.
 * **stereo_image_proc/disparity** Standard ros nodelet for generating a disparity image from a rectified stereo pair.
-* **image_undsistort/point_cloud2** Standard ros nodelet for generating a color pointcloud from an image and disparity image pair.
+* **stereo_image_proc/point_cloud2** Standard ros nodelet for generating a color pointcloud from an image and disparity image pair.
 
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 100).
