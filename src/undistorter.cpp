@@ -46,8 +46,11 @@ Undistorter::Undistorter(
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+  cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
+  cv::UMat gpu_undistorted_image;
+  cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
             cv::BORDER_CONSTANT);
+  gpu_undistorted_image.copyTo(*undistorted_image);
 }
 
 const CameraParametersPair& Undistorter::getCameraParametersPair() {

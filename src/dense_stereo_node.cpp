@@ -84,6 +84,8 @@ int main(int argc, char** argv) {
   right_params["approximate_sync"] = true;
 
   nodelet::M_string pointcloud_remap;
+  pointcloud_remap["left/camera_info"] = std::string("rect/") + left_camera_name + "/camera_info";
+  pointcloud_remap["right/camera_info"] = std::string("rect/") + right_camera_name + "/camera_info";
   pointcloud_remap["left/image_rect_color"] = std::string("rect/") + left_camera_name + "/image";
 
   std::string pointcloud_name = ros::this_node::getName() + "_pointcloud";
