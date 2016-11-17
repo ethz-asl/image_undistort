@@ -1,9 +1,9 @@
-#ROS node for undistorting images and performing stereo rectification
+#ROS node for undistorting images, performing stereo rectification and depth estimation
 
-This repo contains two related ros nodes image_undistort_node and stereo_info_node
+This repo contains three related ros nodes image_undistort_node, stereo_info_node and dense_stereo_node.
 
 #image_undistort_node:
-A simple node for undistorting images. Handles both plumb bob (aka radial-tangential) distortion and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr).
+A simple node for undistorting images. Handles both plumb bob (aka radial-tangential) distortion and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
 
 ##The node has several possible use cases:
 
@@ -49,7 +49,7 @@ Camera information can be loaded from ROS parameters. These parameters are typic
 7. A string **distortion_model** is loaded and converted to lower-case. If it is not found it is set to "radtan".
 
 #stereo_info_node:
-A node that takes in the properties of two cameras and outputs the camera info required to rectify them so that stereo reconstruction can be performed. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels.
+A node that takes in the properties of two cameras and outputs the camera info required to rectify them so that stereo reconstruction can be performed. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named image_undistort/StereoInfo
 
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 100).
@@ -66,3 +66,34 @@ Many of these topics are dependent on the parameters set above and may not appea
 * **raw/right/camera_info** right input camera info topic
 * **rect/left/camera_info** left output camera info topic
 * **rect/right/camera_info** right output camera info topic
+
+#dense_stereo_node:
+A node for producing dense stereo images. Internally this node simply combines 5 nodelets.
+* **image_undsistort/StereoInfo** Used to set up the stereo system properties.
+* **image_undsistort/ImageUndistort** This nodelet handles the left image rectification.
+* **image_undsistort/ImageUndistort** This nodelet handles the right image rectification.
+* **stereo_image_proc/disparity** Standard ros nodelet for generating a disparity image from a rectified stereo pair.
+* **stereo_image_proc/point_cloud2** Standard ros nodelet for generating a color pointcloud from an image and disparity image pair.
+
+##Parameters:
+* **queue size** The length of the queues the node uses for topics (default: 100).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **left_camera_namespace** If the left camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "left_camera")
+* **right_camera_namespace** If the right camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "right_camera").
+* **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
+* **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
+* **output_frame** The name of the frame of the output images. (default: "output_camera")
+
+##Input/Output Topics
+Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
+* **raw/left/image** left input image topic
+* **raw/right/image** right input image topic
+* **raw/left/camera_info** left input camera info topic
+* **raw/right/camera_info** right input camera info topic
+* **rect/left/image** left output rectified image topic
+* **rect/right/image** right output rectified image topic
+* **rect/left/camera_info** left output camera info topic
+* **rect/right/camera_info** right output camera info topic
+* **disparity** output disparity image topic
+* **points2** output pointcloud topic
+* **dense_stereo_disparity/set_parameters** service for setting the stereo image generation properties. See [stereo_image_proc](http://wiki.ros.org/stereo_image_proc) for details.
