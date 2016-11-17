@@ -9,5 +9,3 @@ Undistort images. The default usage of the node, subscribing to an image topic a
 Modify the image resoultion and intrinsics. If "output_camera_info_from_yaml" is set to true the output resolution, camera matrix (K), rotation matrix (R) and projection matrix (P) may be specified. The output camera parameters will be set to conform to the projection matrix values. If no projection matrix is set it will be calculated via R*K and if no rotation matrix is set the identity transform will be used. If neither the projection matrix or camera matrix is given the node will print an error and exit. If the "undistort" parameter is true (the default behaviour) the distortion will also be removed.
 
 Provide a cam_info topic for a ros image topic. In this mode a yaml file is loaded and used to build a camera info message that is published in sync with the image messages. This allows the use of ros nodes that require camera info with devices and bags that do not provide it.
-
-Checkout branch `devel-indigo` to use with OpenCV2/ROS-Indigo/Ubuntu 14.04
