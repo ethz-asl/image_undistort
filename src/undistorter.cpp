@@ -57,17 +57,28 @@ Undistorter::Undistorter(
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
-  cv::UMat gpu_undistorted_image;
-  if (empty_pixels_) {
-    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
-              cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-  } else {
-    // replicate is more efficient for gpus to calculate
-    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
-              cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-  }
-  gpu_undistorted_image.copyTo(*undistorted_image);
+  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    if (empty_pixels_) {
+      cv::remap(image, *undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    } else {
+      // replicate is more efficient for gpus to calculate
+      cv::remap(image, *undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    }
+  #else
+    cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
+    cv::UMat gpu_undistorted_image;
+    if (empty_pixels_) {
+      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    } else {
+      // replicate is more efficient for gpus to calculate
+      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    }
+    gpu_undistorted_image.copyTo(*undistorted_image);
+  #endif
 }
 
 const CameraParametersPair& Undistorter::getCameraParametersPair() {

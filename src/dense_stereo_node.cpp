@@ -55,10 +55,10 @@ int main(int argc, char** argv) {
       ros::names::resolve(std::string("raw/") + left_camera_name + "/image");
   left_remap[left_camera_name + "/camera_info"] = ros::names::resolve(
       std::string("raw/") + left_camera_name + "/camera_info");
-  left_remap["output/camera_info"] =
-      std::string("rect/") + left_camera_name + "/camera_info";
+  left_remap["output/camera_info"] = ros::names::resolve(
+      std::string("rect/") + left_camera_name + "/camera_info");
   left_remap["output/image"] =
-      std::string("rect/") + left_camera_name + "/image";
+      ros::names::resolve(std::string("rect/") + left_camera_name + "/image");
 
   std::string left_name = ros::this_node::getName() + "_left";
   ros::param::set(left_name, left_params);
@@ -78,10 +78,10 @@ int main(int argc, char** argv) {
       ros::names::resolve(std::string("raw/") + right_camera_name + "/image");
   right_remap[right_camera_name + "/camera_info"] = ros::names::resolve(
       std::string("raw/") + right_camera_name + "/camera_info");
-  right_remap["output/camera_info"] =
-      std::string("rect/") + right_camera_name + "/camera_info";
+  right_remap["output/camera_info"] = ros::names::resolve(
+      std::string("rect/") + right_camera_name + "/camera_info");
   right_remap["output/image"] =
-      std::string("rect/") + right_camera_name + "/image";
+      ros::names::resolve(std::string("rect/") + right_camera_name + "/image");
 
   std::string right_name = ros::this_node::getName() + "_right";
   ros::param::set(right_name, right_params);
@@ -95,13 +95,13 @@ int main(int argc, char** argv) {
 
   nodelet::M_string disparity_remap;
   disparity_remap["left/image_rect"] =
-      std::string("rect/") + left_camera_name + "/image";
+      ros::names::resolve(std::string("rect/") + left_camera_name + "/image");
   disparity_remap["right/image_rect"] =
-      std::string("rect/") + right_camera_name + "/image";
-  disparity_remap["left/camera_info"] =
-      std::string("rect/") + left_camera_name + "/camera_info";
-  disparity_remap["right/camera_info"] =
-      std::string("rect/") + right_camera_name + "/camera_info";
+      ros::names::resolve(std::string("rect/") + right_camera_name + "/image");
+  disparity_remap["left/camera_info"] = ros::names::resolve(
+      std::string("rect/") + left_camera_name + "/camera_info");
+  disparity_remap["right/camera_info"] = ros::names::resolve(
+      std::string("rect/") + right_camera_name + "/camera_info");
 
   std::string disparity_name = ros::this_node::getName() + "_disparity";
   ros::param::set(disparity_name, disparity_params);
@@ -114,12 +114,12 @@ int main(int argc, char** argv) {
   right_params["approximate_sync"] = true;
 
   nodelet::M_string pointcloud_remap;
-  pointcloud_remap["left/camera_info"] =
-      std::string("rect/") + left_camera_name + "/camera_info";
-  pointcloud_remap["right/camera_info"] =
-      std::string("rect/") + right_camera_name + "/camera_info";
+  pointcloud_remap["left/camera_info"] = ros::names::resolve(
+      std::string("rect/") + left_camera_name + "/camera_info");
+  pointcloud_remap["right/camera_info"] = ros::names::resolve(
+      std::string("rect/") + right_camera_name + "/camera_info");
   pointcloud_remap["left/image_rect_color"] =
-      std::string("rect/") + left_camera_name + "/image";
+      ros::names::resolve(std::string("rect/") + left_camera_name + "/image");
 
   std::string pointcloud_name = ros::this_node::getName() + "_pointcloud";
   ros::param::set(pointcloud_name, pointcloud_params);

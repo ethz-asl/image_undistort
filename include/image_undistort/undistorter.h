@@ -36,8 +36,13 @@ class Undistorter {
  private:
   const CameraParametersPair used_camera_parameters_pair_;
 
-  cv::UMat map_x_;
-  cv::UMat map_y_;
+  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    cv::UMat map_x_;
+    cv::UMat map_y_;
+  #else
+    cv::Mat map_x_;
+    cv::Mat map_y_;
+  #endif
 
   double empty_pixels_;
 };
