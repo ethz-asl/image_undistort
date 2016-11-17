@@ -1,4 +1,4 @@
-#ROS node for undistorting and stereo processing of images
+#ROS node for undistorting images
 
 A simple node for undistorting images. Handles both plumb bob (aka radial-tangental) distortion and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatiable with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr).
 
