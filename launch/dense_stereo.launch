@@ -15,7 +15,7 @@
     <param name="left_camera_namespace" value="$(arg left_camera_name)"/>
     <param name="right_camera_namespace" value="$(arg right_camera_name)"/>
     <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
-    <param name="scale" value="0.5"/>
+    <param name="scale" value="$(arg scale)"/>
     
     <rosparam file="$(arg stereo_params_camchain)"/>
 
