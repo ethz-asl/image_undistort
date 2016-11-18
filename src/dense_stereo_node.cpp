@@ -96,6 +96,7 @@ int main(int argc, char** argv) {
   // DISPARITY NODELET
   XmlRpc::XmlRpcValue disparity_params;
   disparity_params["approximate_sync"] = true;
+  disparity_params["queue_size"] = 10;
 
   nodelet::M_string disparity_remap;
   disparity_remap["left/image_rect"] =

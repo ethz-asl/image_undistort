@@ -17,6 +17,9 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
                     input_camera_info_from_ros_params,
                     kDefaultInputCameraInfoFromROSParams);
 
+  nh_private_.param("rename_radtan_plumb_bob", rename_radtan_plumb_bob_,
+                    kDefaultRenameRadtanPlumbBob);
+
   std::string output_camera_info_source_in;
   nh_private_.param("output_camera_info_source", output_camera_info_source_in,
                     kDefaultOutputCameraInfoSource);
@@ -88,10 +91,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       exit(EXIT_FAILURE);
     }
     image_sub_ = it_.subscribe("input/image", queue_size_,
-                                    &ImageUndistort::imageCallback, this);
+                               &ImageUndistort::imageCallback, this);
   } else {
-    camera_sub_ = it_.subscribeCamera(
-        "input/image", queue_size_, &ImageUndistort::cameraCallback, this);
+    camera_sub_ = it_.subscribeCamera("input/image", queue_size_,
+                                      &ImageUndistort::cameraCallback, this);
   }
 
   // setup publishers
@@ -142,6 +145,9 @@ void ImageUndistort::imageCallback(
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_msg_in->header;
     camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
+    if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
+      camera_info.distortion_model = "plumb_bob";
+    }
     camera_info_pub_.publish(camera_info);
     return;
   }
@@ -173,6 +179,9 @@ void ImageUndistort::imageCallback(
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_out_ptr->header;
     camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
+    if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
+      camera_info.distortion_model = "plumb_bob";
+    }
     camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
   }
 

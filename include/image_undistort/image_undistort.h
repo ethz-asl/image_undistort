@@ -61,6 +61,9 @@ constexpr double kDefaultScale = 1.0;
 constexpr bool kDefaultPublishTF = true;
 // name of output image frame
 const std::string kDefaultOutputFrame = "output_camera";
+// if radtan distortion should be called radtan (ASL standard) or plumb_bob (ros
+// standard)
+constexpr bool kDefaultRenameRadtanPlumbBob = false;
 
 class ImageUndistort {
  public:
@@ -124,6 +127,7 @@ class ImageUndistort {
   double scale_;
   bool publish_tf_;
   std::string output_frame_;
+  bool rename_radtan_plumb_bob_;
 
   int frame_counter_;
 };

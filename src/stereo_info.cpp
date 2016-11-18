@@ -18,6 +18,9 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
     queue_size_ = 1;
   }
 
+  nh_private_.param("rename_radtan_plumb_bob", rename_radtan_plumb_bob_,
+                    kDefaultRenameRadtanPlumbBob);
+
   double scale;
   nh_private_.param("scale", scale, kDefaultScale);
 
@@ -107,6 +110,11 @@ void StereoInfo::sendCameraInfo(const std_msgs::Header& header, const bool left,
     ROS_ERROR("%s", e.what());
     return;
   }
+
+  if(rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan"){
+    camera_info.distortion_model = "plumb_bob";
+  }
+
   if (left) {
     if (input) {
       left_camera_info_input_pub_.publish(camera_info);

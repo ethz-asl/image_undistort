@@ -27,6 +27,9 @@ const std::string kDefaultRightCameraNamespace = "right_camera";
 // the output focal length will be multiplied by this value. This has the effect
 // of resizing the image by this scale factor.
 constexpr double kDefaultScale = 1.0;
+// if radtan distortion should be called radtan (ASL standard) or plumb_bob (ros
+// standard)
+constexpr bool kDefaultRenameRadtanPlumbBob = false;
 
 class StereoInfo {
  public:
@@ -43,7 +46,8 @@ class StereoInfo {
       const sensor_msgs::CameraInfoConstPtr& camera_info);
 
  private:
-  void sendCameraInfo(const std_msgs::Header& header, const bool left, const bool input);
+  void sendCameraInfo(const std_msgs::Header& header, const bool left,
+                      const bool input);
 
   // nodes
   ros::NodeHandle nh_;
@@ -65,6 +69,7 @@ class StereoInfo {
   std::shared_ptr<StereoCameraParameters> stereo_camera_parameters_ptr_;
 
   int queue_size_;
+  bool rename_radtan_plumb_bob_;
 };
 }
 
