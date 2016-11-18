@@ -1,31 +1,54 @@
 #include <image_undistort/undistorter.h>
 
-Undistorter::Undistorter(const cv::Size& resolution,
-                         const Eigen::Matrix<double, 3, 4>& P_in,
-                         const Eigen::Matrix<double, 3, 4>& P_out,
-                         const bool using_radtan,
-                         const std::vector<double>& D) {
+namespace image_undistort {
+Undistorter::Undistorter(
+    const CameraParametersPair& input_camera_parameters_pair)
+    : used_camera_parameters_pair_(input_camera_parameters_pair) {
+  if (!used_camera_parameters_pair_.valid()) {
+    throw std::runtime_error(
+        "Attempted to create undistorter from invalid camera parameters");
+  }
+  const cv::Size& resolution_out =
+      used_camera_parameters_pair_.getOutputPtr()->resolution();
+  const cv::Size& resolution_in =
+      used_camera_parameters_pair_.getInputPtr()->resolution();
   // Initialize maps
-  cv::Mat map_x_float(resolution, CV_32FC1);
-  cv::Mat map_y_float(resolution, CV_32FC1);
+  cv::Mat map_x_float(resolution_out, CV_32FC1);
+  cv::Mat map_y_float(resolution_out, CV_32FC1);
 
-  ROS_ERROR_STREAM(" " << P_in);
-  ROS_ERROR_STREAM(" " << P_out);
+  std::vector<double> D;
+  if (used_camera_parameters_pair_.undistort()) {
+    D = used_camera_parameters_pair_.getInputPtr()->D();
+  } else {
+    D = std::vector<double>(0, 5);
+  }
+
+  empty_pixels_ = false;
 
   // Compute the remap maps
-  for (size_t v = 0; v < resolution.height; ++v) {
-    for (size_t u = 0; u < resolution.width; ++u) {
+  for (size_t v = 0; v < resolution_out.height; ++v) {
+    for (size_t u = 0; u < resolution_out.width; ++u) {
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
-      distortPixel(P_in, P_out, using_radtan, D, pixel_location,
-                   &distorted_pixel_location);
+      distortPixel(
+          used_camera_parameters_pair_.getInputPtr()->P(),
+          used_camera_parameters_pair_.getOutputPtr()->P(),
+          used_camera_parameters_pair_.getInputPtr()->usingRadtanDistortion(),
+          D, pixel_location, &distorted_pixel_location);
 
       // Insert in map
       map_x_float.at<float>(v, u) =
           static_cast<float>(distorted_pixel_location.x());
       map_y_float.at<float>(v, u) =
           static_cast<float>(distorted_pixel_location.y());
-    };
+
+      if ((distorted_pixel_location.x() < 0) ||
+          (distorted_pixel_location.y() < 0) ||
+          (distorted_pixel_location.x() >= resolution_in.width) ||
+          (distorted_pixel_location.y() >= resolution_in.height)) {
+        empty_pixels_ = true;
+      }
+    }
   }
 
   // convert to fixed point maps for increased speed
@@ -34,8 +57,32 @@ Undistorter::Undistorter(const cv::Size& resolution,
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
-            cv::BORDER_CONSTANT);
+  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    if (empty_pixels_) {
+      cv::remap(image, *undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    } else {
+      // replicate is more efficient for gpus to calculate
+      cv::remap(image, *undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    }
+  #else
+    cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
+    cv::UMat gpu_undistorted_image;
+    if (empty_pixels_) {
+      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+    } else {
+      // replicate is more efficient for gpus to calculate
+      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+    }
+    gpu_undistorted_image.copyTo(*undistorted_image);
+  #endif
+}
+
+const CameraParametersPair& Undistorter::getCameraParametersPair() {
+  return used_camera_parameters_pair_;
 }
 
 void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
@@ -47,12 +94,12 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   // Transform image coordinates to be size and focus independent
   Eigen::Vector2d norm_pixel_location =
       P_out.topLeftCorner<2, 2>().inverse() *
-      (pixel_location - P_out.block<2, 1>(0, 2) - P_out.block<2, 1>(0, 3));
+      (pixel_location - P_out.block<2, 1>(0, 2));
 
   const double& x = norm_pixel_location.x();
   const double& y = norm_pixel_location.y();
 
-  Eigen::Vector4d norm_distorted_pixel_location(0, 0, 1, 1);
+  Eigen::Vector3d norm_distorted_pixel_location(0, 0, 1);
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
@@ -99,5 +146,6 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   }
 
   *distorted_pixel_location =
-      P_in.topLeftCorner<2, 4>() * norm_distorted_pixel_location;
-};
+      P_in.topLeftCorner<2, 3>() * norm_distorted_pixel_location;
+}
+}

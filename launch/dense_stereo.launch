@@ -1,0 +1,25 @@
+<launch>
+
+<arg name="mav_name" default="elster" />
+<arg name="namespace" default="$(arg mav_name)" />
+<arg name="left_camera_name" default="cam0" />
+<arg name="right_camera_name" default="cam1" />
+<arg name="scale" default="0.5" />
+<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/elster/camchain_p23037.yaml"/>
+
+<group ns="$(arg namespace)">
+
+  <node name="dense_stereo" pkg="image_undistort" type="dense_stereo_node">
+    <param name="input_camera_info_from_ros_params" value = "true"/>
+    <param name="left_camera_namespace" value="$(arg left_camera_name)"/>
+    <param name="right_camera_namespace" value="$(arg right_camera_name)"/>
+    <param name="scale" value="$(arg scale)"/>
+    
+    <rosparam file="$(arg stereo_params_camchain)"/>
+
+    <remap from="raw/$(arg left_camera_name)/image" to="$(arg left_camera_name)/image_raw"/>
+    <remap from="raw/$(arg right_camera_name)/image" to="$(arg right_camera_name)/image_raw"/>
+  </node>
+</group>
+
+</launch>
