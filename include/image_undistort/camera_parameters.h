@@ -1,5 +1,5 @@
-#ifndef CAMERA_PARAMETERS_H
-#define CAMERA_PARAMETERS_H
+#ifndef IMAGE_UNDISTORT_CAMERA_PARAMETERS_H
+#define IMAGE_UNDISTORT_CAMERA_PARAMETERS_H
 
 #include <ros/ros.h>
 #include <sensor_msgs/CameraInfo.h>

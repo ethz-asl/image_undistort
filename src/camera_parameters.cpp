@@ -330,10 +330,8 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   // Thanks to weird corner cases this is way more complex then it should be.
   // The general case is even more of a nightmare, so we constrain the problem
   // such that the center of focus must be in the center of the final image.
-
-  // as we are missing the forward projection model we iteratively estimate
-  // image size assuming a linear relationship between warping and size at
-  // each
+  // As we are missing the forward projection model we iteratively estimate
+  // image size assuming a linear relationship between warping and size at each
   // step
   for (size_t i = 0; i < kFocalLengthEstimationAttempts; ++i) {
     // get list of edge points to check
@@ -368,8 +366,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     }
 
     // change resolution estimate so that extreme points lie on edges (under
-    // the
-    // aforementioned linear assumption)
+    // the aforementioned linear assumption)
     cv::Size resolution_update;
     resolution_update.width = std::floor(
         static_cast<double>(resolution_estimate.width) *
@@ -480,6 +477,7 @@ bool StereoCameraParameters::setInputCameraParameters(
   } else {
     success = right_.setCameraParameters(nh, camera_namespace, true);
   }
+  //if both input cameras have valid parameters
   if (valid(true, true) && valid(false, true)) {
     generateRectificationParameters();
   }
@@ -494,6 +492,7 @@ bool StereoCameraParameters::setInputCameraParameters(
     } else {
       right_.setCameraParameters(camera_info, true);
     }
+    //if both input cameras have valid parameters
     if (valid(true, true) && valid(false, true)) {
       generateRectificationParameters();
     }
@@ -514,6 +513,7 @@ bool StereoCameraParameters::setInputCameraParameters(
     } else {
       right_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
     }
+    //if both input cameras have valid parameters
     if (valid(true, true) && valid(false, true)) {
       generateRectificationParameters();
     }

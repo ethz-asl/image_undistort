@@ -1,5 +1,5 @@
-#ifndef STEREO_INFO_H
-#define STEREO_INFO_H
+#ifndef IMAGE_UNDISTORT_STEREO_INFO_H
+#define IMAGE_UNDISTORT_STEREO_INFO_H
 
 #include <image_transport/image_transport.h>
 #include <ros/callback_queue.h>
