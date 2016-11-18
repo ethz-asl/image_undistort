@@ -1,5 +1,5 @@
-#ifndef UNDISTORTER_H
-#define UNDISTORTER_H
+#ifndef IMAGE_UNDISTORT_UNDISTORTER_H
+#define IMAGE_UNDISTORT_UNDISTORTER_H
 
 #include <Eigen/Eigen>
 

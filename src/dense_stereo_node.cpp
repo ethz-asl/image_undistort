@@ -15,10 +15,8 @@ int main(int argc, char** argv) {
                    std::string("right"));
   nh_private.param("output_frame", output_frame,
                    std::string("rect/") + left_camera_name);
-  int frame_skip;
-  nh_private.param("process_every_nth_frame", frame_skip, 1);
   int queue_size;
-  nh_private.param("queue_size_preprocessing", queue_size, 1);
+  nh_private.param("queue_size", queue_size, 10);
 
   // STEREO INFO NODELET
   nodelet::M_string stereo_info_remap;
@@ -49,7 +47,6 @@ int main(int argc, char** argv) {
   // LEFT CAMERA NODELET
   XmlRpc::XmlRpcValue left_params;
   left_params["output_camera_info_source"] = "camera_info";
-  left_params["process_every_nth_frame"] = frame_skip;
   left_params["output_frame"] = output_frame;
   left_params["queue_size"] = queue_size;
 
@@ -72,7 +69,6 @@ int main(int argc, char** argv) {
   // RIGHT CAMERA NODELET
   XmlRpc::XmlRpcValue right_params;
   right_params["output_camera_info_source"] = "camera_info";
-  right_params["process_every_nth_frame"] = frame_skip;
   right_params["publish_tf"] = false;
   right_params["output_frame"] = output_frame;
   right_params["queue_size"] = queue_size;
@@ -96,7 +92,7 @@ int main(int argc, char** argv) {
   // DISPARITY NODELET
   XmlRpc::XmlRpcValue disparity_params;
   disparity_params["approximate_sync"] = true;
-  disparity_params["queue_size"] = 10;
+  disparity_params["queue_size"] = queue_size;
 
   nodelet::M_string disparity_remap;
   disparity_remap["left/image_rect"] =
@@ -117,6 +113,7 @@ int main(int argc, char** argv) {
   // POINTCLOUD NODELET
   XmlRpc::XmlRpcValue pointcloud_params;
   pointcloud_params["approximate_sync"] = true;
+  pointcloud_params["queue_size"] = queue_size;
 
   nodelet::M_string pointcloud_remap;
   pointcloud_remap["left/camera_info"] = ros::names::resolve(
