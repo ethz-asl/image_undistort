@@ -1,6 +1,9 @@
 #ROS node for undistorting images, performing stereo rectification and depth estimation
 
-This repo contains three related ros nodes **image_undistort_node**, **stereo_info_node** and **dense_stereo_node**.
+This repo contains three related ros nodes 
+* **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics / resolution.
+* **[stereo_info_node](https://github.com/ethz-asl/image_undistort#stereo_info_node):** Calculates required camera info for stereo rectification.
+* **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs dense stereo estimation.
 
 #image_undistort_node:
 A simple node for undistorting images. Handles both plumb bob (aka radial-tangential) distortion and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
