@@ -4,7 +4,8 @@
 <arg name="namespace" default="$(arg mav_name)" />
 <arg name="left_camera_name" default="cam0" />
 <arg name="right_camera_name" default="cam1" />
-<arg name="scale" default="1.0" />
+<arg name="scale" default="0.5" />
+<arg name="process_every_nth_frame" default="3" />
 <arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/elster/camchain_p23037.yaml"/>
 
 <group ns="$(arg namespace)">
@@ -14,11 +15,12 @@
     <param name="left_camera_namespace" value="$(arg left_camera_name)"/>
     <param name="right_camera_namespace" value="$(arg right_camera_name)"/>
     <param name="scale" value="$(arg scale)"/>
+    <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
     
     <rosparam file="$(arg stereo_params_camchain)"/>
 
-    <remap from="raw/$(arg left_camera_name)/image" to="$(arg left_camera_name)/image_raw"/>
-    <remap from="raw/$(arg right_camera_name)/image" to="$(arg right_camera_name)/image_raw"/>
+    <remap from="raw/left/image" to="$(arg left_camera_name)/image_raw"/>
+    <remap from="raw/right/image" to="$(arg right_camera_name)/image_raw"/>
   </node>
 </group>
 
