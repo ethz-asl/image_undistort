@@ -196,7 +196,7 @@ void ImageUndistort::imageCallback(
     tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
     tf::Transform(R_ros, p_ros);
 
-    br.sendTransform(tf::StampedTransform(
+    br_.sendTransform(tf::StampedTransform(
         tf::Transform(R_ros, p_ros), image_out_ptr->header.stamp,
         image_in_ptr->header.frame_id, output_frame_));
   }

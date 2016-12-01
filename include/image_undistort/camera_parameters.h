@@ -172,6 +172,9 @@ class StereoCameraParameters {
   void generateCameraInfoMessage(const bool left, const bool input,
                                  sensor_msgs::CameraInfo* camera_info) const;
 
+  const CameraParametersPair& getLeft() const;
+  const CameraParametersPair& getRight() const;
+
   bool valid() const;
   bool valid(const bool left, const bool input) const;
 

@@ -598,4 +598,13 @@ bool StereoCameraParameters::generateRectificationParameters() {
 
   return true;
 }
+
+const CameraParametersPair& StereoCameraParameters::getLeft() const{
+  return left_;
+}
+
+const CameraParametersPair& StereoCameraParameters::getRight() const{
+  return right_;
+}
+
 }

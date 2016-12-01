@@ -11,11 +11,11 @@
 #include <tf/transform_broadcaster.h>
 #include <tf_conversions/tf_eigen.h>
 
-#include <image_undistort/undistorter.h>
-
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
+
+#include "image_undistort/undistorter.h"
 
 namespace image_undistort {
 
@@ -106,7 +106,7 @@ class ImageUndistort {
   std::shared_ptr<Undistorter> undistorter_ptr_;
 
   // tf broadcaster
-  tf::TransformBroadcaster br;
+  tf::TransformBroadcaster br_;
 
   // camera info
   std::shared_ptr<CameraParametersPair> camera_parameters_pair_ptr_;
