@@ -1,19 +1,11 @@
 #ifndef IMAGE_UNDISTORT_UNDISTORTER_H
 #define IMAGE_UNDISTORT_UNDISTORTER_H
 
-#define CL_HPP_MINIMUM_OPENCL_VERSION 110
-#define CL_HPP_TARGET_OPENCL_VERSION 110
-#pragma OPENCL EXTENSION cl_intel_printf : enable
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable 
-
 #include <Eigen/Eigen>
 
 #include <cv.h>
 #include <highgui.h>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <CL/cl2.hpp>
-#include <CL/opencl.h>
-#include <ros/ros.h>
 
 #include "image_undistort/camera_parameters.h"
 
@@ -44,19 +36,15 @@ class Undistorter {
  private:
   const CameraParametersPair used_camera_parameters_pair_;
 
-  cv::Mat map_x_;
-  cv::Mat map_y_;
+  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    cv::Mat map_x_;
+    cv::Mat map_y_;
+  #else
+    cv::UMat map_x_;
+    cv::UMat map_y_;
+  #endif
 
-  std::shared_ptr<cl::Buffer> map_e1_;
-  std::shared_ptr<cl::Buffer> map_e2_;
-  std::shared_ptr<cl::Buffer> map_f1_;
-  std::shared_ptr<cl::Buffer> map_f2_;
-
-  std::shared_ptr<cl::Program> cl_program_;
-  std::shared_ptr<cl::CommandQueue> cl_queue_;
-  std::shared_ptr<cl::Context> cl_context_;
-
-  bool empty_pixels_;
+  double empty_pixels_;
 };
 }
 

@@ -5,7 +5,6 @@ project(image_undistort)
 # Set compile flags (-Ofast actually makes a big difference over -O3 here (maybe 20% faster)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
-find_package(OpenCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -24,7 +23,6 @@ catkin_package(
 
 include_directories(
   include
-  ${OpenCL_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
@@ -41,32 +39,27 @@ add_library(${PROJECT_NAME}_nodelet
 
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES}
-  ${OpenCL_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
 add_executable(image_undistort_node src/image_undistort_node.cpp)
 target_link_libraries(image_undistort_node
   ${catkin_LIBRARIES}
-  ${OpenCL_LIBRARIES}
 )
 
 add_executable(stereo_info_node src/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
   ${catkin_LIBRARIES}
-  ${OpenCL_LIBRARIES}
 )
 
 add_executable(stereo_undistort_node src/stereo_undistort_node.cpp)
 target_link_libraries(stereo_undistort_node
   ${catkin_LIBRARIES}
-  ${OpenCL_LIBRARIES}
 )
 
 add_executable(dense_stereo_node src/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
   ${catkin_LIBRARIES}
-  ${OpenCL_LIBRARIES}
 )
 
 # Install nodelet library
