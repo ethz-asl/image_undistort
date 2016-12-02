@@ -220,7 +220,6 @@ void StereoUndistort::processAndSendImage(
 void StereoUndistort::imagesCallback(
     const sensor_msgs::ImageConstPtr& left_image_msg_in,
     const sensor_msgs::ImageConstPtr& right_image_msg_in) {
-  ROS_INFO("Image callback");
   if (!stereo_camera_parameters_ptr_->valid()) {
     ROS_ERROR("Camera parameters invalid, undistortion failed");
     return;
