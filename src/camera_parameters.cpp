@@ -560,10 +560,6 @@ bool StereoCameraParameters::generateRectificationParameters() {
   //force the translation of the left camera to 0 (ros will blindly assume this)
   T.topRightCorner<3,1>() = left_.getInputPtr()->p();
 
-  ROS_ERROR_STREAM("T:\n" << T);
-  ROS_ERROR_STREAM("T left:\n" << left_.getInputPtr()->T());
-  ROS_ERROR_STREAM("T right:\n" << right_.getInputPtr()->T());
-
   left_.setInputCameraParameters(
       left_.getInputPtr()->resolution(), T.inverse() * left_.getInputPtr()->T(),
       left_.getInputPtr()->K(), left_.getInputPtr()->D(),
@@ -572,9 +568,6 @@ bool StereoCameraParameters::generateRectificationParameters() {
       right_.getInputPtr()->resolution(),
       T.inverse() * right_.getInputPtr()->T(), right_.getInputPtr()->K(),
       right_.getInputPtr()->D(), right_.getInputPtr()->usingRadtanDistortion());
-
-  ROS_ERROR_STREAM("T left shifted:\n" << left_.getInputPtr()->T());
-  ROS_ERROR_STREAM("T right shifted:\n" << right_.getInputPtr()->T());
 
   // set individual outputs
   if (!left_.setOptimalOutputCameraParameters(scale_) ||
@@ -605,9 +598,6 @@ bool StereoCameraParameters::generateRectificationParameters() {
     ROS_ERROR("Automatic generation of stereo output parameters failed");
     return false;
   }
-
-  ROS_ERROR_STREAM("P left output:\n" << left_.getOutputPtr()->P());
-  ROS_ERROR_STREAM("P right output:\n" << right_.getOutputPtr()->P());
 
   return true;
 }
