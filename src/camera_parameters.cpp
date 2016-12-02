@@ -547,7 +547,7 @@ bool StereoCameraParameters::valid(const bool check_left,
 }
 
 bool StereoCameraParameters::generateRectificationParameters() {
-  
+
   // twist inputs to align on x axis
   const Eigen::Vector3d x =
       left_.getInputPtr()->p() - right_.getInputPtr()->p();
@@ -556,6 +556,10 @@ bool StereoCameraParameters::generateRectificationParameters() {
 
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
+
+  ROS_ERROR_STREAM("T:\n" << T);
+  ROS_ERROR_STREAM("T left:\n" << left_.getInputPtr()->T());
+  ROS_ERROR_STREAM("T right:\n" << right_.getInputPtr()->T());
 
   left_.setInputCameraParameters(
       left_.getInputPtr()->resolution(), T.inverse() * left_.getInputPtr()->T(),
