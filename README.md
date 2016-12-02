@@ -1,7 +1,7 @@
 This repo contains four related ros nodes-
 * **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
 * **[stereo_info_node](https://github.com/ethz-asl/image_undistort#stereo_info_node):** Calculates the camera information needed for stereo rectification.
-* **[stereo_undistort_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image undistortion and rectification.
+* **[stereo_undistort_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
 * **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs dense stereo estimation.
 
 #image_undistort_node:
