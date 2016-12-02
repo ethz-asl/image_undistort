@@ -11,7 +11,7 @@ A simple node for undistorting images. Handles both plumb bob (aka radial-tangen
 
 * **Undistort images.** The default usage of the node, outputting an undistorted version of an input image.
 * **Modify the image resolution and intrinsics.** The node supports projecting from and to any valid projection matrix and resolution.
-* **Provide a camera_info topic for an image.** In this mode ros params and used to build a camera info message that is published in sync with the image messages. This allows the use of ros nodes that require camera info with devices and bags that do not provide it.
+* **Provide a camera_info topic for an image.** In this mode ros params are used to build a camera info message that is published in sync with the image messages. This allows the use of ros nodes that require camera info with devices and bags that do not provide it.
 
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 100).
@@ -47,7 +47,7 @@ Camera information can be loaded from ROS parameters. These parameters are typic
 2. A 1x2 vector named **resolution** is loaded which contains the parameters (width, height). Again, if not given the node displays an error and terminates.
 3. A 4x4 transformation matrix **T** is searched for. If it is found it is loaded. Otherwise it is searched for under the name **T_cn_cnm1** and if found loaded. If neither are found the node continues.
 4. A 4x3 projection matrix **P** is searched for. If it is found it is loaded. If **P** was found but **T** was not, **P** and **K** are used to construct **T**, otherwise **T** is set to identity. If **P** was not found it is constructed from **K** and **T**.
-5. If an output is being loaded the loading of parameters is completed. For input cameras the distortion properties are now loaded
+5. If an output is being loaded, the loading of parameters is completed. For input cameras the distortion properties are now loaded
 6. A 1xn vector **D** is loaded. If it is not found or is less than 5 elements long it is padded with zeros.
 7. A string **distortion_model** is loaded and converted to lower-case. If it is not found it is set to "radtan".
 
