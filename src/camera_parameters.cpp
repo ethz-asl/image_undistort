@@ -603,8 +603,8 @@ bool StereoCameraParameters::generateRectificationParameters() {
     return false;
   }
 
-  ROS_ERROR_STREAM("T left output:\n" << left_.getOutputPtr()->T());
-  ROS_ERROR_STREAM("T right output:\n" << right_.getOutputPtr()->T());
+  ROS_ERROR_STREAM("P left output:\n" << left_.getOutputPtr()->P());
+  ROS_ERROR_STREAM("P right output:\n" << right_.getOutputPtr()->P());
 
   return true;
 }
