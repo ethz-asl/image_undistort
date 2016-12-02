@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   std::string stereo_undistort_name = ros::this_node::getName();
   manager.load(stereo_undistort_name, "image_undistort/StereoUndistortNodelet",
                remap, nargv);
-  ROS_INFO_STREAM("Started " << stereo_undistort_name << "_stereo_undistort"
+  ROS_INFO_STREAM("Started " << stereo_undistort_name << "/stereo_undistort"
                              << " nodelet.");
 
   // DISPARITY NODELET
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   disparity_remap["right/camera_info"] =
       ros::names::resolve("rect/right/camera_info");
 
-  std::string disparity_name = ros::this_node::getName() + "_disparity";
+  std::string disparity_name = ros::this_node::getName() + "/disparity";
   ros::param::set(disparity_name, disparity_params);
   manager.load(disparity_name, "stereo_image_proc/disparity", disparity_remap,
                nargv);
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   pointcloud_remap["left/image_rect_color"] =
       ros::names::resolve("rect/left/image");
 
-  std::string pointcloud_name = ros::this_node::getName() + "_pointcloud";
+  std::string pointcloud_name = ros::this_node::getName() + "/pointcloud";
   ros::param::set(pointcloud_name, pointcloud_params);
   manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
                pointcloud_remap, nargv);
