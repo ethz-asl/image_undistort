@@ -558,7 +558,7 @@ bool StereoCameraParameters::generateRectificationParameters() {
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
 
   //force the translation of the left camera to 0 (ros will blindly assume this)
-  T.topRightCorner<3,3>() = left.getInputPtr->p();
+  T.topRightCorner<3,3>() = left_.getInputPtr->p();
 
   ROS_ERROR_STREAM("T:\n" << T);
   ROS_ERROR_STREAM("T left:\n" << left_.getInputPtr()->T());
