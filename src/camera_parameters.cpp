@@ -557,6 +557,9 @@ bool StereoCameraParameters::generateRectificationParameters() {
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
 
+  //force the translation of the left camera to 0 (ros will blindly assume this)
+  T.topRightCorner<3,3>() = left.getInputPtr->p();
+
   ROS_ERROR_STREAM("T:\n" << T);
   ROS_ERROR_STREAM("T left:\n" << left_.getInputPtr()->T());
   ROS_ERROR_STREAM("T right:\n" << right_.getInputPtr()->T());
