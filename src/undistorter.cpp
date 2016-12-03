@@ -17,7 +17,8 @@ Undistorter::Undistorter(
   cv::Mat map_y_float(resolution_out, CV_32FC1);
 
   std::vector<double> D;
-  if (used_camera_parameters_pair_.undistort()) {
+  if (used_camera_parameters_pair_.distortionProcessing() ==
+      DistortionProcessing::UNDISTORT) {
     D = used_camera_parameters_pair_.getInputPtr()->D();
   } else {
     D = std::vector<double>(0, 5);
@@ -33,8 +34,8 @@ Undistorter::Undistorter(
       distortPixel(
           used_camera_parameters_pair_.getInputPtr()->P(),
           used_camera_parameters_pair_.getOutputPtr()->P(),
-          used_camera_parameters_pair_.getInputPtr()->usingRadtanDistortion(),
-          D, pixel_location, &distorted_pixel_location);
+          used_camera_parameters_pair_.getInputPtr()->distortionModel(), D,
+          pixel_location, &distorted_pixel_location);
 
       // Insert in map
       map_x_float.at<float>(v, u) =
@@ -57,28 +58,28 @@ Undistorter::Undistorter(
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
-  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
-    if (empty_pixels_) {
-      cv::remap(image, *undistorted_image, map_x_, map_y_,
-                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-    } else {
-      // replicate is more efficient for gpus to calculate
-      cv::remap(image, *undistorted_image, map_x_, map_y_,
-                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-    }
-  #else
-    cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
-    cv::UMat gpu_undistorted_image;
-    if (empty_pixels_) {
-      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
-                cv::INTER_LINEAR, cv::BORDER_CONSTANT);
-    } else {
-      // replicate is more efficient for gpus to calculate
-      cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
-                cv::INTER_LINEAR, cv::BORDER_REPLICATE);
-    }
-    gpu_undistorted_image.copyTo(*undistorted_image);
-  #endif
+#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+  if (empty_pixels_) {
+    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+              cv::BORDER_CONSTANT);
+  } else {
+    // replicate is more efficient for gpus to calculate
+    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+              cv::BORDER_REPLICATE);
+  }
+#else
+  cv::UMat gpu_image = image.getUMat(cv::ACCESS_READ);
+  cv::UMat gpu_undistorted_image;
+  if (empty_pixels_) {
+    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+              cv::INTER_LINEAR, cv::BORDER_CONSTANT);
+  } else {
+    // replicate is more efficient for gpus to calculate
+    cv::remap(gpu_image, gpu_undistorted_image, map_x_, map_y_,
+              cv::INTER_LINEAR, cv::BORDER_REPLICATE);
+  }
+  gpu_undistorted_image.copyTo(*undistorted_image);
+#endif
 }
 
 const CameraParametersPair& Undistorter::getCameraParametersPair() {
@@ -87,7 +88,7 @@ const CameraParametersPair& Undistorter::getCameraParametersPair() {
 
 void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                                const Eigen::Matrix<double, 3, 4>& P_out,
-                               const bool using_radtan,
+                               const DistortionModel& distortion_model,
                                const std::vector<double>& D,
                                const Eigen::Vector2d& pixel_location,
                                Eigen::Vector2d* distorted_pixel_location) {
@@ -103,7 +104,7 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
-  if (using_radtan) {
+  if (distortion_model == DistortionModel::RADTAN) {
     // Split out parameters for easier reading
     const double& k1 = D[0];
     const double& k2 = D[1];

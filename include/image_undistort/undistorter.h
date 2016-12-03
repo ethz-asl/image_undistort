@@ -9,7 +9,7 @@
 
 #include "image_undistort/camera_parameters.h"
 
-namespace image_undistort {
+namespace image_undistort {  
 
 class Undistorter {
  public:
@@ -28,7 +28,7 @@ class Undistorter {
 
   static void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                            const Eigen::Matrix<double, 3, 4>& P_out,
-                           const bool using_radtan,
+                           const DistortionModel& distortion_model,
                            const std::vector<double>& D,
                            const Eigen::Vector2d& pixel_location,
                            Eigen::Vector2d* distorted_pixel_location);

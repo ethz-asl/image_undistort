@@ -35,9 +35,9 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
     nh_private_.param("right_camera_namespace", right_camera_namespace,
                       kDefaultRightCameraNamespace);
     if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, left_camera_namespace, true) ||
+            nh_private_, left_camera_namespace, CameraSide::LEFT) ||
         !stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, right_camera_namespace, false)) {
+            nh_private_, right_camera_namespace, CameraSide::RIGHT)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
@@ -69,60 +69,60 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
 
 void StereoInfo::leftImageCallback(
     const sensor_msgs::ImageConstPtr& image_msg) {
-  sendCameraInfo(image_msg->header, true, true);
-  sendCameraInfo(image_msg->header, true, false);
+  sendCameraInfo(image_msg->header, CameraSide::LEFT, CameraIO::INPUT);
+  sendCameraInfo(image_msg->header, CameraSide::LEFT, CameraIO::OUTPUT);
 }
 
 void StereoInfo::rightImageCallback(
     const sensor_msgs::ImageConstPtr& image_msg) {
-  sendCameraInfo(image_msg->header, false, true);
-  sendCameraInfo(image_msg->header, false, false);
+  sendCameraInfo(image_msg->header, CameraSide::RIGHT, CameraIO::INPUT);
+  sendCameraInfo(image_msg->header, CameraSide::RIGHT, CameraIO::OUTPUT);
 }
 
 void StereoInfo::leftCameraInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
-  if (!stereo_camera_parameters_ptr_->setInputCameraParameters(*camera_info,
-                                                               true)) {
+  if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
+          *camera_info, CameraSide::LEFT)) {
     ROS_ERROR("Setting left camera parameters from camera info failed");
   } else {
-    sendCameraInfo(camera_info->header, true, false);
+    sendCameraInfo(camera_info->header, CameraSide::LEFT, CameraIO::OUTPUT);
   }
 }
 
 void StereoInfo::rightCameraInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
-  if (!stereo_camera_parameters_ptr_->setInputCameraParameters(*camera_info,
-                                                               false)) {
+  if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
+          *camera_info, CameraSide::RIGHT)) {
     ROS_ERROR("Setting right camera parameters from camera info failed");
   } else {
-    sendCameraInfo(camera_info->header, false, false);
+    sendCameraInfo(camera_info->header, CameraSide::RIGHT, CameraIO::OUTPUT);
   }
 }
 
-void StereoInfo::sendCameraInfo(const std_msgs::Header& header, const bool left,
-                                const bool input) {
+void StereoInfo::sendCameraInfo(const std_msgs::Header& header,
+                                const CameraSide& side, const CameraIO& io) {
   sensor_msgs::CameraInfo camera_info;
   camera_info.header = header;
   try {
-    stereo_camera_parameters_ptr_->generateCameraInfoMessage(left, input,
+    stereo_camera_parameters_ptr_->generateCameraInfoMessage(side, io,
                                                              &camera_info);
   } catch (std::runtime_error e) {
     ROS_ERROR("%s", e.what());
     return;
   }
 
-  if(rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan"){
+  if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
     camera_info.distortion_model = "plumb_bob";
   }
 
-  if (left) {
-    if (input) {
+  if (side == CameraSide::LEFT) {
+    if (io == CameraIO::INPUT) {
       left_camera_info_input_pub_.publish(camera_info);
     } else {
       left_camera_info_output_pub_.publish(camera_info);
     }
   } else {
-    if (input) {
+    if (io == CameraIO::INPUT) {
       right_camera_info_input_pub_.publish(camera_info);
     } else {
       right_camera_info_output_pub_.publish(camera_info);

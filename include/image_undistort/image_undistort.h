@@ -76,7 +76,7 @@ class ImageUndistort {
 
   void updateCameraInfo(const sensor_msgs::CameraInfo& camera_info);
 
-  bool loadCameraParameters(const bool is_input,
+  bool loadCameraParameters(const CameraIO& io,
                             sensor_msgs::CameraInfo* loaded_camera_info,
                             std::string* image_topic);
 

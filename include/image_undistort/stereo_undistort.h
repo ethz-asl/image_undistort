@@ -63,15 +63,15 @@ class StereoUndistort {
       const sensor_msgs::CameraInfoConstPtr& right_camera_info_msg_in);
 
  private:
-  int getQueueSize();
+  int getQueueSize() const;
 
-  void updateUndistorter(bool left);
+  void updateUndistorter(const CameraSide& side);
 
-  void sendCameraInfo(const std_msgs::Header& header, const bool left,
-                      const bool input);
+  void sendCameraInfo(const std_msgs::Header& header, const CameraSide& side,
+                      const CameraIO& io);
 
   void processAndSendImage(const sensor_msgs::ImageConstPtr& image_msg_in,
-                           const bool left);
+                           const CameraSide& side);
 
   // tf broadcaster
   tf::TransformBroadcaster br_;

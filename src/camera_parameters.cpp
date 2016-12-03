@@ -1,5 +1,5 @@
-#include <image_undistort/camera_parameters.h>
-#include <image_undistort/undistorter.h>
+#include "image_undistort/camera_parameters.h"
+#include "image_undistort/undistorter.h"
 
 namespace image_undistort {
 
@@ -146,9 +146,9 @@ InputCameraParameters::InputCameraParameters(
   if (!nh.getParam(camera_namespace + "/distortion_model",
                    distortion_model_in)) {
     ROS_WARN("No distortion model given, assuming radtan");
-    radtan_distortion_ = true;
+    distortion_model_ = DistortionModel::RADTAN;
   } else {
-    radtan_distortion_ = isRadtanDistortion(distortion_model_in);
+    distortion_model_ = stringToDistortion(distortion_model_in);
   }
 
   if (!nh.getParam(camera_namespace + "/distortion_coeffs", D_)) {
@@ -168,7 +168,7 @@ InputCameraParameters::InputCameraParameters(
     const sensor_msgs::CameraInfo& camera_info)
     : BaseCameraParameters(camera_info),
       D_(camera_info.D),
-      radtan_distortion_(isRadtanDistortion(camera_info.distortion_model)) {
+      distortion_model_(stringToDistortion(camera_info.distortion_model)) {
   // ensure D always has at least 5 elements
   while (D_.size() < 5) {
     D_.push_back(0);
@@ -178,10 +178,10 @@ InputCameraParameters::InputCameraParameters(
 InputCameraParameters::InputCameraParameters(
     const cv::Size& resolution_in, const Eigen::Matrix<double, 4, 4>& T_in,
     const Eigen::Matrix<double, 3, 3>& K_in, const std::vector<double>& D_in,
-    const bool radtan_distortion)
+    const DistortionModel& distortion_model)
     : BaseCameraParameters(resolution_in, T_in, K_in),
       D_(D_in),
-      radtan_distortion_(radtan_distortion) {
+      distortion_model_(distortion_model) {
   // ensure D always has at least 5 elements
   while (D_.size() < 5) {
     D_.push_back(0);
@@ -189,11 +189,12 @@ InputCameraParameters::InputCameraParameters(
 }
 
 const std::vector<double>& InputCameraParameters::D() const { return D_; }
-const bool InputCameraParameters::usingRadtanDistortion() const {
-  return radtan_distortion_;
+
+const DistortionModel& InputCameraParameters::distortionModel() const {
+  return distortion_model_;
 }
 
-bool InputCameraParameters::isRadtanDistortion(
+const DistortionModel InputCameraParameters::stringToDistortion(
     const std::string& distortion_model) {
   std::string lower_case_distortion_model = distortion_model;
 
@@ -202,9 +203,9 @@ bool InputCameraParameters::isRadtanDistortion(
                  lower_case_distortion_model.begin(), ::tolower);
   if ((lower_case_distortion_model == std::string("plumb bob")) ||
       (lower_case_distortion_model == std::string("radtan"))) {
-    return true;
+    return DistortionModel::RADTAN;
   } else if (lower_case_distortion_model == std::string("equidistant")) {
-    return false;
+    return DistortionModel::EQUIDISTANT;
   } else {
     throw std::runtime_error(
         "Unrecognized distortion model. Valid options are 'radtan', 'Plumb "
@@ -214,8 +215,7 @@ bool InputCameraParameters::isRadtanDistortion(
 
 bool InputCameraParameters::operator==(const InputCameraParameters& B) const {
   return (*dynamic_cast<const BaseCameraParameters*>(this) == B) &&
-         (D() == B.D()) &&
-         (usingRadtanDistortion() == B.usingRadtanDistortion());
+         (D() == B.D()) && (distortionModel() == B.distortionModel());
 }
 
 bool InputCameraParameters::operator!=(const InputCameraParameters& B) const {
@@ -223,14 +223,15 @@ bool InputCameraParameters::operator!=(const InputCameraParameters& B) const {
 }
 
 // holds the camera parameters of the input camera and virtual output camera
-CameraParametersPair::CameraParametersPair(const bool undistort)
-    : undistort_(undistort){};
+CameraParametersPair::CameraParametersPair(
+    const DistortionProcessing distortion_processing)
+    : distortion_processing_(distortion_processing){};
 
 bool CameraParametersPair::setCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
-    bool updating_input_ptr_camera) {
+    const CameraIO& io) {
   try {
-    if (updating_input_ptr_camera) {
+    if (io == CameraIO::INPUT) {
       input_ptr_ =
           std::make_shared<InputCameraParameters>(nh, camera_namespace);
     } else {
@@ -245,10 +246,9 @@ bool CameraParametersPair::setCameraParameters(
 }
 
 bool CameraParametersPair::setCameraParameters(
-    const sensor_msgs::CameraInfo& camera_info,
-    bool updating_input_ptr_camera) {
+    const sensor_msgs::CameraInfo& camera_info, const CameraIO& io) {
   try {
-    if (updating_input_ptr_camera) {
+    if (io == CameraIO::INPUT) {
       input_ptr_ = std::make_shared<InputCameraParameters>(camera_info);
     } else {
       output_ptr_ = std::make_shared<OutputCameraParameters>(camera_info);
@@ -263,10 +263,10 @@ bool CameraParametersPair::setCameraParameters(
 bool CameraParametersPair::setInputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
     const Eigen::Matrix<double, 3, 3>& K, const std::vector<double>& D,
-    const bool radtan_distortion) {
+    const DistortionModel& distortion_model) {
   try {
     input_ptr_ = std::make_shared<InputCameraParameters>(resolution, T, K, D,
-                                                         radtan_distortion);
+                                                         distortion_model);
     return true;
   } catch (std::runtime_error e) {
     ROS_ERROR("%s", e.what());
@@ -287,7 +287,7 @@ bool CameraParametersPair::setOutputCameraParameters(
 }
 
 bool CameraParametersPair::setOutputFromInput() {
-  if (!valid(true)) {
+  if (!valid(CameraIO::INPUT)) {
     ROS_ERROR(
         "Cannot set output to same values as input, as input is not currently "
         "set");
@@ -301,7 +301,7 @@ bool CameraParametersPair::setOutputFromInput() {
 
 bool CameraParametersPair::setOptimalOutputCameraParameters(
     const double scale) {
-  if (!valid(true)) {
+  if (!valid(CameraIO::INPUT)) {
     ROS_ERROR(
         "Optimal output camera parameters cannot be set until the input camera "
         "parameters have been given");
@@ -320,7 +320,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   P.topRightCorner<3, 1>() = focal_length * input_ptr_->p();
 
   std::vector<double> D;
-  if (undistort_) {
+  if (distortion_processing_ == DistortionProcessing::UNDISTORT) {
     D = input_ptr_->D();
   } else {
     D = std::vector<double>(0, 5);
@@ -352,7 +352,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     for (Eigen::Vector2d pixel_location : pixel_locations) {
       Eigen::Vector2d distorted_pixel_location;
       Undistorter::distortPixel(input_ptr_->P(), P,
-                                input_ptr_->usingRadtanDistortion(), D,
+                                input_ptr_->distortionModel(), D,
                                 pixel_location, &distorted_pixel_location);
 
       max_x = std::max(
@@ -395,14 +395,14 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
 }
 
 void CameraParametersPair::generateCameraInfoMessage(
-    const bool input, sensor_msgs::CameraInfo* camera_info) const {
+    const CameraIO& io, sensor_msgs::CameraInfo* camera_info) const {
   if (!valid()) {
     throw std::runtime_error(
         "Attempted to get output camera_info before a valid input and output "
         "has been set");
   } else {
     std::shared_ptr<BaseCameraParameters> camera_parameters_ptr;
-    if (input) {
+    if (io == CameraIO::INPUT) {
       camera_parameters_ptr = input_ptr_;
     } else {
       camera_parameters_ptr = output_ptr_;
@@ -420,12 +420,13 @@ void CameraParametersPair::generateCameraInfoMessage(
     Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(
         camera_info->P.data()) = camera_parameters_ptr->P();
 
-    if (!input || undistort_) {
+    if (io == CameraIO::OUTPUT ||
+        distortion_processing_ == DistortionProcessing::UNDISTORT) {
       camera_info->D = std::vector<double>(5, 0);
     } else {
       camera_info->D = input_ptr_->D();
     }
-    if (input_ptr_->usingRadtanDistortion()) {
+    if (input_ptr_->distortionModel() == DistortionModel::RADTAN) {
       camera_info->distortion_model = "radtan";
     } else {
       camera_info->distortion_model = "equidistant";
@@ -433,7 +434,9 @@ void CameraParametersPair::generateCameraInfoMessage(
   }
 }
 
-bool CameraParametersPair::undistort() const { return undistort_; }
+const DistortionProcessing& CameraParametersPair::distortionProcessing() const {
+  return distortion_processing_;
+}
 
 const std::shared_ptr<InputCameraParameters>&
 CameraParametersPair::getInputPtr() const {
@@ -448,8 +451,8 @@ bool CameraParametersPair::valid() const {
   return (input_ptr_ != nullptr) && (output_ptr_ != nullptr);
 }
 
-bool CameraParametersPair::valid(const bool check_input_ptr_camera) const {
-  if (check_input_ptr_camera) {
+bool CameraParametersPair::valid(const CameraIO& io) const {
+  if (io == CameraIO::INPUT) {
     return input_ptr_ != nullptr;
   } else {
     return output_ptr_ != nullptr;
@@ -470,30 +473,30 @@ StereoCameraParameters::StereoCameraParameters(const double scale)
 
 bool StereoCameraParameters::setInputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
-    bool updating_left_camera) {
+    const CameraSide& side) {
   bool success;
-  if (updating_left_camera) {
-    success = left_.setCameraParameters(nh, camera_namespace, true);
+  if (side == CameraSide::LEFT) {
+    success = left_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
   } else {
-    success = right_.setCameraParameters(nh, camera_namespace, true);
+    success = right_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
   }
-  //if both input cameras have valid parameters
-  if (valid(true, true) && valid(false, true)) {
+  if (valid(CameraSide::LEFT, CameraIO::INPUT) &&
+      valid(CameraSide::RIGHT, CameraIO::INPUT)) {
     generateRectificationParameters();
   }
   return success;
 }
 
 bool StereoCameraParameters::setInputCameraParameters(
-    const sensor_msgs::CameraInfo& camera_info, bool updating_left_camera) {
+    const sensor_msgs::CameraInfo& camera_info, const CameraSide& side) {
   try {
-    if (updating_left_camera) {
-      left_.setCameraParameters(camera_info, true);
+    if (side == CameraSide::LEFT) {
+      left_.setCameraParameters(camera_info, CameraIO::INPUT);
     } else {
-      right_.setCameraParameters(camera_info, true);
+      right_.setCameraParameters(camera_info, CameraIO::INPUT);
     }
-    //if both input cameras have valid parameters
-    if (valid(true, true) && valid(false, true)) {
+    if (valid(CameraSide::LEFT, CameraIO::INPUT) &&
+        valid(CameraSide::RIGHT, CameraIO::INPUT)) {
       generateRectificationParameters();
     }
     return true;
@@ -506,15 +509,15 @@ bool StereoCameraParameters::setInputCameraParameters(
 bool StereoCameraParameters::setInputCameraParameters(
     const cv::Size& resolution, const Eigen::Matrix<double, 4, 4>& T,
     const Eigen::Matrix<double, 3, 3>& K, const std::vector<double>& D,
-    const bool radtan_distortion, const bool updating_left_camera) {
+    const DistortionModel& distortion_model, const CameraSide& side) {
   try {
-    if (updating_left_camera) {
-      left_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
+    if (side == CameraSide::LEFT) {
+      left_.setInputCameraParameters(resolution, T, K, D, distortion_model);
     } else {
-      right_.setInputCameraParameters(resolution, T, K, D, radtan_distortion);
+      right_.setInputCameraParameters(resolution, T, K, D, distortion_model);
     }
-    //if both input cameras have valid parameters
-    if (valid(true, true) && valid(false, true)) {
+    if (valid(CameraSide::LEFT, CameraIO::INPUT) &&
+        valid(CameraSide::RIGHT, CameraIO::INPUT)) {
       generateRectificationParameters();
     }
     return true;
@@ -525,29 +528,28 @@ bool StereoCameraParameters::setInputCameraParameters(
 }
 
 void StereoCameraParameters::generateCameraInfoMessage(
-    const bool left, const bool input,
+    const CameraSide& side, const CameraIO& io,
     sensor_msgs::CameraInfo* camera_info) const {
-  if (left) {
-    left_.generateCameraInfoMessage(input, camera_info);
+  if (side == CameraSide::LEFT) {
+    left_.generateCameraInfoMessage(io, camera_info);
   } else {
-    right_.generateCameraInfoMessage(input, camera_info);
+    right_.generateCameraInfoMessage(io, camera_info);
   }
 }
 
 bool StereoCameraParameters::valid() const {
   return left_.valid() && right_.valid();
 }
-bool StereoCameraParameters::valid(const bool check_left,
-                                   const bool check_input) const {
-  if (check_left) {
-    return left_.valid(check_input);
+bool StereoCameraParameters::valid(const CameraSide& side,
+                                   const CameraIO& io) const {
+  if (side == CameraSide::LEFT) {
+    return left_.valid(io);
   } else {
-    return right_.valid(check_input);
+    return right_.valid(io);
   }
 }
 
 bool StereoCameraParameters::generateRectificationParameters() {
-
   // twist inputs to align on x axis
   const Eigen::Vector3d x =
       left_.getInputPtr()->p() - right_.getInputPtr()->p();
@@ -557,17 +559,18 @@ bool StereoCameraParameters::generateRectificationParameters() {
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
 
-  //force the translation of the left camera to 0 (ros will blindly assume this)
-  T.topRightCorner<3,1>() = left_.getInputPtr()->p();
+  // force the translation of the left camera to 0 (ros will blindly assume
+  // this)
+  T.topRightCorner<3, 1>() = left_.getInputPtr()->p();
 
   left_.setInputCameraParameters(
       left_.getInputPtr()->resolution(), T.inverse() * left_.getInputPtr()->T(),
       left_.getInputPtr()->K(), left_.getInputPtr()->D(),
-      left_.getInputPtr()->usingRadtanDistortion());
+      left_.getInputPtr()->distortionModel());
   right_.setInputCameraParameters(
       right_.getInputPtr()->resolution(),
       T.inverse() * right_.getInputPtr()->T(), right_.getInputPtr()->K(),
-      right_.getInputPtr()->D(), right_.getInputPtr()->usingRadtanDistortion());
+      right_.getInputPtr()->D(), right_.getInputPtr()->distortionModel());
 
   // set individual outputs
   if (!left_.setOptimalOutputCameraParameters(scale_) ||
@@ -602,12 +605,11 @@ bool StereoCameraParameters::generateRectificationParameters() {
   return true;
 }
 
-const CameraParametersPair& StereoCameraParameters::getLeft() const{
+const CameraParametersPair& StereoCameraParameters::getLeft() const {
   return left_;
 }
 
-const CameraParametersPair& StereoCameraParameters::getRight() const{
+const CameraParametersPair& StereoCameraParameters::getRight() const {
   return right_;
 }
-
 }

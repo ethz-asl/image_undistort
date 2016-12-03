@@ -56,8 +56,15 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
 
   bool undistort_image;
   nh_private_.param("undistort_image", undistort_image, kDefaultUndistortImage);
+  DistortionProcessing distortion_processing;
+  if(undistort_image){
+    distortion_processing == DistortionProcessing::UNDISTORT;
+  }
+  else{
+    distortion_processing == DistortionProcessing::PRESERVE;
+  }
   camera_parameters_pair_ptr_ =
-      std::make_shared<CameraParametersPair>(undistort_image);
+      std::make_shared<CameraParametersPair>(distortion_processing);
 
   nh_private_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
@@ -85,7 +92,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     nh_private_.param("input_camera_namespace", input_camera_namespace,
                       kDefaultInputCameraNamespace);
     if (!camera_parameters_pair_ptr_->setCameraParameters(
-            nh_private_, input_camera_namespace, true)) {
+            nh_private_, input_camera_namespace, CameraIO::INPUT)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
@@ -105,7 +112,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       nh_private_.param("output_camera_namespace", output_camera_namespace,
                         kDefaultOutputCameraNamespace);
       if (!camera_parameters_pair_ptr_->setCameraParameters(
-              nh_private_, output_camera_namespace, false)) {
+              nh_private_, output_camera_namespace, CameraIO::OUTPUT)) {
         ROS_FATAL("Loading of output camera parameters failed, exiting");
         ros::shutdown();
         exit(EXIT_FAILURE);
@@ -144,7 +151,8 @@ void ImageUndistort::imageCallback(
   if (!process_image_) {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_msg_in->header;
-    camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
+    camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
+                                                           &camera_info);
     if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
       camera_info.distortion_model = "plumb_bob";
     }
@@ -178,7 +186,8 @@ void ImageUndistort::imageCallback(
   } else {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_out_ptr->header;
-    camera_parameters_pair_ptr_->generateCameraInfoMessage(false, &camera_info);
+    camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
+                                                           &camera_info);
     if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
       camera_info.distortion_model = "plumb_bob";
     }
@@ -205,7 +214,8 @@ void ImageUndistort::imageCallback(
 void ImageUndistort::cameraCallback(
     const sensor_msgs::ImageConstPtr& image_msg,
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
-  camera_parameters_pair_ptr_->setCameraParameters(*camera_info, true);
+  camera_parameters_pair_ptr_->setCameraParameters(*camera_info,
+                                                   CameraIO::INPUT);
   if (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT) {
     camera_parameters_pair_ptr_->setOutputFromInput();
   } else if (output_camera_info_source_ == OutputInfoSource::AUTO_GENERATED) {
@@ -217,7 +227,8 @@ void ImageUndistort::cameraCallback(
 
 void ImageUndistort::cameraInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
-  if (!camera_parameters_pair_ptr_->setCameraParameters(*camera_info, false)) {
+  if (!camera_parameters_pair_ptr_->setCameraParameters(*camera_info,
+                                                        CameraIO::OUTPUT)) {
     ROS_ERROR("Setting output camera from ros message failed");
   }
 }

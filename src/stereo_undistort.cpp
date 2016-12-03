@@ -4,7 +4,7 @@
 namespace image_undistort {
 
 // needed so that topic filters can be initalized in the constructor
-int StereoUndistort::getQueueSize() {
+int StereoUndistort::getQueueSize() const{
   int queue_size;
   nh_private_.param("queue_size", queue_size, kQueueSize);
   if (queue_size < 1) {
@@ -83,9 +83,9 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
     nh_private_.param("right_camera_namespace", right_camera_namespace,
                       kDefaultRightCameraNamespace);
     if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, left_camera_namespace, true) ||
+            nh_private_, left_camera_namespace, CameraSide::LEFT) ||
         !stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, right_camera_namespace, false)) {
+            nh_private_, right_camera_namespace, CameraSide::RIGHT)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
@@ -119,11 +119,11 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   }
 }
 
-void StereoUndistort::updateUndistorter(bool left) {
+void StereoUndistort::updateUndistorter(const CameraSide& side) {
   std::shared_ptr<Undistorter>* undistorter_ptr_ptr;
   CameraParametersPair camera_parameters_pair;
 
-  if (left) {
+  if (side == CameraSide::LEFT) {
     undistorter_ptr_ptr = &left_undistorter_ptr_;
     camera_parameters_pair = stereo_camera_parameters_ptr_->getLeft();
   } else {
@@ -146,11 +146,12 @@ void StereoUndistort::updateUndistorter(bool left) {
 }
 
 void StereoUndistort::sendCameraInfo(const std_msgs::Header& header,
-                                     const bool left, const bool input) {
+                                     const CameraSide& side,
+                                     const CameraIO& io) {
   sensor_msgs::CameraInfo camera_info;
   camera_info.header = header;
   try {
-    stereo_camera_parameters_ptr_->generateCameraInfoMessage(left, input,
+    stereo_camera_parameters_ptr_->generateCameraInfoMessage(side, io,
                                                              &camera_info);
   } catch (std::runtime_error e) {
     ROS_ERROR("%s", e.what());
@@ -161,14 +162,14 @@ void StereoUndistort::sendCameraInfo(const std_msgs::Header& header,
     camera_info.distortion_model = "plumb_bob";
   }
 
-  if (left) {
-    if (input) {
+  if (side == CameraSide::LEFT) {
+    if (io == CameraIO::INPUT) {
       left_camera_info_input_pub_.publish(camera_info);
     } else {
       left_camera_info_output_pub_.publish(camera_info);
     }
   } else {
-    if (input) {
+    if (io == CameraIO::INPUT) {
       right_camera_info_input_pub_.publish(camera_info);
     } else {
       right_camera_info_output_pub_.publish(camera_info);
@@ -177,17 +178,17 @@ void StereoUndistort::sendCameraInfo(const std_msgs::Header& header,
 }
 
 void StereoUndistort::processAndSendImage(
-    const sensor_msgs::ImageConstPtr& image_msg_in, const bool left) {
+    const sensor_msgs::ImageConstPtr& image_msg_in, const CameraSide& side) {
   cv_bridge::CvImageConstPtr image_in_ptr =
       cv_bridge::toCvShare(image_msg_in, output_image_type_);
   cv_bridge::CvImagePtr image_out_ptr(
       new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
 
-  updateUndistorter(left);
+  updateUndistorter(side);
 
   image_out_ptr->header.frame_id = output_frame_;
 
-  if (left) {
+  if (side == CameraSide::LEFT) {
     left_undistorter_ptr_->undistortImage(image_in_ptr->image,
                                           &(image_out_ptr->image));
     left_image_pub_.publish(*(image_out_ptr->toImageMsg()));
@@ -230,21 +231,23 @@ void StereoUndistort::imagesCallback(
   }
   frame_counter_ = 0;
 
-  processAndSendImage(left_image_msg_in, true);
-  processAndSendImage(right_image_msg_in, false);
+  processAndSendImage(left_image_msg_in, CameraSide::LEFT);
+  processAndSendImage(right_image_msg_in, CameraSide::RIGHT);
 
   if (input_camera_info_from_ros_params_) {
-    sendCameraInfo(left_image_msg_in->header, true, true);
-    sendCameraInfo(right_image_msg_in->header, false, true);
+    sendCameraInfo(left_image_msg_in->header, CameraSide::LEFT,
+                   CameraIO::INPUT);
+    sendCameraInfo(right_image_msg_in->header, CameraSide::RIGHT,
+                   CameraIO::INPUT);
   }
 
   std_msgs::Header header = left_image_msg_in->header;
   header.frame_id = output_frame_;
-  sendCameraInfo(header, true, false);
+  sendCameraInfo(header, CameraSide::LEFT, CameraIO::OUTPUT);
 
   header = right_image_msg_in->header;
   header.frame_id = output_frame_;
-  sendCameraInfo(header, false, false);
+  sendCameraInfo(header, CameraSide::RIGHT, CameraIO::OUTPUT);
 }
 
 void StereoUndistort::camerasCallback(
@@ -253,9 +256,9 @@ void StereoUndistort::camerasCallback(
     const sensor_msgs::CameraInfoConstPtr& left_camera_info_msg_in,
     const sensor_msgs::CameraInfoConstPtr& right_camera_info_msg_in) {
   if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *left_camera_info_msg_in, true) ||
+          *left_camera_info_msg_in, CameraSide::LEFT) ||
       !stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *right_camera_info_msg_in, false)) {
+          *right_camera_info_msg_in, CameraSide::RIGHT)) {
     ROS_ERROR("Setting camera info failed, dropping frame");
     return;
   }
