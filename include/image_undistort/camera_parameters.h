@@ -12,7 +12,7 @@ namespace image_undistort {
 
 enum class CameraSide { LEFT, RIGHT };
 enum class CameraIO { INPUT, OUTPUT };
-enum class DistortionModel {RADTAN, EQUIDISTANT};
+enum class DistortionModel { RADTAN, EQUIDISTANT };
 enum class DistortionProcessing { UNDISTORT, PRESERVE };
 
 // holds basic properties of a camera
@@ -91,7 +91,8 @@ class InputCameraParameters : public BaseCameraParameters {
   bool operator!=(const InputCameraParameters& B) const;
 
  private:
-  static const DistortionModel stringToDistortion(const std::string& distortion_model);
+  static const DistortionModel stringToDistortion(
+      const std::string& distortion_model);
 
   std::vector<double> D_;
   DistortionModel distortion_model_;

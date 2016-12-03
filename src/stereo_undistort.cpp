@@ -4,7 +4,7 @@
 namespace image_undistort {
 
 // needed so that topic filters can be initalized in the constructor
-int StereoUndistort::getQueueSize() const{
+int StereoUndistort::getQueueSize() const {
   int queue_size;
   nh_private_.param("queue_size", queue_size, kQueueSize);
   if (queue_size < 1) {

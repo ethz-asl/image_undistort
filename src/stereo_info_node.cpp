@@ -1,5 +1,6 @@
-#include <image_undistort/stereo_info.h>
 #include <nodelet/loader.h>
+
+#include "image_undistort/stereo_info.h"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "stereo_info_node");
@@ -8,8 +9,7 @@ int main(int argc, char** argv) {
   nodelet::V_string nargv;
   std::string nodelet_name = ros::this_node::getName();
   ROS_INFO_STREAM("Started " << nodelet_name << " nodelet.");
-  nodelet.load(nodelet_name, "image_undistort/StereoInfoNodelet", remap,
-               nargv);
+  nodelet.load(nodelet_name, "image_undistort/StereoInfoNodelet", remap, nargv);
   ros::spin();
   return 0;
 }

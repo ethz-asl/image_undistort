@@ -67,10 +67,10 @@ constexpr bool kDefaultRenameRadtanPlumbBob = false;
 
 class ImageUndistort {
  public:
-  ImageUndistort(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_);
+  ImageUndistort(const ros::NodeHandle& nh_,
+                 const ros::NodeHandle& nh_private_);
 
  private:
-
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
                        cv::Mat* image);
 

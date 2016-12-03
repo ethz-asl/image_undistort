@@ -1,6 +1,7 @@
-#include <image_undistort/stereo_undistort.h>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
+
+#include "image_undistort/stereo_undistort.h"
 
 namespace image_undistort {
 

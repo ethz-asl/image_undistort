@@ -57,10 +57,9 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   bool undistort_image;
   nh_private_.param("undistort_image", undistort_image, kDefaultUndistortImage);
   DistortionProcessing distortion_processing;
-  if(undistort_image){
+  if (undistort_image) {
     distortion_processing == DistortionProcessing::UNDISTORT;
-  }
-  else{
+  } else {
     distortion_processing == DistortionProcessing::PRESERVE;
   }
   camera_parameters_pair_ptr_ =
