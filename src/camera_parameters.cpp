@@ -457,8 +457,8 @@ bool CameraParametersPair::valid(const bool check_input_ptr_camera) const {
 }
 
 bool CameraParametersPair::operator==(const CameraParametersPair& B) const {
-  return getInputPtr() == B.getInputPtr() &&
-         (getOutputPtr() == B.getOutputPtr());
+  return *getInputPtr() == *B.getInputPtr() &&
+         (*getOutputPtr() == *B.getOutputPtr());
 }
 
 bool CameraParametersPair::operator!=(const CameraParametersPair& B) const {
