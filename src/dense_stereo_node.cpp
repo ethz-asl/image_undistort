@@ -24,9 +24,17 @@ int main(int argc, char** argv) {
                              << " nodelet.");
 
   // DISPARITY NODELET
+  std::string disparity_name = ros::this_node::getName() + "/disparity";
+
   XmlRpc::XmlRpcValue disparity_params;
-  disparity_params["approximate_sync"] = true;
-  disparity_params["queue_size"] = queue_size;
+  ros::param::get(disparity_name, disparity_params);
+  if(!disparity_params.hasMember("approximate_sync")){
+    disparity_params["approximate_sync"] = true;
+  }
+  if(!disparity_params.hasMember("queue_size")){
+    disparity_params["queue_size"] = queue_size;
+  }
+  ros::param::set(disparity_name, disparity_params);
 
   nodelet::M_string disparity_remap;
   disparity_remap["left/image_rect"] = ros::names::resolve("rect/left/image");
@@ -36,16 +44,22 @@ int main(int argc, char** argv) {
   disparity_remap["right/camera_info"] =
       ros::names::resolve("rect/right/camera_info");
 
-  std::string disparity_name = ros::this_node::getName() + "/disparity";
-  ros::param::set(disparity_name, disparity_params);
   manager.load(disparity_name, "stereo_image_proc/disparity", disparity_remap,
                nargv);
   ROS_INFO_STREAM("Started " << disparity_name << " nodelet.");
 
   // POINTCLOUD NODELET
+  std::string pointcloud_name = ros::this_node::getName() + "/pointcloud";
   XmlRpc::XmlRpcValue pointcloud_params;
-  pointcloud_params["approximate_sync"] = true;
-  pointcloud_params["queue_size"] = queue_size;
+
+  ros::param::get(pointcloud_name, pointcloud_params);
+  if(!pointcloud_params.hasMember("approximate_sync")){
+    pointcloud_params["approximate_sync"] = true;
+  }
+  if(!pointcloud_params.hasMember("queue_size")){
+    pointcloud_params["queue_size"] = queue_size;
+  }
+  ros::param::set(pointcloud_name, pointcloud_params);
 
   nodelet::M_string pointcloud_remap;
   pointcloud_remap["left/camera_info"] =
@@ -55,8 +69,6 @@ int main(int argc, char** argv) {
   pointcloud_remap["left/image_rect_color"] =
       ros::names::resolve("rect/left/image");
 
-  std::string pointcloud_name = ros::this_node::getName() + "/pointcloud";
-  ros::param::set(pointcloud_name, pointcloud_params);
   manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
                pointcloud_remap, nargv);
   ROS_INFO_STREAM("Started " << pointcloud_name << " nodelet.");

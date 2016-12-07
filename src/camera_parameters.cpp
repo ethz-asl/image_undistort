@@ -54,6 +54,7 @@ BaseCameraParameters::BaseCameraParameters(
   } else {
     T_ = Eigen::Matrix4d::Identity();
   }
+  
 
   XmlRpc::XmlRpcValue P_in;
   if (nh.getParam(camera_namespace + "/P", P_in)) {
