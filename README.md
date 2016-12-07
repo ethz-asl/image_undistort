@@ -117,6 +117,10 @@ A node for producing dense stereo images. Internally this node simply combines 3
 * **output_frame** The name of the frame of the output images. (default: "left_camera_rect")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
+###Note:
+All of the standard parameters of **stereo_image_proc/disparity** and **stereo_image_proc/point_cloud2** are also accessible and settable. These parameters appear in the **~/disparity** and **~/point_cloud2** namespaces respectively. Also note that unlike the standard behavior, this node sets approximate_sync to true by default.  See [the stereo_image_proc page](http://wiki.ros.org/stereo_image_proc) for up to date parameters and default values.
+
+
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
 * **raw/left/image** left input image topic
