@@ -28,7 +28,7 @@ class Undistorter {
 
   static void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                            const Eigen::Matrix<double, 3, 4>& P_out,
-                           const bool using_radtan,
+                           const DistortionModel& distortion_model,
                            const std::vector<double>& D,
                            const Eigen::Vector2d& pixel_location,
                            Eigen::Vector2d* distorted_pixel_location);
@@ -36,13 +36,13 @@ class Undistorter {
  private:
   const CameraParametersPair used_camera_parameters_pair_;
 
-  #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
-    cv::Mat map_x_;
-    cv::Mat map_y_;
-  #else
-    cv::UMat map_x_;
-    cv::UMat map_y_;
-  #endif
+#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+  cv::Mat map_x_;
+  cv::Mat map_y_;
+#else
+  cv::UMat map_x_;
+  cv::UMat map_y_;
+#endif
 
   double empty_pixels_;
 };

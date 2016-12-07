@@ -46,8 +46,8 @@ class StereoInfo {
       const sensor_msgs::CameraInfoConstPtr& camera_info);
 
  private:
-  void sendCameraInfo(const std_msgs::Header& header, const bool left,
-                      const bool input);
+  void sendCameraInfo(const std_msgs::Header& header, const CameraSide& side,
+                      const CameraIO& io);
 
   // nodes
   ros::NodeHandle nh_;

@@ -1,12 +1,17 @@
 <library path="lib/libimage_undistort_nodelet">
   <class name="image_undistort/ImageUndistortNodelet" type="image_undistort::ImageUndistortNodelet" base_class_type="nodelet::Nodelet">
-  <description>
-  Image undistort nodelet
-  </description>
+    <description>
+      Image undistort nodelet
+    </description>
   </class>
-    <class name="image_undistort/StereoInfoNodelet" type="image_undistort::StereoInfoNodelet" base_class_type="nodelet::Nodelet">
-  <description>
-  Stereo info nodelet
-  </description>
+  <class name="image_undistort/StereoInfoNodelet" type="image_undistort::StereoInfoNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Stereo info nodelet
+    </description>
+  </class>
+  <class name="image_undistort/StereoUndistortNodelet" type="image_undistort::StereoUndistortNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Stereo undistort nodelet
+    </description>
   </class>
 </library>

@@ -1,6 +1,7 @@
-#include <image_undistort/image_undistort.h>
-#include <pluginlib/class_list_macros.h>
 #include <nodelet/nodelet.h>
+#include <pluginlib/class_list_macros.h>
+
+#include "image_undistort/image_undistort.h"
 
 namespace image_undistort {
 
@@ -15,4 +16,5 @@ class ImageUndistortNodelet : public nodelet::Nodelet {
 }
 
 PLUGINLIB_DECLARE_CLASS(image_undistort, ImageUndistortNodelet,
-                        image_undistort::ImageUndistortNodelet, nodelet::Nodelet);
+                        image_undistort::ImageUndistortNodelet,
+                        nodelet::Nodelet);

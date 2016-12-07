@@ -11,11 +11,11 @@
 #include <tf/transform_broadcaster.h>
 #include <tf_conversions/tf_eigen.h>
 
-#include <image_undistort/undistorter.h>
-
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
+
+#include "image_undistort/undistorter.h"
 
 namespace image_undistort {
 
@@ -67,16 +67,16 @@ constexpr bool kDefaultRenameRadtanPlumbBob = false;
 
 class ImageUndistort {
  public:
-  ImageUndistort(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_);
+  ImageUndistort(const ros::NodeHandle& nh_,
+                 const ros::NodeHandle& nh_private_);
 
  private:
-
   void imageMsgToCvMat(const sensor_msgs::ImageConstPtr& image_msg,
                        cv::Mat* image);
 
   void updateCameraInfo(const sensor_msgs::CameraInfo& camera_info);
 
-  bool loadCameraParameters(const bool is_input,
+  bool loadCameraParameters(const CameraIO& io,
                             sensor_msgs::CameraInfo* loaded_camera_info,
                             std::string* image_topic);
 
@@ -106,7 +106,7 @@ class ImageUndistort {
   std::shared_ptr<Undistorter> undistorter_ptr_;
 
   // tf broadcaster
-  tf::TransformBroadcaster br;
+  tf::TransformBroadcaster br_;
 
   // camera info
   std::shared_ptr<CameraParametersPair> camera_parameters_pair_ptr_;
