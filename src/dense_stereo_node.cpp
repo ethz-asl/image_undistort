@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   nodelet::M_string remap(ros::names::getRemappings());
 
   // STEREO UNDISTORT NODELET
-
+/*
   // leave in node namespace to get parameters
   std::string stereo_undistort_name = ros::this_node::getName();
   manager.load(stereo_undistort_name, "image_undistort/StereoUndistortNodelet",
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
   manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
                pointcloud_remap, nargv);
   ROS_INFO_STREAM("Started " << pointcloud_name << " nodelet.");
-
+*/
   ros::spin();
   return 0;
 }
