@@ -12,7 +12,7 @@ namespace image_undistort {
 
 enum class CameraSide { LEFT, RIGHT };
 enum class CameraIO { INPUT, OUTPUT };
-enum class DistortionModel { RADTAN, EQUIDISTANT };
+enum class DistortionModel { RADTAN, EQUIDISTANT, FOV };
 enum class DistortionProcessing { UNDISTORT, PRESERVE };
 
 // holds basic properties of a camera

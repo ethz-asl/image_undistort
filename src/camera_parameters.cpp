@@ -54,7 +54,6 @@ BaseCameraParameters::BaseCameraParameters(
   } else {
     T_ = Eigen::Matrix4d::Identity();
   }
-  
 
   XmlRpc::XmlRpcValue P_in;
   if (nh.getParam(camera_namespace + "/P", P_in)) {
@@ -207,10 +206,12 @@ const DistortionModel InputCameraParameters::stringToDistortion(
     return DistortionModel::RADTAN;
   } else if (lower_case_distortion_model == std::string("equidistant")) {
     return DistortionModel::EQUIDISTANT;
+  } else if (lower_case_distortion_model == std::string("fov")) {
+    return DistortionModel::FOV;
   } else {
     throw std::runtime_error(
         "Unrecognized distortion model. Valid options are 'radtan', 'Plumb "
-        "Bob' and 'equidistant'");
+        "Bob', 'equidistant' and 'fov'");
   }
 }
 

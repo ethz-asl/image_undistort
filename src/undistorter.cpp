@@ -120,7 +120,7 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
     xd = x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x);
     yd = y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y);
 
-  } else {
+  } else if (distortion_model == DistortionModel::EQUIDISTANT) {
     // Split out distortion parameters for easier reading
     const double& k1 = D[0];
     const double& k2 = D[1];
@@ -144,6 +144,18 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
     const double scaling = (r > 1e-8) ? thetad / r : 1.0;
     xd = x * scaling;
     yd = y * scaling;
+  } else {
+    // Split out parameters for easier reading
+    const double& fov = D[0];
+
+    const double r = std::sqrt(x * x + y * y);
+    if (r < 1e-10) {
+      *distorted_pixel_location = pixel_location;
+      return;
+    }
+    double rd = (1.0 / fov) * atan(2.0 * tan(fov / 2.0) * r);
+    xd = x * (rd / r);
+    yd = y * (rd / r);
   }
 
   *distorted_pixel_location =
