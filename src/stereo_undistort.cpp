@@ -64,7 +64,7 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
-  if (output_frame_ == "") {
+  if (output_frame_.empty()) {
     ROS_ERROR("Output frame cannot be blank, setting to default");
     output_frame_ = kDefaultOutputFrame;
   }
@@ -73,13 +73,13 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
                     kDefaultRenameInputFrame);
   nh_private_.param("left_input_frame", left_input_frame_,
                     kDefaultLeftInputFrame);
-  if (left_input_frame_ == "") {
+  if (left_input_frame_.empty()) {
     ROS_ERROR("Left input frame cannot be blank, setting to default");
     left_input_frame_ = kDefaultLeftInputFrame;
   }
   nh_private_.param("right_input_frame", right_input_frame_,
                     kDefaultRightInputFrame);
-  if (right_input_frame_ == "") {
+  if (right_input_frame_.empty()) {
     ROS_ERROR("Right input frame cannot be blank, setting to default");
     right_input_frame_ = kDefaultRightInputFrame;
   }
@@ -237,7 +237,7 @@ void StereoUndistort::processAndSendImage(
       if (rename_input_frame_) {
         frame = left_input_frame_;
       }
-      if (frame == "") {
+      if (frame.empty()) {
         ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
       } else {
         br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
