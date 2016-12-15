@@ -1,10 +1,10 @@
 <launch>
 
-<arg name="mav_name" default="euroc6" />
+<arg name="mav_name" default="elster" />
 <arg name="namespace" default="$(arg mav_name)" />
 <arg name="input_camera_name" default="cam0" />
 <arg name="scale" default="1.0" />
-<arg name="calib_path" default="/home/z/datasets/tangobird/camchain-tango.yaml"/>
+<arg name="calib_path" default="$(find mav_startup)/parameters/mavs/elster/camchain_p23037.yaml"/>
 
 <group ns="$(arg namespace)">
 
@@ -13,7 +13,7 @@
     <param name="input_camera_info_from_ros_params" value = "true"/>    
     <param name="scale" value="$(arg scale)"/>
     <rosparam file="$(arg calib_path)"/>
-    <remap from="input/image" to="ros_vio_publisher/fisheye_left"/>
+    <remap from="input/image" to="$(arg input_camera_name)/image_raw"/>
   </node>
 </group>
 
