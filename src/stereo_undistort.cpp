@@ -64,13 +64,25 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
+  if (output_frame_ == "") {
+    ROS_ERROR("Output frame cannot be blank, setting to default");
+    output_frame_ = kDefaultOutputFrame;
+  }
 
   nh_private_.param("rename_input_frame", rename_input_frame_,
                     kDefaultRenameInputFrame);
   nh_private_.param("left_input_frame", left_input_frame_,
                     kDefaultLeftInputFrame);
+  if (left_input_frame_ == "") {
+    ROS_ERROR("Left input frame cannot be blank, setting to default");
+    left_input_frame_ = kDefaultLeftInputFrame;
+  }
   nh_private_.param("right_input_frame", right_input_frame_,
                     kDefaultRightInputFrame);
+  if (right_input_frame_ == "") {
+    ROS_ERROR("Right input frame cannot be blank, setting to default");
+    right_input_frame_ = kDefaultRightInputFrame;
+  }
 
   // setup publishers
   left_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
@@ -191,8 +203,8 @@ void StereoUndistort::processAndSendImage(
       cv_bridge::toCvShare(image_msg_in, output_image_type_);
 
   std::string encoding = image_in_ptr->encoding;
-  if(encoding == "8UC1"){
-    //ros does not recognize U8C1 and it will crash the disparity node
+  if (encoding == "8UC1") {
+    // ros does not recognize U8C1 and it will crash the disparity node
     encoding = "mono8";
   }
   cv_bridge::CvImagePtr image_out_ptr(

@@ -84,10 +84,18 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
+  if (output_frame_ == "") {
+    ROS_ERROR("Output frame cannot be blank, setting to default");
+    output_frame_ = kDefaultOutputFrame;
+  }
 
   nh_private_.param("rename_input_frame", rename_input_frame_,
                     kDefaultRenameInputFrame);
   nh_private_.param("input_frame", input_frame_, kDefaultInputFrame);
+  if (input_frame_ == "") {
+    ROS_ERROR("Input frame cannot be blank, setting to default");
+    input_frame_ = kDefaultInputFrame;
+  }
 
   // setup subscribers
   std::string input_camera_namespace;
