@@ -84,7 +84,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
-  if (output_frame_ == "") {
+  if (output_frame_.empty()) {
     ROS_ERROR("Output frame cannot be blank, setting to default");
     output_frame_ = kDefaultOutputFrame;
   }
@@ -92,7 +92,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   nh_private_.param("rename_input_frame", rename_input_frame_,
                     kDefaultRenameInputFrame);
   nh_private_.param("input_frame", input_frame_, kDefaultInputFrame);
-  if (input_frame_ == "") {
+  if (input_frame_.empty()) {
     ROS_ERROR("Input frame cannot be blank, setting to default");
     input_frame_ = kDefaultInputFrame;
   }
@@ -234,7 +234,7 @@ void ImageUndistort::imageCallback(
     if (rename_input_frame_) {
       frame = input_frame_;
     }
-    if (frame == "") {
+    if (frame.empty()) {
       ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
     } else {
       br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
