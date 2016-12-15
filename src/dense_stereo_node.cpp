@@ -29,12 +29,11 @@ int main(int argc, char** argv) {
   XmlRpc::XmlRpcValue disparity_params;
   ros::param::get(disparity_name, disparity_params);
   if(!disparity_params.hasMember("approximate_sync")){
-    disparity_params["approximate_sync"] = true;
+    ros::param::set(disparity_name + "/approximate_sync", true);
   }
   if(!disparity_params.hasMember("queue_size")){
-    disparity_params["queue_size"] = queue_size;
+    ros::param::set(disparity_name + "/queue_size", queue_size);
   }
-  ros::param::set(disparity_name, disparity_params);
 
   nodelet::M_string disparity_remap;
   disparity_remap["left/image_rect"] = ros::names::resolve("rect/left/image");
@@ -54,12 +53,11 @@ int main(int argc, char** argv) {
 
   ros::param::get(pointcloud_name, pointcloud_params);
   if(!pointcloud_params.hasMember("approximate_sync")){
-    pointcloud_params["approximate_sync"] = true;
+    ros::param::set(pointcloud_name + "/approximate_sync", true);
   }
   if(!pointcloud_params.hasMember("queue_size")){
-    pointcloud_params["queue_size"] = queue_size;
+    ros::param::set(pointcloud_name + "/queue_size", queue_size);
   }
-  ros::param::set(pointcloud_name, pointcloud_params);
 
   nodelet::M_string pointcloud_remap;
   pointcloud_remap["left/camera_info"] =

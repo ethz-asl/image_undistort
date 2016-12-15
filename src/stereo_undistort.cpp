@@ -65,6 +65,13 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
 
+  nh_private_.param("rename_input_frame", rename_input_frame_,
+                    kDefaultRenameInputFrame);
+  nh_private_.param("left_input_frame", left_input_frame_,
+                    kDefaultLeftInputFrame);
+  nh_private_.param("right_input_frame", right_input_frame_,
+                    kDefaultRightInputFrame);
+
   // setup publishers
   left_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
       "rect/left/camera_info", queue_size_);
@@ -150,6 +157,7 @@ void StereoUndistort::sendCameraInfo(const std_msgs::Header& header,
                                      const CameraIO& io) {
   sensor_msgs::CameraInfo camera_info;
   camera_info.header = header;
+
   try {
     stereo_camera_parameters_ptr_->generateCameraInfoMessage(side, io,
                                                              &camera_info);
@@ -181,8 +189,14 @@ void StereoUndistort::processAndSendImage(
     const sensor_msgs::ImageConstPtr& image_msg_in, const CameraSide& side) {
   cv_bridge::CvImageConstPtr image_in_ptr =
       cv_bridge::toCvShare(image_msg_in, output_image_type_);
+
+  std::string encoding = image_in_ptr->encoding;
+  if(encoding == "8UC1"){
+    //ros does not recognize U8C1 and it will crash the disparity node
+    encoding = "mono8";
+  }
   cv_bridge::CvImagePtr image_out_ptr(
-      new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
+      new cv_bridge::CvImage(image_in_ptr->header, encoding));
 
   updateUndistorter(side);
 
@@ -207,9 +221,17 @@ void StereoUndistort::processAndSendImage(
       tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
       tf::Transform(R_ros, p_ros);
 
-      br_.sendTransform(tf::StampedTransform(
-          tf::Transform(R_ros, p_ros), image_out_ptr->header.stamp,
-          image_in_ptr->header.frame_id, output_frame_));
+      std::string frame = image_in_ptr->header.frame_id;
+      if (rename_input_frame_) {
+        frame = left_input_frame_;
+      }
+      if (frame == "") {
+        ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+      } else {
+        br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
+                                               image_out_ptr->header.stamp,
+                                               frame, output_frame_));
+      }
     }
   } else {
     right_undistorter_ptr_->undistortImage(image_in_ptr->image,
@@ -235,10 +257,17 @@ void StereoUndistort::imagesCallback(
   processAndSendImage(right_image_msg_in, CameraSide::RIGHT);
 
   if (input_camera_info_from_ros_params_) {
-    sendCameraInfo(left_image_msg_in->header, CameraSide::LEFT,
-                   CameraIO::INPUT);
-    sendCameraInfo(right_image_msg_in->header, CameraSide::RIGHT,
-                   CameraIO::INPUT);
+    std_msgs::Header header = left_image_msg_in->header;
+    if (rename_input_frame_) {
+      header.frame_id = left_input_frame_;
+    }
+    sendCameraInfo(header, CameraSide::LEFT, CameraIO::INPUT);
+
+    header = right_image_msg_in->header;
+    if (rename_input_frame_) {
+      header.frame_id = right_input_frame_;
+    }
+    sendCameraInfo(header, CameraSide::RIGHT, CameraIO::INPUT);
   }
 
   std_msgs::Header header = left_image_msg_in->header;

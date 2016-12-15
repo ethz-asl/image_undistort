@@ -85,6 +85,10 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
 
+  nh_private_.param("rename_input_frame", rename_input_frame_,
+                    kDefaultRenameInputFrame);
+  nh_private_.param("input_frame", input_frame_, kDefaultInputFrame);
+
   // setup subscribers
   std::string input_camera_namespace;
   if (input_camera_info_from_ros_params) {
@@ -150,6 +154,9 @@ void ImageUndistort::imageCallback(
   if (!process_image_) {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_msg_in->header;
+    if (rename_input_frame_) {
+      camera_info.header.frame_id = input_frame_;
+    }
     camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
                                                            &camera_info);
     if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
@@ -160,8 +167,15 @@ void ImageUndistort::imageCallback(
   }
   cv_bridge::CvImageConstPtr image_in_ptr =
       cv_bridge::toCvShare(image_msg_in, output_image_type_);
+
+  std::string encoding = image_in_ptr->encoding;
+  if (encoding == "8UC1") {
+    // ros does not recognize U8C1 and using it will crash anything that does a
+    // color conversion
+    encoding = "mono8";
+  }
   cv_bridge::CvImagePtr image_out_ptr(
-      new cv_bridge::CvImage(image_in_ptr->header, image_in_ptr->encoding));
+      new cv_bridge::CvImage(image_in_ptr->header, encoding));
 
   // if undistorter not built or built using old data update it
   if (!undistorter_ptr_ || (undistorter_ptr_->getCameraParametersPair() !=
@@ -177,6 +191,7 @@ void ImageUndistort::imageCallback(
 
   undistorter_ptr_->undistortImage(image_in_ptr->image,
                                    &(image_out_ptr->image));
+
   image_out_ptr->header.frame_id = output_frame_;
 
   // if camera info was just read in from a topic don't republish it
@@ -185,6 +200,9 @@ void ImageUndistort::imageCallback(
   } else {
     sensor_msgs::CameraInfo camera_info;
     camera_info.header = image_out_ptr->header;
+    if (rename_input_frame_) {
+      camera_info.header.frame_id = input_frame_;
+    }
     camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
                                                            &camera_info);
     if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
@@ -204,9 +222,17 @@ void ImageUndistort::imageCallback(
     tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
     tf::Transform(R_ros, p_ros);
 
-    br_.sendTransform(tf::StampedTransform(
-        tf::Transform(R_ros, p_ros), image_out_ptr->header.stamp,
-        image_in_ptr->header.frame_id, output_frame_));
+    std::string frame = image_in_ptr->header.frame_id;
+    if (rename_input_frame_) {
+      frame = input_frame_;
+    }
+    if (frame == "") {
+      ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+    } else {
+      br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
+                                             image_out_ptr->header.stamp, frame,
+                                             output_frame_));
+    }
   }
 }
 
