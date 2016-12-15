@@ -30,6 +30,8 @@ A simple node for undistorting images. Handles both plumb bob (aka radial-tangen
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **publish_tf** True to publish the tf between the input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "output_camera")
+* **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
+* **input_frame** Only used if **rename_input_frame** is true. The name of the frame of the input images. (default: "input_camera")
 * **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ##Input/Output Topics
@@ -85,6 +87,9 @@ A node that takes in the images and properties of two cameras and outputs rectif
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **publish_tf** True to publish the tf between the left input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "left_camera_rect")
+* **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
+* **left_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the left input images. (default: "left_camera")
+* **right_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the right input images. (default: "right_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ##Input/Output Topics
@@ -115,6 +120,9 @@ A node for producing dense stereo images. Internally this node simply combines 3
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **publish_tf** True to publish the tf between the left input and output image. If the undistortion involves changes to the transformation matrix the frame that the image is in will change, this occurs during most image rectifications. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "left_camera_rect")
+* **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
+* **left_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the left input images. (default: "left_camera")
+* **right_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the right input images. (default: "right_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ###Note:
