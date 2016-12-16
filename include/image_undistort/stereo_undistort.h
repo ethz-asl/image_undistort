@@ -45,6 +45,12 @@ constexpr double kDefaultScale = 1.0;
 constexpr bool kDefaultPublishTF = true;
 // name of output image frame
 const std::string kDefaultOutputFrame = "left_camera_rect";
+// rename input frames
+constexpr bool kDefaultRenameInputFrame = false;
+// new name of left input frame
+const std::string kDefaultLeftInputFrame = "left_camera";
+// new name of right input frame
+const std::string kDefaultRightInputFrame = "right_camera";
 // if radtan distortion should be called radtan (ASL standard) or plumb_bob (ros
 // standard)
 constexpr bool kDefaultRenameRadtanPlumbBob = false;
@@ -125,6 +131,9 @@ class StereoUndistort {
   std::string output_image_type_;
   bool publish_tf_;
   std::string output_frame_;
+  bool rename_input_frame_;
+  std::string left_input_frame_;
+  std::string right_input_frame_;
   bool rename_radtan_plumb_bob_;
   int frame_counter_;
 };
