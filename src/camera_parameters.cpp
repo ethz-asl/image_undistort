@@ -309,8 +309,8 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
         "parameters have been given");
     return false;
   }
-  cv::Size resolution_estimate(std::ceil(input_ptr_->resolution().width / scale),
-                               std::ceil(input_ptr_->resolution().height / scale));
+  cv::Size resolution_estimate(std::ceil(input_ptr_->resolution().width * scale),
+                               std::ceil(input_ptr_->resolution().height * scale));
   double focal_length =
       scale * (input_ptr_->K()(0, 0) + input_ptr_->K()(1, 1)) / 2;
   Eigen::Matrix<double, 3, 4> P = Eigen::Matrix<double, 3, 4>::Zero();
