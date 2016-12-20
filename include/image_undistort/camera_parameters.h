@@ -152,7 +152,7 @@ class CameraParametersPair {
 
   DistortionProcessing distortion_processing_;
 
-  static constexpr double kFocalLengthEstimationAttempts = 10;
+  static constexpr double kFocalLengthEstimationAttempts = 100;
 };
 
 // holds the camera parameters of the left and right camera and uses them to
