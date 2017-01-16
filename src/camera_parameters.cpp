@@ -1,6 +1,8 @@
 #include "image_undistort/camera_parameters.h"
 #include "image_undistort/undistorter.h"
 
+#include <iostream>
+
 namespace image_undistort {
 
 BaseCameraParameters::BaseCameraParameters(
@@ -33,6 +35,7 @@ BaseCameraParameters::BaseCameraParameters(
   } else if (!K_loaded) {
     throw std::runtime_error("Could not find K or camera intrinsics vector");
   }
+
 
   std::vector<double> resolution_in;
   if (nh.getParam(camera_namespace + "/resolution", resolution_in)) {

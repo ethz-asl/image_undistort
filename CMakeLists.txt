@@ -6,6 +6,7 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
+find_package(OpenCL REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -24,6 +25,7 @@ catkin_package(
 include_directories(
   include
   ${EIGEN3_INCLUDE_DIR}
+  ${OPENCL_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -35,32 +37,40 @@ add_library(${PROJECT_NAME}_nodelet
   src/stereo_undistort.cpp
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
-  src/undistorter.cpp)
+  src/undistorter.cpp
+  src/interpolator.cpp
+  src/interpolator_tester.cpp)
 
 target_link_libraries(${PROJECT_NAME}_nodelet
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
 add_executable(image_undistort_node src/image_undistort_node.cpp)
 target_link_libraries(image_undistort_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
 )
 
 add_executable(stereo_info_node src/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
 )
 
 add_executable(stereo_undistort_node src/stereo_undistort_node.cpp)
 target_link_libraries(stereo_undistort_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
 )
 
 add_executable(dense_stereo_node src/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
 )
+
+add_executable(interpolator_tester_node src/interpolator_tester_node.cpp)
+target_link_libraries(interpolator_tester_node
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
+)
+add_dependencies(interpolator_tester_node ${catkin_EXPORTED_TARGETS})
 
 # Install nodelet library
 install(TARGETS ${PROJECT_NAME}_nodelet
