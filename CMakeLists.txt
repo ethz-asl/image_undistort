@@ -68,9 +68,8 @@ target_link_libraries(dense_stereo_node
 
 add_executable(interpolator_tester_node src/interpolator_tester_node.cpp)
 target_link_libraries(interpolator_tester_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES} ${PROJECT_NAME}_nodelet
 )
-add_dependencies(interpolator_tester_node ${catkin_EXPORTED_TARGETS})
 
 # Install nodelet library
 install(TARGETS ${PROJECT_NAME}_nodelet
