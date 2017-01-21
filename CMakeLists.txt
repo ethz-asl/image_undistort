@@ -6,7 +6,12 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
-find_package(OpenCL REQUIRED)
+find_package(OpenCL)
+IF (${OpenCL_FOUND})
+  MESSAGE(STATUS "OpenCL found, will use GPU interpolator")
+  add_definitions(-DUSE_OPENCL)
+ENDIF (${OpenCL_FOUND})
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -38,8 +43,7 @@ add_library(${PROJECT_NAME}_nodelet
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
   src/undistorter.cpp
-  src/interpolator.cpp
-  src/interpolator_tester.cpp)
+  src/interpolator.cpp)
 
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
@@ -64,11 +68,6 @@ target_link_libraries(stereo_undistort_node
 add_executable(dense_stereo_node src/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
   ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
-
-add_executable(interpolator_tester_node src/interpolator_tester_node.cpp)
-target_link_libraries(interpolator_tester_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES} ${PROJECT_NAME}_nodelet
 )
 
 # Install nodelet library

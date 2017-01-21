@@ -6,7 +6,6 @@
 #include <ros/ros.h>
 
 #include <cv.h>
-#include <opencv2/imgproc/imgproc.hpp>
 
 #include "image_undistort/camera_parameters.h"
 #include "image_undistort/interpolator.h"
@@ -38,9 +37,9 @@ class Undistorter {
  private:
   const CameraParametersPair used_camera_parameters_pair_;
 
-  std::shared_ptr<Interpolator> interpolator_ptr_;
+  bool empty_pixels_;
 
-  double empty_pixels_;
+  std::shared_ptr<Interpolator> interpolator_ptr_;
 };
 }
 

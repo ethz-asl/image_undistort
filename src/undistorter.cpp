@@ -14,8 +14,10 @@ Undistorter::Undistorter(
       used_camera_parameters_pair_.getInputPtr()->resolution();
 
   // Initialize map
-  Interpolator::DistortionMap distortion_map;
-  distortion_map.resize(resolution_out.height, resolution_out.width);
+  cv::Mat distortion_map_x(resolution_out.height, resolution_out.width,
+                           CV_32FC1);
+  cv::Mat distortion_map_y(resolution_out.height, resolution_out.width,
+                           CV_32FC1);
 
   std::vector<double> D;
   if (used_camera_parameters_pair_.distortionProcessing() ==
@@ -39,8 +41,8 @@ Undistorter::Undistorter(
           pixel_location, &distorted_pixel_location);
 
       // Insert in map
-      distortion_map(v, u).x() = distorted_pixel_location.x();
-      distortion_map(v, u).y() = distorted_pixel_location.y();
+      distortion_map_x.at<float>(v, u) = distorted_pixel_location.x();
+      distortion_map_y.at<float>(v, u) = distorted_pixel_location.y();
 
       if ((distorted_pixel_location.x() < 0) ||
           (distorted_pixel_location.y() < 0) ||
@@ -52,19 +54,16 @@ Undistorter::Undistorter(
   }
 
   interpolator_ptr_ =
-      std::make_shared<Interpolator>(resolution_in, distortion_map);
+      std::make_shared<Interpolator>(distortion_map_x, distortion_map_y);
 }
 
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
+  KernelSourceInfo source_info(
+      used_camera_parameters_pair_.getInputPtr()->resolution(), image.type(),
+      image.channels(), empty_pixels_);
 
-  ros::Time start = ros::Time::now();
-  for(size_t i = 0; i < 100; ++i){
-    interpolator_ptr_->Interpolate(image, undistorted_image);
-  }
-  ros::Time stop = ros::Time::now();
-
-  ROS_ERROR("Time taken: %f", (stop - start).toSec()/100);
+  interpolator_ptr_->Interpolate(image, source_info, undistorted_image);
 }
 
 const CameraParametersPair& Undistorter::getCameraParametersPair() {
