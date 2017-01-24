@@ -10,11 +10,9 @@
 
   <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
     <param name="input_camera_namespace" value="$(arg input_camera_name)"/>      
-    <param name="input_camera_info_from_ros_params" value = "false"/>    
-    <param name="scale" value="1"/>
+    <param name="input_camera_info_from_ros_params" value = "true"/>    
+    <param name="scale" value="$(arg scale)"/>
     <rosparam file="$(arg calib_path)"/>
-    <remap from="input/camera_info" to="/cam01/camera_info"/>
-    <remap from="input/image" to="/cam01/image_raw"/>
   </node>
 </group>
 
