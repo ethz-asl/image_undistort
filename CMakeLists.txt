@@ -45,30 +45,27 @@ add_library(${PROJECT_NAME}_nodelet
   src/undistorter.cpp
   src/interpolator.cpp)
 
-target_link_libraries(${PROJECT_NAME}_nodelet
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_nodelet ${catkin_LIBRARIES})
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
 add_executable(image_undistort_node src/image_undistort_node.cpp)
-target_link_libraries(image_undistort_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
-
 add_executable(stereo_info_node src/stereo_info_node.cpp)
-target_link_libraries(stereo_info_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
-
 add_executable(stereo_undistort_node src/stereo_undistort_node.cpp)
-target_link_libraries(stereo_undistort_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
-
 add_executable(dense_stereo_node src/dense_stereo_node.cpp)
-target_link_libraries(dense_stereo_node
-  ${catkin_LIBRARIES} ${OpenCL_LIBRARIES}
-)
+
+target_link_libraries(image_undistort_node ${catkin_LIBRARIES})
+target_link_libraries(stereo_info_node ${catkin_LIBRARIES})
+target_link_libraries(stereo_undistort_node ${catkin_LIBRARIES})
+target_link_libraries(dense_stereo_node ${catkin_LIBRARIES})
+
+IF (${OpenCL_FOUND})
+  target_link_libraries(${PROJECT_NAME}_nodelet ${OpenCL_LIBRARIES})
+
+  target_link_libraries(image_undistort_node ${OpenCL_LIBRARIES})
+  target_link_libraries(stereo_info_node ${OpenCL_LIBRARIES})
+  target_link_libraries(stereo_undistort_node ${OpenCL_LIBRARIES})
+  target_link_libraries(dense_stereo_node ${OpenCL_LIBRARIES})
+ENDIF (${OpenCL_FOUND})
 
 # Install nodelet library
 install(TARGETS ${PROJECT_NAME}_nodelet

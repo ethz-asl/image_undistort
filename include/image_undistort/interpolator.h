@@ -19,7 +19,7 @@ namespace image_undistort {
 
 class KernelSourceInfo {
  public:
-  KernelSourceInfo(const cv::Size& input_image_size, const int image_type,
+  KernelSourceInfo(const cv::Size& input_image_size, const int image_depth,
                    const size_t number_channels, const bool empty_pixels);
 
   bool operator==(const KernelSourceInfo& B) const;
@@ -27,7 +27,7 @@ class KernelSourceInfo {
   bool operator!=(const KernelSourceInfo& B) const;
 
   const cv::Size input_image_size_;
-  const int image_type_;
+  const int image_depth_;
   const size_t number_channels_;
   const bool empty_pixels_;
 };

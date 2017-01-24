@@ -3,17 +3,17 @@
 namespace image_undistort {
 
 KernelSourceInfo::KernelSourceInfo(const cv::Size& input_image_size,
-                                   const int image_type,
+                                   const int image_depth,
                                    const size_t number_channels,
                                    const bool empty_pixels)
     : input_image_size_(input_image_size),
-      image_type_(image_type),
+      image_depth_(image_depth),
       number_channels_(number_channels),
       empty_pixels_(empty_pixels) {}
 
 bool KernelSourceInfo::operator==(const KernelSourceInfo& B) const {
   return ((input_image_size_ == B.input_image_size_) &&
-          (image_type_ == B.image_type_) &&
+          (image_depth_ == B.image_depth_) &&
           (number_channels_ == B.number_channels_) &&
           (empty_pixels_ == B.empty_pixels_));
 }
@@ -80,7 +80,7 @@ void Interpolator::Interpolate(const cv::Mat& image,
                                  top_left.y());
         }
 
-        switch (source_info.image_type_) {
+        switch (source_info.image_depth_) {
           case CV_8U:
           case CV_8S:
             addWeights<cl_uchar>(remainder, &weight_map_);
@@ -128,15 +128,15 @@ void Interpolator::Interpolate(const cv::Mat& image,
   kernel_inter.setArg(1, idx_buffer_);
   kernel_inter.setArg(2, weight_buffer_);
   kernel_inter.setArg(3, output_image_buffer);
-  queue_.enqueueNDRangeKernel(
-      kernel_inter, cl::NullRange,
-      cl::NDRange(distortion_map_x_.total()),
-      cl::NullRange);
+  queue_.enqueueNDRangeKernel(kernel_inter, cl::NullRange,
+                              cl::NDRange(undistorted_image->total()),
+                              cl::NullRange);
   queue_.finish();
 
   // hopefully forces the output image back into host memory
-  queue_.enqueueMapBuffer(output_image_buffer, CL_TRUE, CL_MAP_READ, 0,
-                          distortion_map_x_.total());
+  queue_.enqueueMapBuffer(
+      output_image_buffer, CL_TRUE, CL_MAP_READ, 0,
+      undistorted_image->elemSize() * undistorted_image->total());
 }
 
 cl::Device Interpolator::setupDevice() {
@@ -181,11 +181,23 @@ cl::Program::Sources Interpolator::createSources(
 
   // Warning: what follows is probably some of the ugliest code I have ever
   // written
+
+  // vload and vstore are missing for non-vector data, so we create them here
   std::string kernel_code =
+      "inline _SIGNED__SMALL_TYPE_ vload("
+      "    const int idx, global const _SIGNED__SMALL_TYPE_* data_in) {"
+      "  return data_in[idx];"
+      "}"
+      "inline void vstore(const _SIGNED__SMALL_TYPE_ pixel, const int offset,"
+      "                   global _SIGNED__SMALL_TYPE_* data_out) {"
+      "  data_out[offset] = pixel;"
+      "}";
+
+  kernel_code +=
       "void kernel interpolate("
-      "    global const _SIGNED__SMALL_TYPE__CHANNELS_* data_in,"
+      "    global const _SIGNED__SMALL_TYPE_* data_in,"
       "    global const uint* idxs, global const _SMALL_TYPE_4* weights,"
-      "    global _SIGNED__SMALL_TYPE__CHANNELS_* data_out) {"
+      "    global _SIGNED__SMALL_TYPE_* data_out) {"
       "  const uint offset = get_global_id(0);"
       "  const uint idx = idxs[offset];"
       "";
@@ -193,35 +205,44 @@ cl::Program::Sources Interpolator::createSources(
   // only do out of bounds checking if we absolutely need to
   if (source_info.empty_pixels_) {
     kernel_code +=
-        "  if (idx == NULL) {"
-        "    data_out[offset] = 0;"
-        "    return;"
-        "  }"
+        "if (idx == NULL) {"
+        "  data_out[offset] = 0;"
+        "  return;"
+        "}"
         "";
   }
 
+  // get each of the 4 nearest pixels and multiply it by its weighting to
+  // perform bilinear interpolation
   kernel_code +=
       "const _SMALL_TYPE_4 weight = weights[offset];"
       ""
       "_SIGNED__BIG_TYPE__CHANNELS_ pixel ="
       "    convert__SIGNED__BIG_TYPE_(weight.s0) *"
-      "    convert__SIGNED__BIG_TYPE__CHANNELS_(data_in[idx]);"
+      "    convert__SIGNED__BIG_TYPE__CHANNELS_("
+      "        vload_CHANNELS_(idx, data_in));"
       "pixel += convert__SIGNED__BIG_TYPE_(weight.s1) *"
-      "         convert__SIGNED__BIG_TYPE__CHANNELS_(data_in[idx + 1]);"
+      "         convert__SIGNED__BIG_TYPE__CHANNELS_("
+      "             vload_CHANNELS_(idx + 1, data_in));"
       "pixel += convert__SIGNED__BIG_TYPE_(weight.s2) *"
-      "         convert__SIGNED__BIG_TYPE__CHANNELS_(data_in[idx + "
-      "_Y_OFFSET_]);"
-      "pixel +="
-      "    convert__SIGNED__BIG_TYPE_(weight.s3) *"
-      "    convert__SIGNED__BIG_TYPE__CHANNELS_(data_in[idx + _Y_OFFSET_ + "
-      "1]);"
+      "         convert__SIGNED__BIG_TYPE__CHANNELS_("
+      "             vload_CHANNELS_(idx + _Y_OFFSET_, data_in));"
+      "pixel += convert__SIGNED__BIG_TYPE_(weight.s3) *"
+      "         convert__SIGNED__BIG_TYPE__CHANNELS_("
+      "             vload_CHANNELS_(idx + 1 + _Y_OFFSET_, data_in));"
       "";
 
-  // shifting is only needed if we are using fixed point weights
-  if ((source_info.image_type_ != CV_32F) ||
-      (source_info.image_type_ != CV_64F)) {
+  // normalize the weighting (not needed if using floating point weights)
+  if ((source_info.image_depth_ != CV_32F) ||
+      (source_info.image_depth_ != CV_64F)) {
     kernel_code +=
-        "data_out[offset] = convert__SIGNED__SMALL_TYPE_(pixel >> _SHIFT_);";
+        "vstore_CHANNELS_(convert__SIGNED__SMALL_TYPE__CHANNELS_("
+        "                     pixel >> (_SIGNED__BIG_TYPE_)(_SHIFT_)),"
+        "                 offset, data_out);";
+  } else {
+    kernel_code +=
+        "vstore_CHANNELS_(convert__SIGNED__SMALL_TYPE__CHANNELS_(pixel), "
+        "offset, data_out);";
   }
 
   kernel_code += "}";
@@ -248,7 +269,7 @@ cl::Program::Sources Interpolator::createSources(
               &kernel_code);
   }
 
-  switch (source_info.image_type_) {
+  switch (source_info.image_depth_) {
     case CV_8U:
       stringSub("_SMALL_TYPE_", "char", &kernel_code);
       stringSub("_BIG_TYPE_", "short", &kernel_code);

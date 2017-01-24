@@ -60,7 +60,7 @@ Undistorter::Undistorter(
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
   KernelSourceInfo source_info(
-      used_camera_parameters_pair_.getInputPtr()->resolution(), image.type(),
+      used_camera_parameters_pair_.getInputPtr()->resolution(), image.depth(),
       image.channels(), empty_pixels_);
 
   interpolator_ptr_->Interpolate(image, source_info, undistorted_image);
