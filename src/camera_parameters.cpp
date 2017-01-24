@@ -65,11 +65,11 @@ BaseCameraParameters::BaseCameraParameters(
       T_.topLeftCorner<3, 3>() = K_.inverse() * P_.topLeftCorner<3, 3>();
       T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
       T_(3, 3) = 1;
-      /*} else if (!P_.isApprox((Eigen::Matrix<double, 3, 4>() << K_,
+      } else if (!P_.isApprox((Eigen::Matrix<double, 3, 4>() << K_,
                                Eigen::Vector3d::Constant(0))
                                   .finished() *
                               T_)) {
-        throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");*/
+        throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
     }
   } else {
     P_ = (Eigen::Matrix<double, 3, 4>() << K_, Eigen::Vector3d::Constant(0))
@@ -95,10 +95,10 @@ BaseCameraParameters::BaseCameraParameters(
       camera_info.P.data());
 
   T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
-  /*
+  
   if (!P_.topLeftCorner<3, 3>().isApprox(K_ * T_.topLeftCorner<3, 3>())) {
     throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
-  }*/
+  }
 }
 
 BaseCameraParameters::BaseCameraParameters(
