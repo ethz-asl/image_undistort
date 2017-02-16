@@ -6,7 +6,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
 
 namespace image_undistort {
 

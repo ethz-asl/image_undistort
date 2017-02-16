@@ -2,7 +2,7 @@
 #define IMAGE_UNDISTORT_IMAGE_UNDISTORT_NODELET_H
 
 #include <stdio.h>
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
 
 #include <image_transport/image_transport.h>
 #include <nodelet/nodelet.h>

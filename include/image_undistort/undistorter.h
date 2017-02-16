@@ -1,7 +1,7 @@
 #ifndef IMAGE_UNDISTORT_UNDISTORTER_H
 #define IMAGE_UNDISTORT_UNDISTORTER_H
 
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
 
 #include <cv.h>
 #include <highgui.h>
