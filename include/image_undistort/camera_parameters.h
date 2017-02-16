@@ -194,4 +194,3 @@ class StereoCameraParameters {
 };
 }
 #endif  // CAMERA_PARAMETERS_H
-
