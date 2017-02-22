@@ -3,11 +3,12 @@
 
 #include <Eigen/Dense>
 
+#include <ros/ros.h>
+
 #include <cv.h>
-#include <highgui.h>
-#include <opencv2/imgproc/imgproc.hpp>
 
 #include "image_undistort/camera_parameters.h"
+#include "image_undistort/interpolator.h"
 
 namespace image_undistort {
 
@@ -36,10 +37,9 @@ class Undistorter {
  private:
   const CameraParametersPair used_camera_parameters_pair_;
 
-  cv::Mat map_x_;
-  cv::Mat map_y_;
+  bool empty_pixels_;
 
-  double empty_pixels_;
+  std::shared_ptr<Interpolator> interpolator_ptr_;
 };
 }
 
