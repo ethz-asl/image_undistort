@@ -6,6 +6,7 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
