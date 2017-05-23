@@ -38,8 +38,11 @@ add_library(${PROJECT_NAME}_nodelet
   src/image_undistort_nodelet.cpp 
   src/stereo_info_nodelet.cpp
   src/stereo_undistort_nodelet.cpp
+  src/disparity_nodelet.cpp
   src/stereo_info.cpp
   src/stereo_undistort.cpp
+  src/disparity.cpp
+  src/disparity_kernel.cpp
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
   src/undistorter.cpp
@@ -52,11 +55,13 @@ add_executable(image_undistort_node src/image_undistort_node.cpp)
 add_executable(stereo_info_node src/stereo_info_node.cpp)
 add_executable(stereo_undistort_node src/stereo_undistort_node.cpp)
 add_executable(dense_stereo_node src/dense_stereo_node.cpp)
+add_executable(disparity_node src/disparity_node.cpp)
 
 target_link_libraries(image_undistort_node ${catkin_LIBRARIES})
 target_link_libraries(stereo_info_node ${catkin_LIBRARIES})
 target_link_libraries(stereo_undistort_node ${catkin_LIBRARIES})
 target_link_libraries(dense_stereo_node ${catkin_LIBRARIES})
+target_link_libraries(disparity_node ${catkin_LIBRARIES})
 
 IF (${OpenCL_FOUND})
   target_link_libraries(${PROJECT_NAME}_nodelet ${OpenCL_LIBRARIES})
@@ -65,6 +70,7 @@ IF (${OpenCL_FOUND})
   target_link_libraries(stereo_info_node ${OpenCL_LIBRARIES})
   target_link_libraries(stereo_undistort_node ${OpenCL_LIBRARIES})
   target_link_libraries(dense_stereo_node ${OpenCL_LIBRARIES})
+  target_link_libraries(disparity_node ${OpenCL_LIBRARIES})
 ENDIF (${OpenCL_FOUND})
 
 # Install nodelet library
