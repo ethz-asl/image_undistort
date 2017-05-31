@@ -30,12 +30,12 @@ int main(int argc, char** argv) {
   ros::param::get(disparity_name, disparity_params);
 
   nodelet::M_string disparity_remap;
-  disparity_remap["rect/left/image"] = ros::names::resolve("rect/left/image");
-  disparity_remap["rect/right/image"] = ros::names::resolve("rect/right/image");
-  disparity_remap["rect/left/camera_info"] =
-      ros::names::resolve("rect/left/camera_info");
-  disparity_remap["rect/right/camera_info"] =
-      ros::names::resolve("rect/right/camera_info");
+  disparity_remap["rect/first/image"] = ros::names::resolve("rect/first/image");
+  disparity_remap["rect/second/image"] = ros::names::resolve("rect/second/image");
+  disparity_remap["rect/first/camera_info"] =
+      ros::names::resolve("rect/first/camera_info");
+  disparity_remap["rect/second/camera_info"] =
+      ros::names::resolve("rect/second/camera_info");
 
   manager.load(disparity_name, "image_undistort/DisparityNodelet", disparity_remap,
                nargv);
@@ -55,12 +55,12 @@ int main(int argc, char** argv) {
   }
 
   nodelet::M_string disparity_remap;
-  disparity_remap["left/image_rect"] = ros::names::resolve("rect/left/image");
-  disparity_remap["right/image_rect"] = ros::names::resolve("rect/right/image");
-  disparity_remap["left/camera_info"] =
-      ros::names::resolve("rect/left/camera_info");
-  disparity_remap["right/camera_info"] =
-      ros::names::resolve("rect/right/camera_info");
+  disparity_remap["first/image_rect"] = ros::names::resolve("rect/first/image");
+  disparity_remap["second/image_rect"] = ros::names::resolve("rect/second/image");
+  disparity_remap["first/camera_info"] =
+      ros::names::resolve("rect/first/camera_info");
+  disparity_remap["second/camera_info"] =
+      ros::names::resolve("rect/second/camera_info");
 
   manager.load(disparity_name, "stereo_image_proc/disparity", disparity_remap,
                nargv);
@@ -79,12 +79,12 @@ int main(int argc, char** argv) {
   }
 
   nodelet::M_string pointcloud_remap;
-  pointcloud_remap["left/camera_info"] =
-      ros::names::resolve("rect/left/camera_info");
-  pointcloud_remap["right/camera_info"] =
-      ros::names::resolve("rect/right/camera_info");
-  pointcloud_remap["left/image_rect_color"] =
-      ros::names::resolve("rect/left/image");
+  pointcloud_remap["first/camera_info"] =
+      ros::names::resolve("rect/first/camera_info");
+  pointcloud_remap["second/camera_info"] =
+      ros::names::resolve("rect/second/camera_info");
+  pointcloud_remap["first/image_rect_color"] =
+      ros::names::resolve("rect/first/image");
 
   manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
                pointcloud_remap, nargv);

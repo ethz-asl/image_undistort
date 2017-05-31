@@ -2,8 +2,8 @@
 
 <arg name="mav_name" default="ibis" />
 <arg name="namespace" default="$(arg mav_name)" />
-<arg name="left_camera_name" default="cam2" />
-<arg name="right_camera_name" default="cam3" />
+<arg name="first_camera_name" default="cam2" />
+<arg name="second_camera_name" default="cam3" />
 <arg name="scale" default="1" />
 <arg name="process_every_nth_frame" default="1" />
 <arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/ibis/camchain_p22031.yaml"/>
@@ -12,15 +12,15 @@
 
   <node name="dense_stereo" pkg="image_undistort" type="dense_stereo_node">
     <param name="input_camera_info_from_ros_params" value = "true"/>
-    <param name="left_camera_namespace" value="$(arg left_camera_name)"/>
-    <param name="right_camera_namespace" value="$(arg right_camera_name)"/>
+    <param name="first_camera_namespace" value="$(arg first_camera_name)"/>
+    <param name="second_camera_namespace" value="$(arg second_camera_name)"/>
     <param name="scale" value="$(arg scale)"/>
     <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
     
     <rosparam file="$(arg stereo_params_camchain)"/>
 
-    <remap from="raw/left/image" to="$(arg left_camera_name)/image_raw"/>
-    <remap from="raw/right/image" to="$(arg right_camera_name)/image_raw"/>
+    <remap from="raw/first/image" to="$(arg first_camera_name)/image_raw"/>
+    <remap from="raw/second/image" to="$(arg second_camera_name)/image_raw"/>
   </node>
 </group>
 

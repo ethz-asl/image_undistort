@@ -29,73 +29,73 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
 
   // setup subscribers
   if (input_camera_info_from_ros_params) {
-    std::string left_camera_namespace, right_camera_namespace;
-    nh_private_.param("left_camera_namespace", left_camera_namespace,
-                      kDefaultLeftCameraNamespace);
-    nh_private_.param("right_camera_namespace", right_camera_namespace,
-                      kDefaultRightCameraNamespace);
+    std::string first_camera_namespace, second_camera_namespace;
+    nh_private_.param("first_camera_namespace", first_camera_namespace,
+                      kDefaultFirstCameraNamespace);
+    nh_private_.param("second_camera_namespace", second_camera_namespace,
+                      kDefaultSecondCameraNamespace);
     if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, left_camera_namespace, CameraSide::LEFT) ||
+            nh_private_, first_camera_namespace, CameraSide::FIRST) ||
         !stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, right_camera_namespace, CameraSide::RIGHT)) {
+            nh_private_, second_camera_namespace, CameraSide::SECOND)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
-    left_image_sub_ = it_.subscribe("raw/left/image", queue_size_,
-                                    &StereoInfo::leftImageCallback, this);
-    right_image_sub_ = it_.subscribe("raw/right/image", queue_size_,
-                                     &StereoInfo::rightImageCallback, this);
+    first_image_sub_ = it_.subscribe("raw/first/image", queue_size_,
+                                    &StereoInfo::firstImageCallback, this);
+    second_image_sub_ = it_.subscribe("raw/second/image", queue_size_,
+                                     &StereoInfo::secondImageCallback, this);
 
-    left_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-        "raw/left/camera_info", queue_size_);
-    right_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-        "raw/right/camera_info", queue_size_);
+    first_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+        "raw/first/camera_info", queue_size_);
+    second_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+        "raw/second/camera_info", queue_size_);
   } else {
-    left_camera_info_sub_ =
-        nh_.subscribe("raw/left/camera_info", queue_size_,
-                      &StereoInfo::leftCameraInfoCallback, this);
-    right_camera_info_sub_ =
-        nh_.subscribe("raw/right/camera_info", queue_size_,
-                      &StereoInfo::rightCameraInfoCallback, this);
+    first_camera_info_sub_ =
+        nh_.subscribe("raw/first/camera_info", queue_size_,
+                      &StereoInfo::firstCameraInfoCallback, this);
+    second_camera_info_sub_ =
+        nh_.subscribe("raw/second/camera_info", queue_size_,
+                      &StereoInfo::secondCameraInfoCallback, this);
   }
 
   // setup publishers
-  left_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/left/camera_info", queue_size_);
-  right_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/right/camera_info", queue_size_);
+  first_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+      "rect/first/camera_info", queue_size_);
+  second_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+      "rect/second/camera_info", queue_size_);
 }
 
-void StereoInfo::leftImageCallback(
+void StereoInfo::firstImageCallback(
     const sensor_msgs::ImageConstPtr& image_msg) {
-  sendCameraInfo(image_msg->header, CameraSide::LEFT, CameraIO::INPUT);
-  sendCameraInfo(image_msg->header, CameraSide::LEFT, CameraIO::OUTPUT);
+  sendCameraInfo(image_msg->header, CameraSide::FIRST, CameraIO::INPUT);
+  sendCameraInfo(image_msg->header, CameraSide::FIRST, CameraIO::OUTPUT);
 }
 
-void StereoInfo::rightImageCallback(
+void StereoInfo::secondImageCallback(
     const sensor_msgs::ImageConstPtr& image_msg) {
-  sendCameraInfo(image_msg->header, CameraSide::RIGHT, CameraIO::INPUT);
-  sendCameraInfo(image_msg->header, CameraSide::RIGHT, CameraIO::OUTPUT);
+  sendCameraInfo(image_msg->header, CameraSide::SECOND, CameraIO::INPUT);
+  sendCameraInfo(image_msg->header, CameraSide::SECOND, CameraIO::OUTPUT);
 }
 
-void StereoInfo::leftCameraInfoCallback(
+void StereoInfo::firstCameraInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
   if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *camera_info, CameraSide::LEFT)) {
-    ROS_ERROR("Setting left camera parameters from camera info failed");
+          *camera_info, CameraSide::FIRST)) {
+    ROS_ERROR("Setting first camera parameters from camera info failed");
   } else {
-    sendCameraInfo(camera_info->header, CameraSide::LEFT, CameraIO::OUTPUT);
+    sendCameraInfo(camera_info->header, CameraSide::FIRST, CameraIO::OUTPUT);
   }
 }
 
-void StereoInfo::rightCameraInfoCallback(
+void StereoInfo::secondCameraInfoCallback(
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
   if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *camera_info, CameraSide::RIGHT)) {
-    ROS_ERROR("Setting right camera parameters from camera info failed");
+          *camera_info, CameraSide::SECOND)) {
+    ROS_ERROR("Setting second camera parameters from camera info failed");
   } else {
-    sendCameraInfo(camera_info->header, CameraSide::RIGHT, CameraIO::OUTPUT);
+    sendCameraInfo(camera_info->header, CameraSide::SECOND, CameraIO::OUTPUT);
   }
 }
 
@@ -115,17 +115,17 @@ void StereoInfo::sendCameraInfo(const std_msgs::Header& header,
     camera_info.distortion_model = "plumb_bob";
   }
 
-  if (side == CameraSide::LEFT) {
+  if (side == CameraSide::FIRST) {
     if (io == CameraIO::INPUT) {
-      left_camera_info_input_pub_.publish(camera_info);
+      first_camera_info_input_pub_.publish(camera_info);
     } else {
-      left_camera_info_output_pub_.publish(camera_info);
+      first_camera_info_output_pub_.publish(camera_info);
     }
   } else {
     if (io == CameraIO::INPUT) {
-      right_camera_info_input_pub_.publish(camera_info);
+      second_camera_info_input_pub_.publish(camera_info);
     } else {
-      right_camera_info_output_pub_.publish(camera_info);
+      second_camera_info_output_pub_.publish(camera_info);
     }
   }
 }
