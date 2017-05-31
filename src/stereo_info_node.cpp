@@ -1,6 +1,5 @@
 #include <nodelet/loader.h>
-
-#include "image_undistort/stereo_info.h"
+#include <ros/ros.h>
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "stereo_info_node");

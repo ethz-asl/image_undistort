@@ -28,6 +28,25 @@ int main(int argc, char** argv) {
 
   XmlRpc::XmlRpcValue disparity_params;
   ros::param::get(disparity_name, disparity_params);
+
+  nodelet::M_string disparity_remap;
+  disparity_remap["rect/left/image"] = ros::names::resolve("rect/left/image");
+  disparity_remap["rect/right/image"] = ros::names::resolve("rect/right/image");
+  disparity_remap["rect/left/camera_info"] =
+      ros::names::resolve("rect/left/camera_info");
+  disparity_remap["rect/right/camera_info"] =
+      ros::names::resolve("rect/right/camera_info");
+
+  manager.load(disparity_name, "image_undistort/DisparityNodelet", disparity_remap,
+               nargv);
+  ROS_INFO_STREAM("Started " << disparity_name << " nodelet.");
+
+  /*
+  // DISPARITY NODELET
+  std::string disparity_name = ros::this_node::getName() + "/disparity";
+
+  XmlRpc::XmlRpcValue disparity_params;
+  ros::param::get(disparity_name, disparity_params);
   if(!disparity_params.hasMember("approximate_sync")){
     ros::param::set(disparity_name + "/approximate_sync", true);
   }
@@ -70,7 +89,7 @@ int main(int argc, char** argv) {
   manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
                pointcloud_remap, nargv);
   ROS_INFO_STREAM("Started " << pointcloud_name << " nodelet.");
-
+  */
   ros::spin();
   return 0;
 }

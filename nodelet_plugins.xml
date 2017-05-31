@@ -14,4 +14,9 @@
       Stereo undistort nodelet
     </description>
   </class>
+  <class name="image_undistort/DisparityNodelet" type="image_undistort::DisparityNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Disparity nodelet
+    </description>
+  </class>
 </library>
