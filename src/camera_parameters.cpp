@@ -552,18 +552,29 @@ bool StereoCameraParameters::valid(const CameraSide& side,
 }
 
 bool StereoCameraParameters::generateRectificationParameters() {
+
+  if(first_.getInputPtr()->p().isApprox(second_.getInputPtr()->p())){
+    ROS_ERROR("Stereo rectification cannot be performed on cameras with a baseline of zero");
+    return false;
+  }
+
   // twist inputs to align on x axis
-  const Eigen::Vector3d x =
+  Eigen::Vector3d x =
       first_.getInputPtr()->p() - second_.getInputPtr()->p();
-  const Eigen::Vector3d y = first_.getInputPtr()->R().col(2).cross(x);
-  const Eigen::Vector3d z = x.cross(y);
+  Eigen::Vector3d y = first_.getInputPtr()->R().col(2).cross(x);
+  Eigen::Vector3d z = x.cross(y);
 
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
 
-  // force the translation of the first camera to 0 (ros will blindly assume
-  // this)
-  T.topRightCorner<3, 1>() = first_.getInputPtr()->p();
+  //took wrong camera as left (redo other way round)
+  if(T(0,0) < 0){
+    x =
+      second_.getInputPtr()->p() - first_.getInputPtr()->p();
+    y = second_.getInputPtr()->R().col(2).cross(x);
+    z = x.cross(y);
+    T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
+  }
 
   first_.setInputCameraParameters(
       first_.getInputPtr()->resolution(), T.inverse() * first_.getInputPtr()->T(),
