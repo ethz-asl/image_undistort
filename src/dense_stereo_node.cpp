@@ -23,23 +23,23 @@ int main(int argc, char** argv) {
   ROS_INFO_STREAM("Started " << stereo_undistort_name << "/stereo_undistort"
                              << " nodelet.");
 
-  // DISPARITY NODELET
-  std::string disparity_name = ros::this_node::getName() + "/disparity";
+  // DEPTH NODELET
+  std::string depth_name = ros::this_node::getName() + "/depth";
 
-  XmlRpc::XmlRpcValue disparity_params;
-  ros::param::get(disparity_name, disparity_params);
+  XmlRpc::XmlRpcValue depth_params;
+  ros::param::get(depth_name, depth_params);
 
-  nodelet::M_string disparity_remap;
-  disparity_remap["rect/first/image"] = ros::names::resolve("rect/first/image");
-  disparity_remap["rect/second/image"] = ros::names::resolve("rect/second/image");
-  disparity_remap["rect/first/camera_info"] =
+  nodelet::M_string depth_remap;
+  depth_remap["rect/first/image"] = ros::names::resolve("rect/first/image");
+  depth_remap["rect/second/image"] = ros::names::resolve("rect/second/image");
+  depth_remap["rect/first/camera_info"] =
       ros::names::resolve("rect/first/camera_info");
-  disparity_remap["rect/second/camera_info"] =
+  depth_remap["rect/second/camera_info"] =
       ros::names::resolve("rect/second/camera_info");
 
-  manager.load(disparity_name, "image_undistort/DisparityNodelet", disparity_remap,
+  manager.load(depth_name, "image_undistort/DepthNodelet", depth_remap,
                nargv);
-  ROS_INFO_STREAM("Started " << disparity_name << " nodelet.");
+  ROS_INFO_STREAM("Started " << depth_name << " nodelet.");
 
   /*
   // DISPARITY NODELET

@@ -63,10 +63,17 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   }
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
-  nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
-  if (output_frame_.empty()) {
-    ROS_ERROR("Output frame cannot be blank, setting to default");
-    output_frame_ = kDefaultOutputFrame;
+  nh_private_.param("first_output_frame", first_output_frame_,
+                    kDefaultFirstOutputFrame);
+  if (first_output_frame_.empty()) {
+    ROS_ERROR("First output frame cannot be blank, setting to default");
+    first_output_frame_ = kDefaultFirstOutputFrame;
+  }
+  nh_private_.param("second_output_frame", second_output_frame_,
+                    kDefaultSecondOutputFrame);
+  if (second_output_frame_.empty()) {
+    ROS_ERROR("Second output frame cannot be blank, setting to default");
+    second_output_frame_ = kDefaultSecondOutputFrame;
   }
 
   nh_private_.param("rename_input_frame", rename_input_frame_,
@@ -212,12 +219,45 @@ void StereoUndistort::processAndSendImage(
 
   updateUndistorter(side);
 
-  image_out_ptr->header.frame_id = output_frame_;
-
   if (side == CameraSide::FIRST) {
+    image_out_ptr->header.frame_id = first_output_frame_;
+
     first_undistorter_ptr_->undistortImage(image_in_ptr->image,
-                                          &(image_out_ptr->image));
+                                           &(image_out_ptr->image));
     first_image_pub_.publish(*(image_out_ptr->toImageMsg()));
+
+    if (publish_tf_) {
+      Eigen::Matrix4d T =
+          stereo_camera_parameters_ptr_->getSecond()
+              .getInputPtr()
+              ->T()
+              .inverse() *
+          stereo_camera_parameters_ptr_->getFirst().getOutputPtr()->T();
+
+      tf::Matrix3x3 R_ros;
+      tf::Vector3 p_ros;
+      tf::matrixEigenToTF(T.topLeftCorner<3, 3>(), R_ros);
+      tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
+      tf::Transform(R_ros, p_ros);
+
+      std::string frame = image_in_ptr->header.frame_id;
+      if (rename_input_frame_) {
+        frame = first_input_frame_;
+      }
+      if (frame.empty()) {
+        ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+      } else {
+        br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
+                                               image_out_ptr->header.stamp,
+                                               frame, first_output_frame_));
+      }
+    }
+  } else {
+    image_out_ptr->header.frame_id = second_output_frame_;
+
+    second_undistorter_ptr_->undistortImage(image_in_ptr->image,
+                                            &(image_out_ptr->image));
+    second_image_pub_.publish(*(image_out_ptr->toImageMsg()));
 
     if (publish_tf_) {
       Eigen::Matrix4d T =
@@ -235,20 +275,16 @@ void StereoUndistort::processAndSendImage(
 
       std::string frame = image_in_ptr->header.frame_id;
       if (rename_input_frame_) {
-        frame = first_input_frame_;
+        frame = second_input_frame_;
       }
       if (frame.empty()) {
         ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
       } else {
         br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
                                                image_out_ptr->header.stamp,
-                                               frame, output_frame_));
+                                               frame, second_output_frame_));
       }
     }
-  } else {
-    second_undistorter_ptr_->undistortImage(image_in_ptr->image,
-                                           &(image_out_ptr->image));
-    second_image_pub_.publish(*(image_out_ptr->toImageMsg()));
   }
 }
 
@@ -283,11 +319,11 @@ void StereoUndistort::imagesCallback(
   }
 
   std_msgs::Header header = first_image_msg_in->header;
-  header.frame_id = output_frame_;
+  header.frame_id = first_output_frame_;
   sendCameraInfo(header, CameraSide::FIRST, CameraIO::OUTPUT);
 
   header = second_image_msg_in->header;
-  header.frame_id = output_frame_;
+  header.frame_id = second_output_frame_;
   sendCameraInfo(header, CameraSide::SECOND, CameraIO::OUTPUT);
 }
 

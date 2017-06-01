@@ -43,8 +43,10 @@ const std::string kDefaultOutputImageType = "";
 constexpr double kDefaultScale = 1.0;
 // if a tf between the input and output frame should be created
 constexpr bool kDefaultPublishTF = true;
-// name of output image frame
-const std::string kDefaultOutputFrame = "first_camera_rect";
+// name of first output image frame
+const std::string kDefaultFirstOutputFrame = "first_camera_rect";
+// name of second output image frame
+const std::string kDefaultSecondOutputFrame = "second_camera_rect";
 // rename input frames
 constexpr bool kDefaultRenameInputFrame = false;
 // new name of first input frame
@@ -130,7 +132,8 @@ class StereoUndistort {
   int process_every_nth_frame_;
   std::string output_image_type_;
   bool publish_tf_;
-  std::string output_frame_;
+  std::string first_output_frame_;
+  std::string second_output_frame_;
   bool rename_input_frame_;
   std::string first_input_frame_;
   std::string second_input_frame_;

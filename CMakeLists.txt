@@ -9,6 +9,7 @@ find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
+  pcl_ros
   sensor_msgs
   cv_bridge
   image_transport
@@ -33,8 +34,8 @@ add_library(${PROJECT_NAME}_nodelet
   src/stereo_undistort_nodelet.cpp
   src/stereo_info.cpp
   src/stereo_undistort.cpp
-  src/disparity.cpp
-  src/disparity_nodelet.cpp
+  src/depth.cpp
+  src/depth_nodelet.cpp
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
   src/undistorter.cpp)
@@ -59,8 +60,8 @@ target_link_libraries(stereo_undistort_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(disparity_node src/disparity_node.cpp)
-target_link_libraries(disparity_node
+add_executable(depth_node src/depth_node.cpp)
+target_link_libraries(depth_node
   ${catkin_LIBRARIES}
 )
 
