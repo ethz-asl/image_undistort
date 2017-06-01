@@ -41,55 +41,6 @@ int main(int argc, char** argv) {
                nargv);
   ROS_INFO_STREAM("Started " << depth_name << " nodelet.");
 
-  /*
-  // DISPARITY NODELET
-  std::string disparity_name = ros::this_node::getName() + "/disparity";
-
-  XmlRpc::XmlRpcValue disparity_params;
-  ros::param::get(disparity_name, disparity_params);
-  if(!disparity_params.hasMember("approximate_sync")){
-    ros::param::set(disparity_name + "/approximate_sync", true);
-  }
-  if(!disparity_params.hasMember("queue_size")){
-    ros::param::set(disparity_name + "/queue_size", queue_size);
-  }
-
-  nodelet::M_string disparity_remap;
-  disparity_remap["first/image_rect"] = ros::names::resolve("rect/first/image");
-  disparity_remap["second/image_rect"] = ros::names::resolve("rect/second/image");
-  disparity_remap["first/camera_info"] =
-      ros::names::resolve("rect/first/camera_info");
-  disparity_remap["second/camera_info"] =
-      ros::names::resolve("rect/second/camera_info");
-
-  manager.load(disparity_name, "stereo_image_proc/disparity", disparity_remap,
-               nargv);
-  ROS_INFO_STREAM("Started " << disparity_name << " nodelet.");
-
-  // POINTCLOUD NODELET
-  std::string pointcloud_name = ros::this_node::getName() + "/pointcloud";
-  XmlRpc::XmlRpcValue pointcloud_params;
-
-  ros::param::get(pointcloud_name, pointcloud_params);
-  if(!pointcloud_params.hasMember("approximate_sync")){
-    ros::param::set(pointcloud_name + "/approximate_sync", true);
-  }
-  if(!pointcloud_params.hasMember("queue_size")){
-    ros::param::set(pointcloud_name + "/queue_size", queue_size);
-  }
-
-  nodelet::M_string pointcloud_remap;
-  pointcloud_remap["first/camera_info"] =
-      ros::names::resolve("rect/first/camera_info");
-  pointcloud_remap["second/camera_info"] =
-      ros::names::resolve("rect/second/camera_info");
-  pointcloud_remap["first/image_rect_color"] =
-      ros::names::resolve("rect/first/image");
-
-  manager.load(pointcloud_name, "stereo_image_proc/point_cloud2",
-               pointcloud_remap, nargv);
-  ROS_INFO_STREAM("Started " << pointcloud_name << " nodelet.");
-  */
   ros::spin();
   return 0;
 }
