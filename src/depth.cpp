@@ -1,6 +1,5 @@
 #include "image_undistort/depth.h"
 
-#include "opencv2/highgui.hpp"
 #include "opencv2/ximgproc/disparity_filter.hpp"
 
 namespace image_undistort {
