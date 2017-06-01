@@ -121,10 +121,12 @@ void Depth::calcDisparityImage(
   cv_bridge::CvImageConstPtr right_ptr =
       cv_bridge::toCvShare(right_image_msg, "mono8");
 
-  cv::Ptr<cv::StereoBM> left_matcher =
-      cv::StereoBM::create(num_disparities_, sad_window_size_);
-
 #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+
+  std::shared_ptr<cv::StereoBM> left_matcher = std::make_shared<cv::StereoBM>();
+
+  left_matcher->state->numberOfDisparities = num_disparities_;
+  left_matcher->state->SADWindowSize = sad_window_size_;
   left_matcher->state->preFilterCap = pre_filter_cap_;
   left_matcher->state->preFilterSize = pre_filter_size_;
   left_matcher->state->minDisparity = min_disparity_;
@@ -135,6 +137,9 @@ void Depth::calcDisparityImage(
   left_matcher->operator()(left_ptr->image, right_ptr->image,
                            disparity_ptr->image);
 #else
+  cv::Ptr<cv::StereoBM> left_matcher =
+      cv::StereoBM::create(num_disparities_, sad_window_size_);
+
   left_matcher->setPreFilterType(pre_filter_type_);
   left_matcher->setPreFilterSize(pre_filter_size_);
   left_matcher->setPreFilterCap(pre_filter_cap_);
