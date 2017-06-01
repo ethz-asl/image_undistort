@@ -52,8 +52,7 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   nh_private_.param("speckle_window_size", speckle_window_size_,
                     kSpeckleWindowSize);
 
-  nh_private_.param("enable_wls_filter", enable_wls_filter_,
-                    kEnableWLSFilter);
+  nh_private_.param("enable_wls_filter", enable_wls_filter_, kEnableWLSFilter);
 
   camera_sync_.registerCallback(
       boost::bind(&Depth::camerasCallback, this, _1, _2, _3, _4));
@@ -79,8 +78,7 @@ void Depth::calcPointCloud(const cv_bridge::CvImagePtr disparity_ptr,
   }
 
   for (int y_pixels = 0; y_pixels < disparity_ptr->image.rows; ++y_pixels) {
-    for (int x_pixels = 0; x_pixels < disparity_ptr->image.cols;
-         ++x_pixels) {
+    for (int x_pixels = 0; x_pixels < disparity_ptr->image.cols; ++x_pixels) {
       int disparity_idx = x_pixels + disparity_ptr->image.cols * y_pixels;
 
       const uint16_t& disparity_value =

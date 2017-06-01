@@ -90,64 +90,64 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
-  switch(distortion_model){
-  case DistortionModel::RADTAN: {
-    // Split out parameters for easier reading
-    const double& k1 = D[0];
-    const double& k2 = D[1];
-    const double& k3 = D[4];
-    const double& p1 = D[2];
-    const double& p2 = D[3];
+  switch (distortion_model) {
+    case DistortionModel::RADTAN: {
+      // Split out parameters for easier reading
+      const double& k1 = D[0];
+      const double& k2 = D[1];
+      const double& k3 = D[4];
+      const double& p1 = D[2];
+      const double& p2 = D[3];
 
-    // Undistort
-    const double r2 = x * x + y * y;
-    const double r4 = r2 * r2;
-    const double r6 = r4 * r2;
-    const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
-    xd = x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x);
-    yd = y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y);
-  } break;
-  case DistortionModel::EQUIDISTANT: {
-    // Split out distortion parameters for easier reading
-    const double& k1 = D[0];
-    const double& k2 = D[1];
-    const double& k3 = D[2];
-    const double& k4 = D[3];
+      // Undistort
+      const double r2 = x * x + y * y;
+      const double r4 = r2 * r2;
+      const double r6 = r4 * r2;
+      const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
+      xd = x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x);
+      yd = y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y);
+    } break;
+    case DistortionModel::EQUIDISTANT: {
+      // Split out distortion parameters for easier reading
+      const double& k1 = D[0];
+      const double& k2 = D[1];
+      const double& k3 = D[2];
+      const double& k4 = D[3];
 
-    // Undistort
-    const double r = std::sqrt(x * x + y * y);
-    if (r < 1e-10) {
-      *distorted_pixel_location = pixel_location;
-      return;
-    }
-    const double theta = atan(r);
-    const double theta2 = theta * theta;
-    const double theta4 = theta2 * theta2;
-    const double theta6 = theta2 * theta4;
-    const double theta8 = theta4 * theta4;
-    const double thetad =
-        theta * (1 + k1 * theta2 + k2 * theta4 + k3 * theta6 + k4 * theta8);
+      // Undistort
+      const double r = std::sqrt(x * x + y * y);
+      if (r < 1e-10) {
+        *distorted_pixel_location = pixel_location;
+        return;
+      }
+      const double theta = atan(r);
+      const double theta2 = theta * theta;
+      const double theta4 = theta2 * theta2;
+      const double theta6 = theta2 * theta4;
+      const double theta8 = theta4 * theta4;
+      const double thetad =
+          theta * (1 + k1 * theta2 + k2 * theta4 + k3 * theta6 + k4 * theta8);
 
-    const double scaling = (r > 1e-8) ? thetad / r : 1.0;
-    xd = x * scaling;
-    yd = y * scaling;
-  } break;
-  case DistortionModel::FOV: {
-    // Split out parameters for easier reading
-    const double &fov = D[0];
+      const double scaling = (r > 1e-8) ? thetad / r : 1.0;
+      xd = x * scaling;
+      yd = y * scaling;
+    } break;
+    case DistortionModel::FOV: {
+      // Split out parameters for easier reading
+      const double& fov = D[0];
 
-    const double r = std::sqrt(x * x + y * y);
-    if (r < 1e-10) {
-      *distorted_pixel_location = pixel_location;
-      return;
-    }
-    double rd = (1.0 / fov) * atan(2.0 * tan(fov / 2.0) * r);
-    xd = x * (rd / r);
-    yd = y * (rd / r);
-  } break;
-  default:
-    throw std::runtime_error("Distortion model not implemented - model: " +
-                             static_cast<int>(distortion_model));
+      const double r = std::sqrt(x * x + y * y);
+      if (r < 1e-10) {
+        *distorted_pixel_location = pixel_location;
+        return;
+      }
+      double rd = (1.0 / fov) * atan(2.0 * tan(fov / 2.0) * r);
+      xd = x * (rd / r);
+      yd = y * (rd / r);
+    } break;
+    default:
+      throw std::runtime_error("Distortion model not implemented - model: " +
+                               static_cast<int>(distortion_model));
   }
 
   *distorted_pixel_location =

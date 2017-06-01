@@ -309,8 +309,9 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
         "parameters have been given");
     return false;
   }
-  cv::Size resolution_estimate(std::ceil(input_ptr_->resolution().width * scale),
-                               std::ceil(input_ptr_->resolution().height * scale));
+  cv::Size resolution_estimate(
+      std::ceil(input_ptr_->resolution().width * scale),
+      std::ceil(input_ptr_->resolution().height * scale));
   double focal_length =
       scale * (input_ptr_->K()(0, 0) + input_ptr_->K()(1, 1)) / 2;
   Eigen::Matrix<double, 3, 4> P = Eigen::Matrix<double, 3, 4>::Zero();
@@ -480,7 +481,8 @@ bool StereoCameraParameters::setInputCameraParameters(
   if (side == CameraSide::FIRST) {
     success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
   } else {
-    success = second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
+    success =
+        second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
   }
   if (valid(CameraSide::FIRST, CameraIO::INPUT) &&
       valid(CameraSide::SECOND, CameraIO::INPUT)) {
@@ -552,34 +554,33 @@ bool StereoCameraParameters::valid(const CameraSide& side,
 }
 
 bool StereoCameraParameters::generateRectificationParameters() {
-
-  if(first_.getInputPtr()->p().isApprox(second_.getInputPtr()->p())){
-    ROS_ERROR("Stereo rectification cannot be performed on cameras with a baseline of zero");
+  if (first_.getInputPtr()->p().isApprox(second_.getInputPtr()->p())) {
+    ROS_ERROR(
+        "Stereo rectification cannot be performed on cameras with a baseline "
+        "of zero");
     return false;
   }
 
   // twist inputs to align on x axis
-  Eigen::Vector3d x =
-      first_.getInputPtr()->p() - second_.getInputPtr()->p();
+  Eigen::Vector3d x = first_.getInputPtr()->p() - second_.getInputPtr()->p();
   Eigen::Vector3d y = first_.getInputPtr()->R().col(2).cross(x);
   Eigen::Vector3d z = x.cross(y);
 
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
 
-  //took wrong camera as left (redo other way round)
-  if(T(0,0) < 0){
-    x =
-      second_.getInputPtr()->p() - first_.getInputPtr()->p();
+  // took wrong camera as left (redo other way round)
+  if (T(0, 0) < 0) {
+    x = second_.getInputPtr()->p() - first_.getInputPtr()->p();
     y = second_.getInputPtr()->R().col(2).cross(x);
     z = x.cross(y);
     T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
   }
 
   first_.setInputCameraParameters(
-      first_.getInputPtr()->resolution(), T.inverse() * first_.getInputPtr()->T(),
-      first_.getInputPtr()->K(), first_.getInputPtr()->D(),
-      first_.getInputPtr()->distortionModel());
+      first_.getInputPtr()->resolution(),
+      T.inverse() * first_.getInputPtr()->T(), first_.getInputPtr()->K(),
+      first_.getInputPtr()->D(), first_.getInputPtr()->distortionModel());
   second_.setInputCameraParameters(
       second_.getInputPtr()->resolution(),
       T.inverse() * second_.getInputPtr()->T(), second_.getInputPtr()->K(),
@@ -608,9 +609,9 @@ bool StereoCameraParameters::generateRectificationParameters() {
 
   // set the new consistent outputs
   if (!first_.setOutputCameraParameters(resolution, first_.getOutputPtr()->T(),
-                                       K) ||
-      !second_.setOutputCameraParameters(resolution, second_.getOutputPtr()->T(),
-                                        K)) {
+                                        K) ||
+      !second_.setOutputCameraParameters(resolution,
+                                         second_.getOutputPtr()->T(), K)) {
     ROS_ERROR("Automatic generation of stereo output parameters failed");
     return false;
   }

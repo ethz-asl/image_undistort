@@ -43,9 +43,9 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
       exit(EXIT_FAILURE);
     }
     first_image_sub_ = it_.subscribe("raw/first/image", queue_size_,
-                                    &StereoInfo::firstImageCallback, this);
+                                     &StereoInfo::firstImageCallback, this);
     second_image_sub_ = it_.subscribe("raw/second/image", queue_size_,
-                                     &StereoInfo::secondImageCallback, this);
+                                      &StereoInfo::secondImageCallback, this);
 
     first_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
         "raw/first/camera_info", queue_size_);

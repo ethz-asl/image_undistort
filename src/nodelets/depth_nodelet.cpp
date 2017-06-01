@@ -7,8 +7,7 @@ namespace image_undistort {
 
 class DepthNodelet : public nodelet::Nodelet {
   virtual void onInit() {
-    depth_ = std::make_shared<Depth>(
-        getNodeHandle(), getPrivateNodeHandle());
+    depth_ = std::make_shared<Depth>(getNodeHandle(), getPrivateNodeHandle());
   }
 
   std::shared_ptr<Depth> depth_;
@@ -16,5 +15,4 @@ class DepthNodelet : public nodelet::Nodelet {
 }
 
 PLUGINLIB_DECLARE_CLASS(image_undistort, DepthNodelet,
-                        image_undistort::DepthNodelet,
-                        nodelet::Nodelet);
+                        image_undistort::DepthNodelet, nodelet::Nodelet);

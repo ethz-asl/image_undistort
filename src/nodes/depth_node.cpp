@@ -8,8 +8,7 @@ int main(int argc, char** argv) {
   nodelet::V_string nargv;
   std::string nodelet_name = ros::this_node::getName();
   ROS_INFO_STREAM("Started " << nodelet_name << " nodelet.");
-  nodelet.load(nodelet_name, "image_undistort/DepthNodelet", remap,
-               nargv);
+  nodelet.load(nodelet_name, "image_undistort/DepthNodelet", remap, nargv);
   ros::spin();
   return 0;
 }

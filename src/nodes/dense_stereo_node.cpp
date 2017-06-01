@@ -37,8 +37,7 @@ int main(int argc, char** argv) {
   depth_remap["rect/second/camera_info"] =
       ros::names::resolve("rect/second/camera_info");
 
-  manager.load(depth_name, "image_undistort/DepthNodelet", depth_remap,
-               nargv);
+  manager.load(depth_name, "image_undistort/DepthNodelet", depth_remap, nargv);
   ROS_INFO_STREAM("Started " << depth_name << " nodelet.");
 
   ros::spin();
