@@ -1,8 +1,6 @@
 #include "image_undistort/depth.h"
 
-#include "opencv2/calib3d.hpp"
 #include "opencv2/highgui.hpp"
-#include "opencv2/imgcodecs.hpp"
 #include "opencv2/ximgproc/disparity_filter.hpp"
 
 namespace image_undistort {
@@ -136,27 +134,49 @@ void Depth::calcDisparityImage(
   cv::Ptr<cv::StereoBM> left_matcher =
       cv::StereoBM::create(num_disparities_, sad_window_size_);
 
+#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+  left_matcher->state->preFilterCap = pre_filter_cap_;
+  left_matcher->state->preFilterSize = pre_filter_size_;
+  left_matcher->state->minDisparity = min_disparity_;
+  left_matcher->state->textureThreshold = texture_threshold_;
+  left_matcher->state->uniquenessRatio = uniqueness_ratio_;
+  left_matcher->state->speckleRange = speckle_range_;
+  left_matcher->state->speckleWindowSize = speckle_window_size_;
+#else
   left_matcher->setPreFilterType(pre_filter_type_);
+  left_matcher->setPreFilterSize(pre_filter_size_);
   left_matcher->setPreFilterCap(pre_filter_cap_);
   left_matcher->setMinDisparity(min_disparity_);
   left_matcher->setTextureThreshold(texture_threshold_);
   left_matcher->setUniquenessRatio(uniqueness_ratio_);
   left_matcher->setSpeckleRange(speckle_range_);
   left_matcher->setSpeckleWindowSize(speckle_window_size_);
+#endif
 
   if (enable_wls_filter_) {
     cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter =
         cv::ximgproc::createDisparityWLSFilter(left_matcher);
     cv::Ptr<cv::StereoMatcher> right_matcher =
         cv::ximgproc::createRightMatcher(left_matcher);
-    right_matcher->compute(right_ptr->image, left_ptr->image, right_disp);
+
+#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    left_matcher->operator()(left_ptr->image, right_ptr->image, left_disp);
+    right_matcher->operator()(right_ptr->image, left_ptr->image, right_disp);
+#else
     left_matcher->compute(left_ptr->image, right_ptr->image, left_disp);
+    right_matcher->compute(right_ptr->image, left_ptr->image, right_disp);
+#endif
 
     wls_filter->filter(left_disp, left_ptr->image, disparity_ptr->image,
                        right_disp);
   } else {
+#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
+    left_matcher->operator()(left_ptr->image, right_ptr->image,
+                             disparity_ptr->image);
+#else
     left_matcher->compute(left_ptr->image, right_ptr->image,
                           disparity_ptr->image);
+#endif
   }
 
   cv::medianBlur(disparity_ptr->image, disparity_ptr->image, 5);
