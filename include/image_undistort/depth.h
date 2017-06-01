@@ -15,6 +15,8 @@
 #include <message_filters/time_synchronizer.h>
 
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
 
 namespace image_undistort {
 
@@ -104,8 +106,6 @@ class Depth {
   int uniqueness_ratio_;
   int speckle_range_;
   int speckle_window_size_;
-
-  bool enable_wls_filter_;
 };
 }
 

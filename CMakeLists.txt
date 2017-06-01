@@ -6,7 +6,6 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
-find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -25,7 +24,6 @@ catkin_package(
 
 include_directories(
   include
-  ${OPENCV_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )

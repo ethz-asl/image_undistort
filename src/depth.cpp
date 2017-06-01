@@ -1,7 +1,5 @@
 #include "image_undistort/depth.h"
 
-#include "opencv2/ximgproc/disparity_filter.hpp"
-
 namespace image_undistort {
 
 // needed so that topic filters can be initialized in the constructor
@@ -48,8 +46,6 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   nh_private_.param("speckle_range", speckle_range_, kSpeckleRange);
   nh_private_.param("speckle_window_size", speckle_window_size_,
                     kSpeckleWindowSize);
-
-  nh_private_.param("enable_wls_filter", enable_wls_filter_, kEnableWLSFilter);
 
   camera_sync_.registerCallback(
       boost::bind(&Depth::camerasCallback, this, _1, _2, _3, _4));
@@ -125,11 +121,6 @@ void Depth::calcDisparityImage(
   cv_bridge::CvImageConstPtr right_ptr =
       cv_bridge::toCvShare(right_image_msg, "mono8");
 
-  cv::Mat left_disp =
-      cv::Mat(left_ptr->image.rows, left_ptr->image.cols, CV_16S);
-  cv::Mat right_disp =
-      cv::Mat(left_ptr->image.rows, left_ptr->image.cols, CV_16S);
-
   cv::Ptr<cv::StereoBM> left_matcher =
       cv::StereoBM::create(num_disparities_, sad_window_size_);
 
@@ -141,6 +132,8 @@ void Depth::calcDisparityImage(
   left_matcher->state->uniquenessRatio = uniqueness_ratio_;
   left_matcher->state->speckleRange = speckle_range_;
   left_matcher->state->speckleWindowSize = speckle_window_size_;
+  left_matcher->operator()(left_ptr->image, right_ptr->image,
+                           disparity_ptr->image);
 #else
   left_matcher->setPreFilterType(pre_filter_type_);
   left_matcher->setPreFilterSize(pre_filter_size_);
@@ -150,33 +143,9 @@ void Depth::calcDisparityImage(
   left_matcher->setUniquenessRatio(uniqueness_ratio_);
   left_matcher->setSpeckleRange(speckle_range_);
   left_matcher->setSpeckleWindowSize(speckle_window_size_);
+  left_matcher->compute(left_ptr->image, right_ptr->image,
+                        disparity_ptr->image);
 #endif
-
-  if (enable_wls_filter_) {
-    cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter =
-        cv::ximgproc::createDisparityWLSFilter(left_matcher);
-    cv::Ptr<cv::StereoMatcher> right_matcher =
-        cv::ximgproc::createRightMatcher(left_matcher);
-
-#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
-    left_matcher->operator()(left_ptr->image, right_ptr->image, left_disp);
-    right_matcher->operator()(right_ptr->image, left_ptr->image, right_disp);
-#else
-    left_matcher->compute(left_ptr->image, right_ptr->image, left_disp);
-    right_matcher->compute(right_ptr->image, left_ptr->image, right_disp);
-#endif
-
-    wls_filter->filter(left_disp, left_ptr->image, disparity_ptr->image,
-                       right_disp);
-  } else {
-#if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
-    left_matcher->operator()(left_ptr->image, right_ptr->image,
-                             disparity_ptr->image);
-#else
-    left_matcher->compute(left_ptr->image, right_ptr->image,
-                          disparity_ptr->image);
-#endif
-  }
 
   cv::medianBlur(disparity_ptr->image, disparity_ptr->image, 5);
 }
