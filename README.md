@@ -132,7 +132,7 @@ A node for producing dense stereo images. Internally this node simply combines 2
 * **image_undistort/StereoUndistort** Used to set up the stereo system and rectify the images.
 * **image_undistort/Depth** Generates disparity images and pointclouds from the rectified images.
 
-##Parameters:
+## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
 * **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 * **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
@@ -157,7 +157,7 @@ A node for producing dense stereo images. Internally this node simply combines 2
 * **speckle_range** Parameter used for removing speckle in StereoBM. (default: 0)
 * **speckle_window_size** Window size used for speckle removal in StereoBM. (default: 0)
 
-##Input/Output Topics
+## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
 * **raw/first/image** first input image topic
 * **raw/second/image** second input image topic
