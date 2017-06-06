@@ -20,10 +20,10 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
       nh_private_(nh_private),
       it_(nh_),
       queue_size_(getQueueSize()),
-      left_image_sub_(it_, "raw/left/image", queue_size_),
-      right_image_sub_(it_, "raw/right/image", queue_size_),
-      left_undistorter_ptr_(nullptr),
-      right_undistorter_ptr_(nullptr),
+      first_image_sub_(it_, "raw/first/image", queue_size_),
+      second_image_sub_(it_, "raw/second/image", queue_size_),
+      first_undistorter_ptr_(nullptr),
+      second_undistorter_ptr_(nullptr),
       frame_counter_(0) {
   // set parameters from ros
   nh_private_.param("input_camera_info_from_ros_params",
@@ -63,76 +63,83 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   }
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
-  nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
-  if (output_frame_.empty()) {
-    ROS_ERROR("Output frame cannot be blank, setting to default");
-    output_frame_ = kDefaultOutputFrame;
+  nh_private_.param("first_output_frame", first_output_frame_,
+                    kDefaultFirstOutputFrame);
+  if (first_output_frame_.empty()) {
+    ROS_ERROR("First output frame cannot be blank, setting to default");
+    first_output_frame_ = kDefaultFirstOutputFrame;
+  }
+  nh_private_.param("second_output_frame", second_output_frame_,
+                    kDefaultSecondOutputFrame);
+  if (second_output_frame_.empty()) {
+    ROS_ERROR("Second output frame cannot be blank, setting to default");
+    second_output_frame_ = kDefaultSecondOutputFrame;
   }
 
   nh_private_.param("rename_input_frame", rename_input_frame_,
                     kDefaultRenameInputFrame);
-  nh_private_.param("left_input_frame", left_input_frame_,
-                    kDefaultLeftInputFrame);
-  if (left_input_frame_.empty()) {
-    ROS_ERROR("Left input frame cannot be blank, setting to default");
-    left_input_frame_ = kDefaultLeftInputFrame;
+  nh_private_.param("first_input_frame", first_input_frame_,
+                    kDefaultFirstInputFrame);
+  if (first_input_frame_.empty()) {
+    ROS_ERROR("First input frame cannot be blank, setting to default");
+    first_input_frame_ = kDefaultFirstInputFrame;
   }
-  nh_private_.param("right_input_frame", right_input_frame_,
-                    kDefaultRightInputFrame);
-  if (right_input_frame_.empty()) {
-    ROS_ERROR("Right input frame cannot be blank, setting to default");
-    right_input_frame_ = kDefaultRightInputFrame;
+  nh_private_.param("second_input_frame", second_input_frame_,
+                    kDefaultSecondInputFrame);
+  if (second_input_frame_.empty()) {
+    ROS_ERROR("Second input frame cannot be blank, setting to default");
+    second_input_frame_ = kDefaultSecondInputFrame;
   }
 
   // setup publishers
-  left_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/left/camera_info", queue_size_);
-  right_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/right/camera_info", queue_size_);
-  left_image_pub_ = it_.advertise("rect/left/image", queue_size_);
-  right_image_pub_ = it_.advertise("rect/right/image", queue_size_);
+  first_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+      "rect/first/camera_info", queue_size_);
+  second_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+      "rect/second/camera_info", queue_size_);
+  first_image_pub_ = it_.advertise("rect/first/image", queue_size_);
+  second_image_pub_ = it_.advertise("rect/second/image", queue_size_);
 
   // setup subscribers (must be done last as it appears image filters allow a
   // subscriber to be called as soon as it is created, even if this constructor
   // is not finished)
   if (input_camera_info_from_ros_params_) {
-    std::string left_camera_namespace, right_camera_namespace;
-    nh_private_.param("left_camera_namespace", left_camera_namespace,
-                      kDefaultLeftCameraNamespace);
-    nh_private_.param("right_camera_namespace", right_camera_namespace,
-                      kDefaultRightCameraNamespace);
+    std::string first_camera_namespace, second_camera_namespace;
+    nh_private_.param("first_camera_namespace", first_camera_namespace,
+                      kDefaultFirstCameraNamespace);
+    nh_private_.param("second_camera_namespace", second_camera_namespace,
+                      kDefaultSecondCameraNamespace);
     if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, left_camera_namespace, CameraSide::LEFT) ||
+            nh_private_, first_camera_namespace, CameraSide::FIRST) ||
         !stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, right_camera_namespace, CameraSide::RIGHT)) {
+            nh_private_, second_camera_namespace, CameraSide::SECOND)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
     }
 
-    left_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-        "raw/left/camera_info", queue_size_);
-    right_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-        "raw/right/camera_info", queue_size_);
+    first_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+        "raw/first/camera_info", queue_size_);
+    second_camera_info_input_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
+        "raw/second/camera_info", queue_size_);
 
     image_sync_ptr_ =
         std::make_shared<message_filters::Synchronizer<ImageSyncPolicy>>(
-            ImageSyncPolicy(queue_size_), left_image_sub_, right_image_sub_);
+            ImageSyncPolicy(queue_size_), first_image_sub_, second_image_sub_);
     image_sync_ptr_->registerCallback(
         boost::bind(&StereoUndistort::imagesCallback, this, _1, _2));
 
   } else {
-    left_camera_info_sub_ptr_ =
+    first_camera_info_sub_ptr_ =
         std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(
-            nh_, "raw/left/camera_info", queue_size_);
-    right_camera_info_sub_ptr_ =
+            nh_, "raw/first/camera_info", queue_size_);
+    second_camera_info_sub_ptr_ =
         std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(
-            nh_, "raw/right/camera_info", queue_size_);
+            nh_, "raw/second/camera_info", queue_size_);
 
     camera_sync_ptr_ =
         std::make_shared<message_filters::Synchronizer<CameraSyncPolicy>>(
-            CameraSyncPolicy(queue_size_), left_image_sub_, right_image_sub_,
-            *left_camera_info_sub_ptr_, *right_camera_info_sub_ptr_);
+            CameraSyncPolicy(queue_size_), first_image_sub_, second_image_sub_,
+            *first_camera_info_sub_ptr_, *second_camera_info_sub_ptr_);
     camera_sync_ptr_->registerCallback(
         boost::bind(&StereoUndistort::camerasCallback, this, _1, _2, _3, _4));
   }
@@ -142,12 +149,12 @@ void StereoUndistort::updateUndistorter(const CameraSide& side) {
   std::shared_ptr<Undistorter>* undistorter_ptr_ptr;
   CameraParametersPair camera_parameters_pair;
 
-  if (side == CameraSide::LEFT) {
-    undistorter_ptr_ptr = &left_undistorter_ptr_;
-    camera_parameters_pair = stereo_camera_parameters_ptr_->getLeft();
+  if (side == CameraSide::FIRST) {
+    undistorter_ptr_ptr = &first_undistorter_ptr_;
+    camera_parameters_pair = stereo_camera_parameters_ptr_->getFirst();
   } else {
-    undistorter_ptr_ptr = &right_undistorter_ptr_;
-    camera_parameters_pair = stereo_camera_parameters_ptr_->getRight();
+    undistorter_ptr_ptr = &second_undistorter_ptr_;
+    camera_parameters_pair = stereo_camera_parameters_ptr_->getSecond();
   }
 
   // if undistorter not built or built using old data update it
@@ -182,17 +189,17 @@ void StereoUndistort::sendCameraInfo(const std_msgs::Header& header,
     camera_info.distortion_model = "plumb_bob";
   }
 
-  if (side == CameraSide::LEFT) {
+  if (side == CameraSide::FIRST) {
     if (io == CameraIO::INPUT) {
-      left_camera_info_input_pub_.publish(camera_info);
+      first_camera_info_input_pub_.publish(camera_info);
     } else {
-      left_camera_info_output_pub_.publish(camera_info);
+      first_camera_info_output_pub_.publish(camera_info);
     }
   } else {
     if (io == CameraIO::INPUT) {
-      right_camera_info_input_pub_.publish(camera_info);
+      second_camera_info_input_pub_.publish(camera_info);
     } else {
-      right_camera_info_output_pub_.publish(camera_info);
+      second_camera_info_output_pub_.publish(camera_info);
     }
   }
 }
@@ -212,20 +219,20 @@ void StereoUndistort::processAndSendImage(
 
   updateUndistorter(side);
 
-  image_out_ptr->header.frame_id = output_frame_;
+  if (side == CameraSide::FIRST) {
+    image_out_ptr->header.frame_id = first_output_frame_;
 
-  if (side == CameraSide::LEFT) {
-    left_undistorter_ptr_->undistortImage(image_in_ptr->image,
-                                          &(image_out_ptr->image));
-    left_image_pub_.publish(*(image_out_ptr->toImageMsg()));
+    first_undistorter_ptr_->undistortImage(image_in_ptr->image,
+                                           &(image_out_ptr->image));
+    first_image_pub_.publish(*(image_out_ptr->toImageMsg()));
 
     if (publish_tf_) {
       Eigen::Matrix4d T =
-          stereo_camera_parameters_ptr_->getLeft()
+          stereo_camera_parameters_ptr_->getSecond()
               .getInputPtr()
               ->T()
               .inverse() *
-          stereo_camera_parameters_ptr_->getRight().getOutputPtr()->T();
+          stereo_camera_parameters_ptr_->getFirst().getOutputPtr()->T();
 
       tf::Matrix3x3 R_ros;
       tf::Vector3 p_ros;
@@ -235,26 +242,56 @@ void StereoUndistort::processAndSendImage(
 
       std::string frame = image_in_ptr->header.frame_id;
       if (rename_input_frame_) {
-        frame = left_input_frame_;
+        frame = first_input_frame_;
       }
       if (frame.empty()) {
         ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
       } else {
         br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
                                                image_out_ptr->header.stamp,
-                                               frame, output_frame_));
+                                               frame, first_output_frame_));
       }
     }
   } else {
-    right_undistorter_ptr_->undistortImage(image_in_ptr->image,
-                                           &(image_out_ptr->image));
-    right_image_pub_.publish(*(image_out_ptr->toImageMsg()));
+    image_out_ptr->header.frame_id = second_output_frame_;
+
+    second_undistorter_ptr_->undistortImage(image_in_ptr->image,
+                                            &(image_out_ptr->image));
+    second_image_pub_.publish(*(image_out_ptr->toImageMsg()));
+
+    if (publish_tf_) {
+      Eigen::Matrix4d T =
+          stereo_camera_parameters_ptr_->getFirst()
+              .getInputPtr()
+              ->T()
+              .inverse() *
+          stereo_camera_parameters_ptr_->getSecond().getOutputPtr()->T();
+
+      tf::Matrix3x3 R_ros;
+      tf::Vector3 p_ros;
+      tf::matrixEigenToTF(T.topLeftCorner<3, 3>(), R_ros);
+      tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
+      tf::Transform(R_ros, p_ros);
+
+      std::string frame = image_in_ptr->header.frame_id;
+      if (rename_input_frame_) {
+        frame = second_input_frame_;
+      }
+      if (frame.empty()) {
+        ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+      } else {
+        br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
+                                               image_out_ptr->header.stamp,
+                                               frame, second_output_frame_));
+      }
+    }
   }
 }
 
 void StereoUndistort::imagesCallback(
-    const sensor_msgs::ImageConstPtr& left_image_msg_in,
-    const sensor_msgs::ImageConstPtr& right_image_msg_in) {
+    const sensor_msgs::ImageConstPtr& first_image_msg_in,
+    const sensor_msgs::ImageConstPtr& second_image_msg_in) {
+
   if (!stereo_camera_parameters_ptr_->valid()) {
     ROS_ERROR("Camera parameters invalid, undistortion failed");
     return;
@@ -265,45 +302,46 @@ void StereoUndistort::imagesCallback(
   }
   frame_counter_ = 0;
 
-  processAndSendImage(left_image_msg_in, CameraSide::LEFT);
-  processAndSendImage(right_image_msg_in, CameraSide::RIGHT);
+  processAndSendImage(first_image_msg_in, CameraSide::FIRST);
+  processAndSendImage(second_image_msg_in, CameraSide::SECOND);
 
   if (input_camera_info_from_ros_params_) {
-    std_msgs::Header header = left_image_msg_in->header;
+    std_msgs::Header header = first_image_msg_in->header;
     if (rename_input_frame_) {
-      header.frame_id = left_input_frame_;
+      header.frame_id = first_input_frame_;
     }
-    sendCameraInfo(header, CameraSide::LEFT, CameraIO::INPUT);
+    sendCameraInfo(header, CameraSide::FIRST, CameraIO::INPUT);
 
-    header = right_image_msg_in->header;
+    header = second_image_msg_in->header;
     if (rename_input_frame_) {
-      header.frame_id = right_input_frame_;
+      header.frame_id = second_input_frame_;
     }
-    sendCameraInfo(header, CameraSide::RIGHT, CameraIO::INPUT);
+    sendCameraInfo(header, CameraSide::SECOND, CameraIO::INPUT);
   }
 
-  std_msgs::Header header = left_image_msg_in->header;
-  header.frame_id = output_frame_;
-  sendCameraInfo(header, CameraSide::LEFT, CameraIO::OUTPUT);
+  std_msgs::Header header = first_image_msg_in->header;
+  header.frame_id = first_output_frame_;
+  sendCameraInfo(header, CameraSide::FIRST, CameraIO::OUTPUT);
 
-  header = right_image_msg_in->header;
-  header.frame_id = output_frame_;
-  sendCameraInfo(header, CameraSide::RIGHT, CameraIO::OUTPUT);
+  header = second_image_msg_in->header;
+  header.frame_id = second_output_frame_;
+  sendCameraInfo(header, CameraSide::SECOND, CameraIO::OUTPUT);
 }
 
 void StereoUndistort::camerasCallback(
-    const sensor_msgs::ImageConstPtr& left_image_msg_in,
-    const sensor_msgs::ImageConstPtr& right_image_msg_in,
-    const sensor_msgs::CameraInfoConstPtr& left_camera_info_msg_in,
-    const sensor_msgs::CameraInfoConstPtr& right_camera_info_msg_in) {
+    const sensor_msgs::ImageConstPtr& first_image_msg_in,
+    const sensor_msgs::ImageConstPtr& second_image_msg_in,
+    const sensor_msgs::CameraInfoConstPtr& first_camera_info_msg_in,
+    const sensor_msgs::CameraInfoConstPtr& second_camera_info_msg_in) {
+
   if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *left_camera_info_msg_in, CameraSide::LEFT) ||
+          *first_camera_info_msg_in, CameraSide::FIRST) ||
       !stereo_camera_parameters_ptr_->setInputCameraParameters(
-          *right_camera_info_msg_in, CameraSide::RIGHT)) {
+          *second_camera_info_msg_in, CameraSide::SECOND)) {
     ROS_ERROR("Setting camera info failed, dropping frame");
     return;
   }
 
-  imagesCallback(left_image_msg_in, right_image_msg_in);
+  imagesCallback(first_image_msg_in, second_image_msg_in);
 }
 }

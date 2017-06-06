@@ -9,6 +9,7 @@ find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
+  pcl_ros
   sensor_msgs
   cv_bridge
   image_transport
@@ -28,11 +29,13 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}_nodelet 
-  src/image_undistort_nodelet.cpp 
-  src/stereo_info_nodelet.cpp
-  src/stereo_undistort_nodelet.cpp
+  src/nodelets/image_undistort_nodelet.cpp 
+  src/nodelets/stereo_info_nodelet.cpp
+  src/nodelets/stereo_undistort_nodelet.cpp
+  src/nodelets/depth_nodelet.cpp
   src/stereo_info.cpp
   src/stereo_undistort.cpp
+  src/depth.cpp
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
   src/undistorter.cpp)
@@ -42,22 +45,27 @@ target_link_libraries(${PROJECT_NAME}_nodelet
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
-add_executable(image_undistort_node src/image_undistort_node.cpp)
+add_executable(image_undistort_node src/nodes/image_undistort_node.cpp)
 target_link_libraries(image_undistort_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(stereo_info_node src/stereo_info_node.cpp)
+add_executable(stereo_info_node src/nodes/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(stereo_undistort_node src/stereo_undistort_node.cpp)
+add_executable(stereo_undistort_node src/nodes/stereo_undistort_node.cpp)
 target_link_libraries(stereo_undistort_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(dense_stereo_node src/dense_stereo_node.cpp)
+add_executable(depth_node src/nodes/depth_node.cpp)
+target_link_libraries(depth_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(dense_stereo_node src/nodes/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
   ${catkin_LIBRARIES}
 )

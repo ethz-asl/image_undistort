@@ -10,7 +10,7 @@
 
 namespace image_undistort {
 
-enum class CameraSide { LEFT, RIGHT };
+enum class CameraSide { FIRST, SECOND };
 enum class CameraIO { INPUT, OUTPUT };
 enum class DistortionModel { RADTAN, EQUIDISTANT, FOV };
 enum class DistortionProcessing { UNDISTORT, PRESERVE };
@@ -155,7 +155,7 @@ class CameraParametersPair {
   static constexpr double kFocalLengthEstimationAttempts = 100;
 };
 
-// holds the camera parameters of the left and right camera and uses them to
+// holds the camera parameters of the first and second camera and uses them to
 // generate virtual output cameras with properties that will produce correctly
 // rectified images
 class StereoCameraParameters {
@@ -179,8 +179,8 @@ class StereoCameraParameters {
   void generateCameraInfoMessage(const CameraSide& side, const CameraIO& io,
                                  sensor_msgs::CameraInfo* camera_info) const;
 
-  const CameraParametersPair& getLeft() const;
-  const CameraParametersPair& getRight() const;
+  const CameraParametersPair& getFirst() const;
+  const CameraParametersPair& getSecond() const;
 
   bool valid() const;
   bool valid(const CameraSide& side, const CameraIO& io) const;
@@ -189,8 +189,8 @@ class StereoCameraParameters {
   bool generateRectificationParameters();
 
   double scale_;
-  CameraParametersPair left_;
-  CameraParametersPair right_;
+  CameraParametersPair first_;
+  CameraParametersPair second_;
 };
 }
 #endif  // CAMERA_PARAMETERS_H

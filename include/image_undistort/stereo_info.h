@@ -16,14 +16,14 @@ namespace image_undistort {
 // Default values
 
 // queue size
-constexpr int kQueueSize = 100;
+constexpr int kQueueSize = 10;
 // true to load input cam_info from ros parameters, false to get it from a
 // cam_info topic
 constexpr bool kDefaultInputCameraInfoFromROSParams = true;
-// namespace to use when loading left camera parameters from ros params
-const std::string kDefaultLeftCameraNamespace = "left_camera";
-// namespace to use when loading right camera parameters from ros params
-const std::string kDefaultRightCameraNamespace = "right_camera";
+// namespace to use when loading first camera parameters from ros params
+const std::string kDefaultFirstCameraNamespace = "first_camera";
+// namespace to use when loading second camera parameters from ros params
+const std::string kDefaultSecondCameraNamespace = "second_camera";
 // the output focal length will be multiplied by this value. This has the effect
 // of resizing the image by this scale factor.
 constexpr double kDefaultScale = 1.0;
@@ -35,14 +35,14 @@ class StereoInfo {
  public:
   StereoInfo(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
-  void leftImageCallback(const sensor_msgs::ImageConstPtr& image_msg);
+  void firstImageCallback(const sensor_msgs::ImageConstPtr& image_msg);
 
-  void rightImageCallback(const sensor_msgs::ImageConstPtr& image_msg);
+  void secondImageCallback(const sensor_msgs::ImageConstPtr& image_msg);
 
-  void leftCameraInfoCallback(
+  void firstCameraInfoCallback(
       const sensor_msgs::CameraInfoConstPtr& camera_info);
 
-  void rightCameraInfoCallback(
+  void secondCameraInfoCallback(
       const sensor_msgs::CameraInfoConstPtr& camera_info);
 
  private:
@@ -55,16 +55,16 @@ class StereoInfo {
   image_transport::ImageTransport it_;
 
   // subscribers
-  image_transport::Subscriber left_image_sub_;
-  image_transport::Subscriber right_image_sub_;
-  ros::Subscriber left_camera_info_sub_;
-  ros::Subscriber right_camera_info_sub_;
+  image_transport::Subscriber first_image_sub_;
+  image_transport::Subscriber second_image_sub_;
+  ros::Subscriber first_camera_info_sub_;
+  ros::Subscriber second_camera_info_sub_;
 
   // publishers
-  ros::Publisher left_camera_info_input_pub_;
-  ros::Publisher right_camera_info_input_pub_;
-  ros::Publisher left_camera_info_output_pub_;
-  ros::Publisher right_camera_info_output_pub_;
+  ros::Publisher first_camera_info_input_pub_;
+  ros::Publisher second_camera_info_input_pub_;
+  ros::Publisher first_camera_info_output_pub_;
+  ros::Publisher second_camera_info_output_pub_;
 
   std::shared_ptr<StereoCameraParameters> stereo_camera_parameters_ptr_;
 

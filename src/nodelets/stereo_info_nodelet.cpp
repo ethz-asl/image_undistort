@@ -7,8 +7,12 @@ namespace image_undistort {
 
 class StereoInfoNodelet : public nodelet::Nodelet {
   virtual void onInit() {
-    stereo_info_ =
-        std::make_shared<StereoInfo>(getNodeHandle(), getPrivateNodeHandle());
+    try {
+      stereo_info_ =
+          std::make_shared<StereoInfo>(getNodeHandle(), getPrivateNodeHandle());
+    } catch (std::runtime_error e) {
+      ROS_ERROR("%s", e.what());
+    }
   }
 
   std::shared_ptr<StereoInfo> stereo_info_;

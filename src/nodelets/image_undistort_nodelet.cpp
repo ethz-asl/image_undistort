@@ -7,8 +7,12 @@ namespace image_undistort {
 
 class ImageUndistortNodelet : public nodelet::Nodelet {
   virtual void onInit() {
-    image_undistort_ = std::make_shared<ImageUndistort>(getNodeHandle(),
-                                                        getPrivateNodeHandle());
+    try {
+      image_undistort_ = std::make_shared<ImageUndistort>(
+          getNodeHandle(), getPrivateNodeHandle());
+    } catch (std::runtime_error e) {
+      ROS_ERROR("%s", e.what());
+    }
   }
 
   std::shared_ptr<ImageUndistort> image_undistort_;

@@ -59,19 +59,19 @@ A node that takes in the properties of two cameras and outputs the camera info r
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 100).
 * **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
-* **left_camera_namespace** If the left camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "left_camera")
-* **right_camera_namespace** If the right camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "right_camera").
+* **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
+* **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-* **raw/left/image** left input image topic, only needed if loading camera parameters from ros params (used for timing information) 
-* **raw/right/image** right input image topic, only needed if loading camera parameters from ros params (used for timing information) 
-* **raw/left/camera_info** left input camera info topic
-* **raw/right/camera_info** right input camera info topic
-* **rect/left/camera_info** left output camera info topic
-* **rect/right/camera_info** right output camera info topic
+* **raw/first/image** first input image topic, only needed if loading camera parameters from ros params (used for timing information) 
+* **raw/second/image** second input image topic, only needed if loading camera parameters from ros params (used for timing information) 
+* **raw/first/camera_info** first input camera info topic
+* **raw/second/camera_info** second input camera info topic
+* **rect/first/camera_info** first output camera info topic
+* **rect/second/camera_info** second output camera info topic
 
 #stereo_undistort_node:
 A node that takes in the images and properties of two cameras and outputs rectified stereo images with their corresponding camera parameters. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named image_undistort/StereoUndistort
@@ -79,29 +79,29 @@ A node that takes in the images and properties of two cameras and outputs rectif
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 100).
 * **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
-* **left_camera_namespace** If the left camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "left_camera")
-* **right_camera_namespace** If the right camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "right_camera").
+* **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
+* **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output images to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
-* **publish_tf** True to publish the tf between the left input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
-* **output_frame** The name of the frame of the output images. (default: "left_camera_rect")
+* **publish_tf** True to publish the tf between the first input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
+* **output_frame** The name of the frame of the output images. (default: "first_camera_rect")
 * **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
-* **left_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the left input images. (default: "left_camera")
-* **right_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the right input images. (default: "right_camera")
+* **first_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the first input images. (default: "first_camera")
+* **second_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the second input images. (default: "second_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-* **raw/left/image** left input image topic
-* **raw/right/image** right input image topic
-* **raw/left/camera_info** left input camera info topic
-* **raw/right/camera_info** right input camera info topic
-* **rect/left/image** left output image topic
-* **rect/right/image** right output image topic
-* **rect/left/camera_info** left output camera info topic
-* **rect/right/camera_info** right output camera info topic
+* **raw/first/image** first input image topic
+* **raw/second/image** second input image topic
+* **raw/first/camera_info** first input camera info topic
+* **raw/second/camera_info** second input camera info topic
+* **rect/first/image** first output image topic
+* **rect/second/image** second output image topic
+* **rect/first/camera_info** first output camera info topic
+* **rect/second/camera_info** second output camera info topic
 
 #dense_stereo_node:
 A node for producing dense stereo images. Internally this node simply combines 3 nodelets.
@@ -112,17 +112,17 @@ A node for producing dense stereo images. Internally this node simply combines 3
 ##Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
 * **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
-* **left_camera_namespace** If the left camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "left_camera")
-* **right_camera_namespace** If the right camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "right_camera").
+* **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
+* **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output images to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
-* **publish_tf** True to publish the tf between the left input and output image. If the undistortion involves changes to the transformation matrix the frame that the image is in will change, this occurs during most image rectifications. This tf gives that change. (default: true)
-* **output_frame** The name of the frame of the output images. (default: "left_camera_rect")
+* **publish_tf** True to publish the tf between the first input and output image. If the undistortion involves changes to the transformation matrix the frame that the image is in will change, this occurs during most image rectifications. This tf gives that change. (default: true)
+* **output_frame** The name of the frame of the output images. (default: "first_camera_rect")
 * **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
-* **left_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the left input images. (default: "left_camera")
-* **right_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the right input images. (default: "right_camera")
+* **first_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the first input images. (default: "first_camera")
+* **second_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the second input images. (default: "second_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ###Note:
@@ -131,14 +131,14 @@ All of the standard parameters of **stereo_image_proc/disparity** and **stereo_i
 
 ##Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-* **raw/left/image** left input image topic
-* **raw/right/image** right input image topic
-* **raw/left/camera_info** left input camera info topic
-* **raw/right/camera_info** right input camera info topic
-* **rect/left/image** left output rectified image topic
-* **rect/right/image** right output rectified image topic
-* **rect/left/camera_info** left output camera info topic
-* **rect/right/camera_info** right output camera info topic
+* **raw/first/image** first input image topic
+* **raw/second/image** second input image topic
+* **raw/first/camera_info** first input camera info topic
+* **raw/second/camera_info** second input camera info topic
+* **rect/first/image** first output rectified image topic
+* **rect/second/image** second output rectified image topic
+* **rect/first/camera_info** first output camera info topic
+* **rect/second/camera_info** second output camera info topic
 * **disparity** output disparity image topic
 * **points2** output pointcloud topic
 * **dense_stereo_disparity/set_parameters** service for setting the stereo image generation properties. See [stereo_image_proc](http://wiki.ros.org/stereo_image_proc) for details.
