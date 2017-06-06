@@ -291,6 +291,7 @@ void StereoUndistort::processAndSendImage(
 void StereoUndistort::imagesCallback(
     const sensor_msgs::ImageConstPtr& first_image_msg_in,
     const sensor_msgs::ImageConstPtr& second_image_msg_in) {
+
   if (!stereo_camera_parameters_ptr_->valid()) {
     ROS_ERROR("Camera parameters invalid, undistortion failed");
     return;
@@ -332,6 +333,7 @@ void StereoUndistort::camerasCallback(
     const sensor_msgs::ImageConstPtr& second_image_msg_in,
     const sensor_msgs::CameraInfoConstPtr& first_camera_info_msg_in,
     const sensor_msgs::CameraInfoConstPtr& second_camera_info_msg_in) {
+
   if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
           *first_camera_info_msg_in, CameraSide::FIRST) ||
       !stereo_camera_parameters_ptr_->setInputCameraParameters(

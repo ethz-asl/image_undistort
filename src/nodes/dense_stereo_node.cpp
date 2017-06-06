@@ -26,8 +26,8 @@ int main(int argc, char** argv) {
   // DEPTH NODELET
   std::string depth_name = ros::this_node::getName() + "/depth";
 
-  XmlRpc::XmlRpcValue depth_params;
-  ros::param::get(depth_name, depth_params);
+ // XmlRpc::XmlRpcValue depth_params;
+  //ros::param::get(depth_name, depth_params);
 
   nodelet::M_string depth_remap;
   depth_remap["rect/first/image"] = ros::names::resolve("rect/first/image");

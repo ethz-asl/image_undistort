@@ -27,11 +27,13 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
                    second_camera_info_sub_) {
   std::string pre_filter_type_string;
   nh_private_.param("pre_filter_type", pre_filter_type_string, kPreFilterType);
-  if (pre_filter_type_string == "xsobel") {
+
+  if (pre_filter_type_string == std::string("xsobel")) {
     pre_filter_type_ = cv::StereoBM::PREFILTER_XSOBEL;
-  } else if (pre_filter_type_string == "normalized_response") {
+  } else if (pre_filter_type_string == std::string("normalized_response")) {
     pre_filter_type_ = cv::StereoBM::PREFILTER_NORMALIZED_RESPONSE;
   } else {
+    ROS_ERROR_STREAM("THROW");
     throw std::runtime_error(
         "Unrecognized prefilter type, choices are 'xsobel' or "
         "'normalized_response'");
@@ -77,7 +79,9 @@ void Depth::calcPointCloud(const cv_bridge::CvImagePtr disparity_ptr,
       const uint16_t& disparity_value =
           reinterpret_cast<uint16_t*>(disparity_ptr->image.data)[disparity_idx];
 
-      if (disparity_value <= 0) {
+      if ((disparity_value <= 0) ||
+          (disparity_value >= 16*(min_disparity_ + num_disparities_)) ||
+          !std::isfinite(disparity_value)) {
         continue;
       }
 
@@ -90,18 +94,15 @@ void Depth::calcPointCloud(const cv_bridge::CvImagePtr disparity_ptr,
       point.x = point.z * (x_pixels - cx) / focal_length;
       point.y = point.z * (y_pixels - cy) / focal_length;
 
-      point.b = reinterpret_cast<uint8_t*>(left_ptr->image.data)[disparity_idx];
-
+      // color images in opencv are always stored bgr (or bgra)
       if (left_ptr->image.channels() >= 3) {
-        point.g = reinterpret_cast<uint8_t*>(
-            left_ptr->image
-                .data)[disparity_idx +
-                       disparity_ptr->image.rows * disparity_ptr->image.cols];
-        point.r = reinterpret_cast<uint8_t*>(
-            left_ptr->image.data)[disparity_idx +
-                                  2 * disparity_ptr->image.rows *
-                                      disparity_ptr->image.cols];
+        size_t color_idx = disparity_idx * left_ptr->image.channels();
+        point.b = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx++];
+        point.g = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx++];
+        point.r = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx];
       } else {
+        point.b =
+            reinterpret_cast<uint8_t*>(left_ptr->image.data)[disparity_idx];
         point.g = point.b;
         point.r = point.b;
       }
@@ -205,17 +206,20 @@ bool Depth::processCameraInfo(
     return false;
   }
 
+  // downgraded to warning so that the color images of the KITTI dataset can be
+  // processed
   if (!ApproxEq(first_camera_info->P[8], 0) ||
       !ApproxEq(first_camera_info->P[9], 0) ||
       !ApproxEq(first_camera_info->P[10], 1) ||
       !ApproxEq(first_camera_info->P[11], 0)) {
-    ROS_ERROR("Image P matrix does not end in [0,0,1,0]");
-    return false;
+    ROS_WARN_ONCE(
+        "Image P matrix does not end in [0,0,1,0], these values will be "
+        "ignored");
   }
 
+  // again downgraded to warning because KITTI has ugly matrices
   if (!ApproxEq(first_camera_info->P[7], 0)) {
-    ROS_ERROR("P contains Y offset");
-    return false;
+    ROS_WARN_ONCE("P contains Y offset, this value will be ignored");
   }
 
   *focal_length = first_camera_info->P[0];

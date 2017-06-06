@@ -24,7 +24,7 @@ namespace image_undistort {
 // Default values
 
 // queue size
-constexpr int kQueueSize = 100;
+constexpr int kQueueSize = 10;
 // true to load input cam_info from ros parameters, false to get it from a
 // cam_info topic
 constexpr bool kDefaultInputCameraInfoFromROSParams = true;

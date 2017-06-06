@@ -67,7 +67,10 @@ BaseCameraParameters::BaseCameraParameters(
                              Eigen::Vector3d::Constant(0))
                                 .finished() *
                             T_)) {
-      throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
+      ROS_WARN_ONCE(
+          "For given K, T and P ([K,[0;0;0]]*T != P), replacing K with "
+          "corrected value");
+      K_ = P_.topLeftCorner<3, 3>() * T_.topLeftCorner<3, 3>().inverse();
     }
   } else {
     P_ = (Eigen::Matrix<double, 3, 4>() << K_, Eigen::Vector3d::Constant(0))
@@ -95,7 +98,10 @@ BaseCameraParameters::BaseCameraParameters(
   T_.topRightCorner<3, 1>() = K_.inverse() * P_.topRightCorner<3, 1>();
 
   if (!P_.topLeftCorner<3, 3>().isApprox(K_ * T_.topLeftCorner<3, 3>())) {
-    throw std::runtime_error("For given K, T and P ([K,[0;0;0]]*T != P)");
+    ROS_WARN_ONCE(
+        "For given K, T and P ([K,[0;0;0]]*T != P), replacing K with corrected "
+        "value");
+    K_ = P_.topLeftCorner<3, 3>() * T_.topLeftCorner<3, 3>().inverse();
   }
 }
 
@@ -202,6 +208,7 @@ const DistortionModel InputCameraParameters::stringToDistortion(
                  lower_case_distortion_model.end(),
                  lower_case_distortion_model.begin(), ::tolower);
   if ((lower_case_distortion_model == std::string("plumb bob")) ||
+      (lower_case_distortion_model == std::string("plumb_bob")) ||
       (lower_case_distortion_model == std::string("radtan"))) {
     return DistortionModel::RADTAN;
   } else if (lower_case_distortion_model == std::string("equidistant")) {
@@ -211,7 +218,7 @@ const DistortionModel InputCameraParameters::stringToDistortion(
   } else {
     throw std::runtime_error(
         "Unrecognized distortion model. Valid options are 'radtan', 'Plumb "
-        "Bob', 'equidistant' and 'fov'");
+        "Bob', 'plumb_bob' 'equidistant' and 'fov'");
   }
 }
 
