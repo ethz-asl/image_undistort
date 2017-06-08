@@ -97,7 +97,7 @@ void Depth::fillDisparityFromSide(const cv::Mat& input_disparity,
 }
 
 void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
-                                      cv::Mat* disparity_filled) {
+                                      cv::Mat* disparity_filled) const {
   // mark valid pixels
   cv::Mat valid(input_disparity.rows, input_disparity.cols, CV_8U);
 

@@ -59,12 +59,12 @@ class Depth {
       double* baseline, double* focal_length, bool* first_is_left, int* cx,
       int* cy);
 
-  void fillDisparityFromSide(const cv::Mat& input_disparity,
+  static void fillDisparityFromSide(const cv::Mat& input_disparity,
                              const cv::Mat& valid, const bool& from_left,
                              cv::Mat* filled_disparity);
 
   void bulidFilledDisparityImage(const cv::Mat& input_disparity,
-                                 cv::Mat* disparity_filled);
+                                 cv::Mat* disparity_filled) const;
 
   void calcDisparityImage(const sensor_msgs::ImageConstPtr& first_image_msg_in,
                           const sensor_msgs::ImageConstPtr& second_image_msg_in,

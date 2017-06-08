@@ -16,12 +16,6 @@
     <param name="second_camera_namespace" value="$(arg second_camera_name)"/>
     <param name="scale" value="0.75"/>
     <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
-
-    <param name="depth/uniqueness_ratio" value="5" />
-    <param name="depth/texture_threshold" value="0" />
-    <param name="depth/sad_window_size" value="9" />
-    <param name="depth/speckle_range" value="3" />
-    <param name="depth/speckle_window_size" value="500" />
     
     <rosparam file="$(arg stereo_params_camchain)"/>
 
