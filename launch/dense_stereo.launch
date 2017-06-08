@@ -1,21 +1,27 @@
 <launch>
 
-<arg name="mav_name" default="ibis" />
+<arg name="mav_name" default="bluebird" />
 <arg name="namespace" default="$(arg mav_name)" />
-<arg name="first_camera_name" default="cam00" />
-<arg name="second_camera_name" default="cam01" />
+<arg name="first_camera_name" default="cam0" />
+<arg name="second_camera_name" default="cam1" />
 <arg name="scale" default="1" />
 <arg name="process_every_nth_frame" default="1" />
-<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/ibis/camchain_p22031.yaml"/>
+<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/bluebird/camchain_p21014.yaml"/>
 
 
-
+<group ns="$(arg namespace)">
   <node name="dense_stereo" pkg="image_undistort" type="dense_stereo_node">
-    <param name="input_camera_info_from_ros_params" value = "false"/>
+    <param name="input_camera_info_from_ros_params" value = "true"/>
     <param name="first_camera_namespace" value="$(arg first_camera_name)"/>
     <param name="second_camera_namespace" value="$(arg second_camera_name)"/>
-    <param name="scale" value="$(arg scale)"/>
+    <param name="scale" value="0.75"/>
     <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
+
+    <param name="depth/uniqueness_ratio" value="5" />
+    <param name="depth/texture_threshold" value="0" />
+    <param name="depth/sad_window_size" value="9" />
+    <param name="depth/speckle_range" value="3" />
+    <param name="depth/speckle_window_size" value="500" />
     
     <rosparam file="$(arg stereo_params_camchain)"/>
 
@@ -24,6 +30,6 @@
     <remap from="raw/first/camera_info" to="$(arg first_camera_name)/camera_info"/>
     <remap from="raw/second/camera_info" to="$(arg second_camera_name)/camera_info"/>
   </node>
-
+</group>
 
 </launch>

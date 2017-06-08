@@ -30,15 +30,13 @@ constexpr double kDelta = 0.000000001;
 const std::string kPreFilterType = "xsobel";
 constexpr int kPreFilterSize = 9;
 constexpr int kPreFilterCap = 31;
-constexpr int kSADWindowSize = 21;
+constexpr int kSADWindowSize = 11;
 constexpr int kMinDisparity = 0;
 constexpr int kNumDisparities = 64;
-constexpr int kTextureThreshold = 10;
-constexpr int kUniquenessRatio = 15;
-constexpr int kSpeckleRange = 0;
-constexpr int kSpeckleWindowSize = 0;
-
-constexpr bool kEnableWLSFilter = false;
+constexpr int kTextureThreshold = 0;
+constexpr int kUniquenessRatio = 5;
+constexpr int kSpeckleRange = 3;
+constexpr int kSpeckleWindowSize = 500;
 
 class Depth {
  public:
@@ -61,15 +59,22 @@ class Depth {
       double* baseline, double* focal_length, bool* first_is_left, int* cx,
       int* cy);
 
+  void fillDisparityFromSide(const cv::Mat& input_disparity,
+                             const cv::Mat& valid, const bool& from_left,
+                             cv::Mat* filled_disparity);
+
+  void bulidFilledDisparityImage(const cv::Mat& input_disparity,
+                                 cv::Mat* disparity_filled);
+
   void calcDisparityImage(const sensor_msgs::ImageConstPtr& first_image_msg_in,
                           const sensor_msgs::ImageConstPtr& second_image_msg_in,
                           cv_bridge::CvImagePtr disparity_ptr) const;
 
-  void calcPointCloud(const cv_bridge::CvImagePtr disparity_ptr,
-                      const sensor_msgs::ImageConstPtr& left_image_msg,
+  void calcPointCloud(const cv::Mat& input_disparity, const cv::Mat& left_image,
                       const double baseline, const double focal_length,
                       const int cx, const int cy,
-                      pcl::PointCloud<pcl::PointXYZRGB>* pointcloud);
+                      pcl::PointCloud<pcl::PointXYZRGB>* pointcloud,
+                      pcl::PointCloud<pcl::PointXYZ>* clearing_pointcloud);
 
   // nodes
   ros::NodeHandle nh_;
@@ -87,6 +92,7 @@ class Depth {
   // publishers
   image_transport::Publisher disparity_pub_;
   ros::Publisher pointcloud_pub_;
+  ros::Publisher clearing_pointcloud_pub_;
 
   // filters
   typedef message_filters::sync_policies::ApproximateTime<

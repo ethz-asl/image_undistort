@@ -33,11 +33,11 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   } else if (pre_filter_type_string == std::string("normalized_response")) {
     pre_filter_type_ = cv::StereoBM::PREFILTER_NORMALIZED_RESPONSE;
   } else {
-    ROS_ERROR_STREAM("THROW");
     throw std::runtime_error(
         "Unrecognized prefilter type, choices are 'xsobel' or "
         "'normalized_response'");
   }
+
   nh_private_.param("pre_filter_size", pre_filter_size_, kPreFilterSize);
   nh_private_.param("pre_filter_cap", pre_filter_cap_, kPreFilterCap);
   nh_private_.param("sad_window_size", sad_window_size_, kSADWindowSize);
@@ -55,59 +55,154 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
   disparity_pub_ = it_.advertise("disparity/image", queue_size_);
   pointcloud_pub_ =
       nh_.advertise<sensor_msgs::PointCloud2>("pointcloud", queue_size_);
+  clearing_pointcloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>(
+      "clearing_pointcloud", queue_size_);
 }
 
-void Depth::calcPointCloud(const cv_bridge::CvImagePtr disparity_ptr,
-                           const sensor_msgs::ImageConstPtr& left_image_msg,
-                           const double baseline, const double focal_length,
-                           const int cx, const int cy,
-                           pcl::PointCloud<pcl::PointXYZRGB>* pointcloud) {
+// simply replaces invalid disparity values with a valid value found by scanning
+// horizontally (note: if disparity values are already valid or if no valid
+// value can be found int_max is inserted)
+void Depth::fillDisparityFromSide(const cv::Mat& input_disparity,
+                                  const cv::Mat& valid, const bool& from_left,
+                                  cv::Mat* filled_disparity) {
+  *filled_disparity =
+      cv::Mat(input_disparity.rows, input_disparity.cols, CV_16S);
+
+  for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
+    bool prev_valid = false;
+    int16_t prev_value;
+
+    for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+      size_t idx;
+      if (from_left) {
+        idx = x_pixels + input_disparity.cols * y_pixels;
+      } else {
+        idx = (input_disparity.cols - x_pixels - 1) +
+              input_disparity.cols * y_pixels;
+      }
+
+      if (reinterpret_cast<uint8_t*>(valid.data)[idx]) {
+        prev_valid = true;
+        prev_value = reinterpret_cast<int16_t*>(input_disparity.data)[idx];
+        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] =
+            std::numeric_limits<int16_t>::max();
+      } else if (prev_valid) {
+        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] = prev_value;
+      } else {
+        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] =
+            std::numeric_limits<int16_t>::max();
+      }
+    }
+  }
+}
+
+void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
+                                      cv::Mat* disparity_filled) {
+  // mark valid pixels
+  cv::Mat valid(input_disparity.rows, input_disparity.cols, CV_8U);
+
+  for (size_t i = 0; i < input_disparity.total(); ++i) {
+    const int16_t& disparity_value =
+        reinterpret_cast<int16_t*>(input_disparity.data)[i];
+
+    if (disparity_value < 0) {
+      reinterpret_cast<uint8_t*>(valid.data)[i] = 0;
+    } else {
+      reinterpret_cast<uint8_t*>(valid.data)[i] = 1;
+    }
+  }
+
+  // erode by size of SAD window, this prevents issues with background pixels
+  // being given the same depth as neighboring objects in the foreground.
+  cv::Mat kernel = cv::getStructuringElement(
+      cv::MORPH_RECT, cv::Size(sad_window_size_, sad_window_size_));
+  cv::erode(valid, valid, kernel);
+
+  // take a guess for the depth of the invalid pixels by scanning along the row
+  // and giving them the same value as the closest horizontal point.
+  cv::Mat disparity_filled_left, disparity_filled_right;
+  fillDisparityFromSide(input_disparity, valid, true, &disparity_filled_left);
+  fillDisparityFromSide(input_disparity, valid, false, &disparity_filled_right);
+
+  // take the most conservative disparity of the two
+  *disparity_filled = cv::max(disparity_filled_left, disparity_filled_right);
+
+  // 0 disparity is valid but cannot have a depth associated with it, because of
+  // this we take these points and replace them with a disparity of 1.
+  for (size_t i = 0; i < input_disparity.total(); ++i) {
+    const int16_t& disparity_value =
+        reinterpret_cast<int16_t*>(input_disparity.data)[i];
+    if (disparity_value == 0) {
+      reinterpret_cast<int16_t*>(disparity_filled->data)[i] = 1;
+    }
+  }
+}
+
+void Depth::calcPointCloud(
+    const cv::Mat& input_disparity, const cv::Mat& left_image,
+    const double baseline, const double focal_length, const int cx,
+    const int cy, pcl::PointCloud<pcl::PointXYZRGB>* pointcloud,
+    pcl::PointCloud<pcl::PointXYZ>* clearing_pointcloud) {
   pointcloud->clear();
+  clearing_pointcloud->clear();
 
-  cv_bridge::CvImageConstPtr left_ptr = cv_bridge::toCvShare(left_image_msg);
-
-  if (left_ptr->image.depth() != CV_8U) {
+  if (left_image.depth() != CV_8U) {
     ROS_ERROR(
         "Pointcloud generation is currently only supported on 8 bit images");
     return;
   }
 
-  for (int y_pixels = 0; y_pixels < disparity_ptr->image.rows; ++y_pixels) {
-    for (int x_pixels = 0; x_pixels < disparity_ptr->image.cols; ++x_pixels) {
-      int disparity_idx = x_pixels + disparity_ptr->image.cols * y_pixels;
+  cv::Mat disparity_filled;
+  bulidFilledDisparityImage(input_disparity, &disparity_filled);
 
-      const uint16_t& disparity_value =
-          reinterpret_cast<uint16_t*>(disparity_ptr->image.data)[disparity_idx];
+  // build pointcloud
+  for (int y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
+    for (int x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+      const int idx = x_pixels + input_disparity.cols * y_pixels;
 
-      if ((disparity_value <= 0) ||
-          (disparity_value >= 16*(min_disparity_ + num_disparities_)) ||
-          !std::isfinite(disparity_value)) {
-        continue;
+      const int16_t& input_value =
+          reinterpret_cast<int16_t*>(input_disparity.data)[idx];
+      const int16_t& filled_value =
+          reinterpret_cast<int16_t*>(disparity_filled.data)[idx];
+
+      // if the filled disparity is valid it must be a clearing ray
+      if (filled_value < std::numeric_limits<int16_t>::max()) {
+        pcl::PointXYZ point;
+
+        // the 16* is needed as opencv stores disparity maps as 16 * the true
+        // values
+        point.z =
+            (16 * focal_length * baseline) / static_cast<double>(filled_value);
+        point.x = point.z * (x_pixels - cx) / focal_length;
+        point.y = point.z * (y_pixels - cy) / focal_length;
+
+        clearing_pointcloud->push_back(point);
       }
+      // else it is a normal ray
+      else if (input_value > 0) {
+        pcl::PointXYZRGB point;
 
-      pcl::PointXYZRGB point;
+        // the 16* is needed as opencv stores disparity maps as 16 * the true
+        // values
+        point.z =
+            (16 * focal_length * baseline) / static_cast<double>(input_value);
+        point.x = point.z * (x_pixels - cx) / focal_length;
+        point.y = point.z * (y_pixels - cy) / focal_length;
 
-      // the 16* is needed as opencv stores disparity maps as 16 * the true
-      // values
-      point.z =
-          (16 * focal_length * baseline) / static_cast<double>(disparity_value);
-      point.x = point.z * (x_pixels - cx) / focal_length;
-      point.y = point.z * (y_pixels - cy) / focal_length;
+        // color images in opencv are always stored bgr (or bgra)
+        if (left_image.channels() >= 3) {
+          size_t color_idx = idx * left_image.channels();
+          point.b = reinterpret_cast<uint8_t*>(left_image.data)[color_idx++];
+          point.g = reinterpret_cast<uint8_t*>(left_image.data)[color_idx++];
+          point.r = reinterpret_cast<uint8_t*>(left_image.data)[color_idx];
+        } else {
+          point.b = reinterpret_cast<uint8_t*>(left_image.data)[idx];
+          point.g = point.b;
+          point.r = point.b;
+        }
 
-      // color images in opencv are always stored bgr (or bgra)
-      if (left_ptr->image.channels() >= 3) {
-        size_t color_idx = disparity_idx * left_ptr->image.channels();
-        point.b = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx++];
-        point.g = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx++];
-        point.r = reinterpret_cast<uint8_t*>(left_ptr->image.data)[color_idx];
-      } else {
-        point.b =
-            reinterpret_cast<uint8_t*>(left_ptr->image.data)[disparity_idx];
-        point.g = point.b;
-        point.r = point.b;
+        pointcloud->push_back(point);
       }
-
-      pointcloud->push_back(point);
     }
   }
 }
@@ -206,7 +301,8 @@ bool Depth::processCameraInfo(
     return false;
   }
 
-  // downgraded to warning so that the color images of the KITTI dataset can be
+  // downgraded to warning so that the color images of the KITTI dataset can
+  // be
   // processed
   if (!ApproxEq(first_camera_info->P[8], 0) ||
       !ApproxEq(first_camera_info->P[9], 0) ||
@@ -274,12 +370,19 @@ void Depth::camerasCallback(
   disparity_pub_.publish(*(disparity_ptr->toImageMsg()));
 
   pcl::PointCloud<pcl::PointXYZRGB> pointcloud;
-  calcPointCloud(disparity_ptr, left_image_msg, baseline, focal_length, cx, cy,
-                 &pointcloud);
+  pcl::PointCloud<pcl::PointXYZ> clearing_pointcloud;
+  cv_bridge::CvImageConstPtr left_ptr = cv_bridge::toCvShare(left_image_msg);
+  calcPointCloud(disparity_ptr->image, left_ptr->image, baseline, focal_length,
+                 cx, cy, &pointcloud, &clearing_pointcloud);
 
   sensor_msgs::PointCloud2 pointcloud_msg;
   pcl::toROSMsg(pointcloud, pointcloud_msg);
   pointcloud_msg.header = left_image_msg->header;
   pointcloud_pub_.publish(pointcloud_msg);
+
+  sensor_msgs::PointCloud2 clearing_pointcloud_msg;
+  pcl::toROSMsg(clearing_pointcloud, clearing_pointcloud_msg);
+  clearing_pointcloud_msg.header = left_image_msg->header;
+  clearing_pointcloud_pub_.publish(clearing_pointcloud_msg);
 }
 }
