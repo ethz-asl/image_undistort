@@ -24,6 +24,8 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
   double scale;
   nh_private_.param("scale", scale, kDefaultScale);
 
+  
+
   stereo_camera_parameters_ptr_ =
       std::make_shared<StereoCameraParameters>(scale);
 

@@ -73,23 +73,22 @@ void Depth::fillDisparityFromSide(const cv::Mat& input_disparity,
     int16_t prev_value;
 
     for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
-      size_t idx;
+      size_t x_scan;
       if (from_left) {
-        idx = x_pixels + input_disparity.cols * y_pixels;
+        xscan = x_pixels;
       } else {
-        idx = (input_disparity.cols - x_pixels - 1) +
-              input_disparity.cols * y_pixels;
+        xscan = (input_disparity.cols - x_pixels - 1);
       }
 
-      if (reinterpret_cast<uint8_t*>(valid.data)[idx]) {
+      if (valid.at<uint8_t>(y_pixels, x_scan)) {
         prev_valid = true;
-        prev_value = reinterpret_cast<int16_t*>(input_disparity.data)[idx];
-        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] =
+        prev_value = input_disparity.at<int16_t>(y_pixels, x_scan);
+        filled_disparity.at<int16_t>(y_pixels, x_scan) =
             std::numeric_limits<int16_t>::max();
       } else if (prev_valid) {
-        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] = prev_value;
+        filled_disparity.at<int16_t>(y_pixels, x_scan) = prev_value;
       } else {
-        reinterpret_cast<int16_t*>(filled_disparity->data)[idx] =
+        filled_disparity.at<int16_t>(y_pixels, x_scan) =
             std::numeric_limits<int16_t>::max();
       }
     }
@@ -101,14 +100,13 @@ void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
   // mark valid pixels
   cv::Mat valid(input_disparity.rows, input_disparity.cols, CV_8U);
 
-  for (size_t i = 0; i < input_disparity.total(); ++i) {
-    const int16_t& disparity_value =
-        reinterpret_cast<int16_t*>(input_disparity.data)[i];
-
-    if (disparity_value < 0) {
-      reinterpret_cast<uint8_t*>(valid.data)[i] = 0;
-    } else {
-      reinterpret_cast<uint8_t*>(valid.data)[i] = 1;
+  for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
+    for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+      if (input_disparity.at<int16_t>(y_pixels, x_pixels) < 0) {
+        valid.at<uint8_t>(y_pixels, x_pixels) = 0;
+      } else {
+        valid.at<uint8_t>(y_pixels, x_pixels) = 1;
+      }
     }
   }
 
@@ -129,11 +127,11 @@ void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
 
   // 0 disparity is valid but cannot have a depth associated with it, because of
   // this we take these points and replace them with a disparity of 1.
-  for (size_t i = 0; i < input_disparity.total(); ++i) {
-    const int16_t& disparity_value =
-        reinterpret_cast<int16_t*>(input_disparity.data)[i];
-    if (disparity_value == 0) {
-      reinterpret_cast<int16_t*>(disparity_filled->data)[i] = 1;
+  for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
+    for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+      if (input_disparity.at<int16_t>(y_pixels, x_pixels) == 0) {
+        disparity_filled.at<int16_t>(y_pixels, x_pixels) = 1;
+      }
     }
   }
 }
