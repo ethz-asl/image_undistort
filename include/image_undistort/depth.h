@@ -60,8 +60,8 @@ class Depth {
       int* cy);
 
   static void fillDisparityFromSide(const cv::Mat& input_disparity,
-                             const cv::Mat& valid, const bool& from_left,
-                             cv::Mat* filled_disparity);
+                                    const cv::Mat& valid, const bool& from_left,
+                                    cv::Mat* filled_disparity);
 
   void bulidFilledDisparityImage(const cv::Mat& input_disparity,
                                  cv::Mat* disparity_filled) const;
@@ -74,7 +74,7 @@ class Depth {
                       const double baseline, const double focal_length,
                       const int cx, const int cy,
                       pcl::PointCloud<pcl::PointXYZRGB>* pointcloud,
-                      pcl::PointCloud<pcl::PointXYZ>* clearing_pointcloud);
+                      pcl::PointCloud<pcl::PointXYZRGB>* freespace_pointcloud);
 
   // nodes
   ros::NodeHandle nh_;
@@ -92,7 +92,7 @@ class Depth {
   // publishers
   image_transport::Publisher disparity_pub_;
   ros::Publisher pointcloud_pub_;
-  ros::Publisher clearing_pointcloud_pub_;
+  ros::Publisher freespace_pointcloud_pub_;
 
   // filters
   typedef message_filters::sync_policies::ApproximateTime<
