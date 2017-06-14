@@ -100,9 +100,15 @@ void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
   // mark valid pixels
   cv::Mat valid(input_disparity.rows, input_disparity.cols, CV_8U);
 
+  int side_bound = sad_window_size_ / 2;
+
   for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
     for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
-      if (input_disparity.at<int16_t>(y_pixels, x_pixels) < 0) {
+      if ((x_pixels < side_bound + min_disparity_ + num_disparities_) ||
+          (y_pixels < side_bound) ||
+          (x_pixels > (input_disparity.cols - side_bound)) ||
+          (y_pixels > (input_disparity.rows - side_bound)) ||
+          (input_disparity.at<int16_t>(y_pixels, x_pixels) < 0)) {
         valid.at<uint8_t>(y_pixels, x_pixels) = 0;
       } else {
         valid.at<uint8_t>(y_pixels, x_pixels) = 1;
@@ -153,9 +159,13 @@ void Depth::calcPointCloud(
   cv::Mat disparity_filled;
   bulidFilledDisparityImage(input_disparity, &disparity_filled);
 
+  int side_bound = sad_window_size_ / 2;
+
   // build pointcloud
-  for (int y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
-    for (int x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+  for (int y_pixels = side_bound; y_pixels < input_disparity.rows - side_bound;
+       ++y_pixels) {
+    for (int x_pixels = side_bound + min_disparity_ + num_disparities_;
+         x_pixels < input_disparity.cols - side_bound; ++x_pixels) {
       const int16_t& input_value =
           input_disparity.at<int16_t>(y_pixels, x_pixels);
       const int16_t& filled_value =
