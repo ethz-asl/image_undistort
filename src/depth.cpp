@@ -183,6 +183,8 @@ void Depth::calcPointCloud(
       else if (input_value > 0) {
         disparity_value = static_cast<double>(input_value);
         freespace = false;
+      } else{
+        continue;
       }
 
       pcl::PointXYZRGB point;
