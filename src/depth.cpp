@@ -75,20 +75,20 @@ void Depth::fillDisparityFromSide(const cv::Mat& input_disparity,
     for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
       size_t x_scan;
       if (from_left) {
-        xscan = x_pixels;
+        x_scan = x_pixels;
       } else {
-        xscan = (input_disparity.cols - x_pixels - 1);
+        x_scan = (input_disparity.cols - x_pixels - 1);
       }
 
       if (valid.at<uint8_t>(y_pixels, x_scan)) {
         prev_valid = true;
         prev_value = input_disparity.at<int16_t>(y_pixels, x_scan);
-        filled_disparity.at<int16_t>(y_pixels, x_scan) =
+        filled_disparity->at<int16_t>(y_pixels, x_scan) =
             std::numeric_limits<int16_t>::max();
       } else if (prev_valid) {
-        filled_disparity.at<int16_t>(y_pixels, x_scan) = prev_value;
+        filled_disparity->at<int16_t>(y_pixels, x_scan) = prev_value;
       } else {
-        filled_disparity.at<int16_t>(y_pixels, x_scan) =
+        filled_disparity->at<int16_t>(y_pixels, x_scan) =
             std::numeric_limits<int16_t>::max();
       }
     }
@@ -130,7 +130,7 @@ void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
   for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
     for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
       if (input_disparity.at<int16_t>(y_pixels, x_pixels) == 0) {
-        disparity_filled.at<int16_t>(y_pixels, x_pixels) = 1;
+        disparity_filled->at<int16_t>(y_pixels, x_pixels) = 1;
       }
     }
   }
@@ -156,12 +156,10 @@ void Depth::calcPointCloud(
   // build pointcloud
   for (int y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
     for (int x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
-      const int idx = x_pixels + input_disparity.cols * y_pixels;
-
       const int16_t& input_value =
-          reinterpret_cast<int16_t*>(input_disparity.data)[idx];
+          input_disparity.at<int16_t>(y_pixels, x_pixels);
       const int16_t& filled_value =
-          reinterpret_cast<int16_t*>(disparity_filled.data)[idx];
+          disparity_filled.at<int16_t>(y_pixels, x_pixels);
 
       bool freespace;
       double disparity_value;
@@ -185,14 +183,18 @@ void Depth::calcPointCloud(
       point.x = point.z * (x_pixels - cx) / focal_length;
       point.y = point.z * (y_pixels - cy) / focal_length;
 
-      // color images in opencv are always stored bgr (or bgra)
-      if (left_image.channels() >= 3) {
-        size_t color_idx = idx * left_image.channels();
-        point.b = reinterpret_cast<uint8_t*>(left_image.data)[color_idx++];
-        point.g = reinterpret_cast<uint8_t*>(left_image.data)[color_idx++];
-        point.r = reinterpret_cast<uint8_t*>(left_image.data)[color_idx];
+      if (left_image.channels() == 3) {
+        const cv::Vec3b& color = left_image.at<cv::Vec3b>(y_pixels, x_pixels);
+        point.b = color[0];
+        point.g = color[1];
+        point.r = color[2];
+      } else if (left_image.channels() == 4) {
+        const cv::Vec4b& color = left_image.at<cv::Vec4b>(y_pixels, x_pixels);
+        point.b = color[0];
+        point.g = color[1];
+        point.r = color[2];
       } else {
-        point.b = reinterpret_cast<uint8_t*>(left_image.data)[idx];
+        point.b = left_image.at<uint8_t>(y_pixels, x_pixels);
         point.g = point.b;
         point.r = point.b;
       }
@@ -300,8 +302,7 @@ bool Depth::processCameraInfo(
     return false;
   }
 
-  // downgraded to warning so that the color images of the KITTI dataset can
-  // be
+  // downgraded to warning so that the color images of the KITTI dataset can be
   // processed
   if (!ApproxEq(first_camera_info->P[8], 0) ||
       !ApproxEq(first_camera_info->P[9], 0) ||
