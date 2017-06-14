@@ -33,8 +33,8 @@ constexpr int kPreFilterCap = 31;
 constexpr int kSADWindowSize = 11;
 constexpr int kMinDisparity = 0;
 constexpr int kNumDisparities = 64;
-constexpr int kTextureThreshold = 0;
-constexpr int kUniquenessRatio = 5;
+constexpr int kTextureThreshold = 20;
+constexpr int kUniquenessRatio = 15;
 constexpr int kSpeckleRange = 3;
 constexpr int kSpeckleWindowSize = 500;
 
