@@ -96,22 +96,27 @@ void Depth::fillDisparityFromSide(const cv::Mat& input_disparity,
 }
 
 void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
-                                      cv::Mat* disparity_filled) const {
+                                      cv::Mat* disparity_filled,
+                                      cv::Mat* input_valid) const {
   // mark valid pixels
-  cv::Mat valid(input_disparity.rows, input_disparity.cols, CV_8U);
+  *input_valid = cv::Mat(input_disparity.rows, input_disparity.cols, CV_8U);
 
   int side_bound = sad_window_size_ / 2;
 
   for (size_t y_pixels = 0; y_pixels < input_disparity.rows; ++y_pixels) {
     for (size_t x_pixels = 0; x_pixels < input_disparity.cols; ++x_pixels) {
+      // the last check is because the sky has a bad habit of having a disparity
+      // at just less than the max disparity
       if ((x_pixels < side_bound + min_disparity_ + num_disparities_) ||
           (y_pixels < side_bound) ||
           (x_pixels > (input_disparity.cols - side_bound)) ||
           (y_pixels > (input_disparity.rows - side_bound)) ||
-          (input_disparity.at<int16_t>(y_pixels, x_pixels) < 0)) {
-        valid.at<uint8_t>(y_pixels, x_pixels) = 0;
+          (input_disparity.at<int16_t>(y_pixels, x_pixels) < 0) ||
+          (input_disparity.at<int16_t>(y_pixels, x_pixels) >=
+           (min_disparity_ + num_disparities_ - 1) * 16)) {
+        input_valid->at<uint8_t>(y_pixels, x_pixels) = 0;
       } else {
-        valid.at<uint8_t>(y_pixels, x_pixels) = 1;
+        input_valid->at<uint8_t>(y_pixels, x_pixels) = 1;
       }
     }
   }
@@ -120,13 +125,15 @@ void Depth::bulidFilledDisparityImage(const cv::Mat& input_disparity,
   // being given the same depth as neighboring objects in the foreground.
   cv::Mat kernel = cv::getStructuringElement(
       cv::MORPH_RECT, cv::Size(sad_window_size_, sad_window_size_));
-  cv::erode(valid, valid, kernel);
+  cv::erode(*input_valid, *input_valid, kernel);
 
   // take a guess for the depth of the invalid pixels by scanning along the row
   // and giving them the same value as the closest horizontal point.
   cv::Mat disparity_filled_left, disparity_filled_right;
-  fillDisparityFromSide(input_disparity, valid, true, &disparity_filled_left);
-  fillDisparityFromSide(input_disparity, valid, false, &disparity_filled_right);
+  fillDisparityFromSide(input_disparity, *input_valid, true,
+                        &disparity_filled_left);
+  fillDisparityFromSide(input_disparity, *input_valid, false,
+                        &disparity_filled_right);
 
   // take the most conservative disparity of the two
   *disparity_filled = cv::max(disparity_filled_left, disparity_filled_right);
@@ -156,8 +163,8 @@ void Depth::calcPointCloud(
     return;
   }
 
-  cv::Mat disparity_filled;
-  bulidFilledDisparityImage(input_disparity, &disparity_filled);
+  cv::Mat disparity_filled, input_valid;
+  bulidFilledDisparityImage(input_disparity, &disparity_filled, &input_valid);
 
   int side_bound = sad_window_size_ / 2;
 
@@ -166,6 +173,7 @@ void Depth::calcPointCloud(
        ++y_pixels) {
     for (int x_pixels = side_bound + min_disparity_ + num_disparities_;
          x_pixels < input_disparity.cols - side_bound; ++x_pixels) {
+      const uint8_t& is_valid = input_valid.at<uint8_t>(y_pixels, x_pixels);
       const int16_t& input_value =
           input_disparity.at<int16_t>(y_pixels, x_pixels);
       const int16_t& filled_value =
@@ -180,10 +188,10 @@ void Depth::calcPointCloud(
         freespace = true;
       }
       // else it is a normal ray
-      else if (input_value > 0) {
+      else if (is_valid) {
         disparity_value = static_cast<double>(input_value);
         freespace = false;
-      } else{
+      } else {
         continue;
       }
 

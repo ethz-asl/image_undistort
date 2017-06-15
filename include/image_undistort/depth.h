@@ -34,7 +34,7 @@ constexpr int kSADWindowSize = 11;
 constexpr int kMinDisparity = 0;
 constexpr int kNumDisparities = 64;
 constexpr int kTextureThreshold = 0;
-constexpr int kUniquenessRatio = 5;
+constexpr int kUniquenessRatio = 0;
 constexpr int kSpeckleRange = 3;
 constexpr int kSpeckleWindowSize = 500;
 
@@ -64,7 +64,8 @@ class Depth {
                                     cv::Mat* filled_disparity);
 
   void bulidFilledDisparityImage(const cv::Mat& input_disparity,
-                                 cv::Mat* disparity_filled) const;
+                                 cv::Mat* disparity_filled,
+                                 cv::Mat* input_valid) const;
 
   void calcDisparityImage(const sensor_msgs::ImageConstPtr& first_image_msg_in,
                           const sensor_msgs::ImageConstPtr& second_image_msg_in,
