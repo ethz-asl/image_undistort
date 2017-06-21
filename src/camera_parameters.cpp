@@ -573,24 +573,47 @@ bool StereoCameraParameters::generateRectificationParameters() {
   Eigen::Vector3d y = first_.getInputPtr()->R().col(2).cross(x);
   Eigen::Vector3d z = x.cross(y);
 
-  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
-  T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
+  Eigen::Matrix3d R;
+  R << x.normalized(), y.normalized(), z.normalized();
+
+  
+  bool first_is_left = true;
 
   // took wrong camera as left (redo other way round)
-  if (T(0, 0) < 0) {
+  if (R(0, 0) < 0) {
+    first_is_left = false;
     x = second_.getInputPtr()->p() - first_.getInputPtr()->p();
     y = second_.getInputPtr()->R().col(2).cross(x);
     z = x.cross(y);
-    T.topLeftCorner<3, 3>() << x.normalized(), y.normalized(), z.normalized();
+    R << x.normalized(), y.normalized(), z.normalized();
+
+  } 
+
+  //now we have the angle we have to halve it
+  Eigen::AngleAxisd R_angle_axis(R);
+  R_angle_axis.angle() /= 2.0;
+  R = R_angle_axis;
+
+  Eigen::Matrix4d T_first = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d T_second = Eigen::Matrix4d::Identity();
+  
+  if(first_is_left){
+    T_first.topLeftCorner<3,3>() = R.inverse() * first_.getInputPtr()->R();
+    T_second.topLeftCorner<3,3>() = R * second_.getInputPtr()->R();
+    T_first(0,3) = x.norm();
+  } else {
+    T_second.topLeftCorner<3,3>() = R.inverse() * second_.getInputPtr()->R();
+    T_first.topLeftCorner<3,3>() = R * first_.getInputPtr()->R();
+    T_second(0,3) = x.norm();
   }
 
   first_.setInputCameraParameters(
       first_.getInputPtr()->resolution(),
-      T.inverse() * first_.getInputPtr()->T(), first_.getInputPtr()->K(),
+      T_first, first_.getInputPtr()->K(),
       first_.getInputPtr()->D(), first_.getInputPtr()->distortionModel());
   second_.setInputCameraParameters(
       second_.getInputPtr()->resolution(),
-      T.inverse() * second_.getInputPtr()->T(), second_.getInputPtr()->K(),
+      T_second, second_.getInputPtr()->K(),
       second_.getInputPtr()->D(), second_.getInputPtr()->distortionModel());
 
   // set individual outputs
