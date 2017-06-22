@@ -32,7 +32,8 @@ Undistorter::Undistorter(
       Eigen::Vector2d pixel_location(u, v);
       Eigen::Vector2d distorted_pixel_location;
       distortPixel(
-          used_camera_parameters_pair_.getInputPtr()->P(),
+          used_camera_parameters_pair_.getInputPtr()->K(),
+          used_camera_parameters_pair_.getInputPtr()->R(),
           used_camera_parameters_pair_.getOutputPtr()->P(),
           used_camera_parameters_pair_.getInputPtr()->distortionModel(), D,
           pixel_location, &distorted_pixel_location);
@@ -72,21 +73,23 @@ const CameraParametersPair& Undistorter::getCameraParametersPair() {
   return used_camera_parameters_pair_;
 }
 
-void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
+                               const Eigen::Matrix<double, 3, 3>& R_in,
                                const Eigen::Matrix<double, 3, 4>& P_out,
                                const DistortionModel& distortion_model,
                                const std::vector<double>& D,
                                const Eigen::Vector2d& pixel_location,
                                Eigen::Vector2d* distorted_pixel_location) {
+  Eigen::Vector3d pixel_location_3(pixel_location.x(), pixel_location.y(), 1);
+
   // Transform image coordinates to be size and focus independent
-  Eigen::Vector2d norm_pixel_location =
-      P_out.topLeftCorner<2, 2>().inverse() *
-      (pixel_location - P_out.block<2, 1>(0, 2));
+  Eigen::Vector3d norm_pixel_location =
+      R_in * P_out.topLeftCorner<3, 3>().inverse() * pixel_location_3;
 
   const double& x = norm_pixel_location.x();
   const double& y = norm_pixel_location.y();
 
-  Eigen::Vector3d norm_distorted_pixel_location(0, 0, 1);
+  Eigen::Vector3d norm_distorted_pixel_location(0, 0, norm_pixel_location.z());
   double& xd = norm_distorted_pixel_location.x();
   double& yd = norm_distorted_pixel_location.y();
 
@@ -150,7 +153,12 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
                                static_cast<int>(distortion_model));
   }
 
-  *distorted_pixel_location =
-      P_in.topLeftCorner<2, 3>() * norm_distorted_pixel_location;
+  Eigen::Vector3d distorted_pixel_location_3 =
+      K_in * norm_distorted_pixel_location;
+
+  distorted_pixel_location->x() =
+      distorted_pixel_location_3.x() / distorted_pixel_location_3.z();
+  distorted_pixel_location->y() =
+      distorted_pixel_location_3.y() / distorted_pixel_location_3.z();
 }
 }

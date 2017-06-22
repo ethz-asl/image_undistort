@@ -26,7 +26,8 @@ class Undistorter {
   static void setOptimalOutputCameraParameters(
       const double scale, CameraParametersPair* camera_parameters_pair);
 
-  static void distortPixel(const Eigen::Matrix<double, 3, 4>& P_in,
+  static void distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
+                           const Eigen::Matrix<double, 3, 3>& R_in,
                            const Eigen::Matrix<double, 3, 4>& P_out,
                            const DistortionModel& distortion_model,
                            const std::vector<double>& D,
