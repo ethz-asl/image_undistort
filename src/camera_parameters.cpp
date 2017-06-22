@@ -361,7 +361,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     double max_y = 0;
     for (Eigen::Vector2d pixel_location : pixel_locations) {
       Eigen::Vector2d distorted_pixel_location;
-      Undistorter::distortPixel(input_ptr_->P(), P,
+      Undistorter::distortPixel(input_ptr_->K(), input_ptr_->R(), P,
                                 input_ptr_->distortionModel(), D,
                                 pixel_location, &distorted_pixel_location);
 
