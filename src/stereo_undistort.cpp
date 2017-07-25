@@ -256,7 +256,8 @@ void StereoUndistort::processAndSendImage(
     second_image_pub_.publish(*(image_out_ptr->toImageMsg()));
 
     if (publish_tf_) {
-      stereo_camera_parameters_ptr_->getSecond().getOutputPtr()->T();
+      Eigen::Matrix4d T =
+          stereo_camera_parameters_ptr_->getSecond().getOutputPtr()->T();
 
       tf::Matrix3x3 R_ros;
       tf::Vector3 p_ros;
