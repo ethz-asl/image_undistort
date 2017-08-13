@@ -6,6 +6,7 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
+find_package(nlopt REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -25,6 +26,7 @@ catkin_package(
 include_directories(
   include
   ${EIGEN3_INCLUDE_DIR}
+  ${nlopt_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -33,15 +35,17 @@ add_library(${PROJECT_NAME}_nodelet
   src/nodelets/stereo_info_nodelet.cpp
   src/nodelets/stereo_undistort_nodelet.cpp
   src/nodelets/depth_nodelet.cpp
+  src/nodelets/point_to_bearing_nodelet.cpp
   src/stereo_info.cpp
   src/stereo_undistort.cpp
   src/depth.cpp
   src/camera_parameters.cpp 
   src/image_undistort.cpp 
-  src/undistorter.cpp)
+  src/undistorter.cpp
+  src/point_to_bearing.cpp)
 
 target_link_libraries(${PROJECT_NAME}_nodelet
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${nlopt_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
@@ -52,7 +56,7 @@ target_link_libraries(image_undistort_node
 
 add_executable(stereo_info_node src/nodes/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} 
 )
 
 add_executable(stereo_undistort_node src/nodes/stereo_undistort_node.cpp)
@@ -68,6 +72,11 @@ target_link_libraries(depth_node
 add_executable(dense_stereo_node src/nodes/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
   ${catkin_LIBRARIES}
+)
+
+add_executable(point_to_bearing_node src/nodes/point_to_bearing_node.cpp)
+target_link_libraries(point_to_bearing_node
+  ${catkin_LIBRARIES} ${nlopt_LIBRARIES}
 )
 
 # Install nodelet library

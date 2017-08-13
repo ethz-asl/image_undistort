@@ -19,4 +19,9 @@
       Depth nodelet
     </description>
   </class>
+  <class name="image_undistort/PointToBearingNodelet" type="image_undistort::PointToBearingNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Point to bearing nodelet
+    </description>
+  </class>
 </library>
