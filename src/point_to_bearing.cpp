@@ -54,14 +54,30 @@ void PointToBearing::imagePointCallback(
     return;
   }
 
-  const Eigen::Vector2d inital_guess =
-      (camera_parameters_ptr_->P().topLeftCorner<3, 3>().inverse() *
-       Eigen::Vector3d(image_point->point.x, image_point->point.y, 1.0))
-          .head<2>();
   const Eigen::Vector2d pixel_location(image_point->point.x,
                                        image_point->point.y);
+
+  Eigen::Vector3d bearing;
+  optimizeForBearingVector(*camera_parameters_ptr_, pixel_location, &bearing);
+
+  geometry_msgs::PointStamped bearing_msg;
+  bearing_msg.header = image_point->header;
+  bearing_msg.point.x = bearing.x();
+  bearing_msg.point.y = bearing.y();
+  bearing_msg.point.z = bearing.z();
+  bearing_pub_.publish(bearing_msg);
+}
+
+void PointToBearing::optimizeForBearingVector(
+    const InputCameraParameters& camera_parameters,
+    const Eigen::Vector2d& pixel_location, Eigen::Vector3d* bearing) {
+  const Eigen::Vector2d inital_guess =
+      (camera_parameters.P().topLeftCorner<3, 3>().inverse() *
+       Eigen::Vector3d(pixel_location[0], pixel_location[1], 1.0))
+          .head<2>();
+
   std::pair<const Eigen::Vector2d&, const InputCameraParameters&> data_pair =
-      std::make_pair(pixel_location, *camera_parameters_ptr_);
+      std::make_pair(pixel_location, camera_parameters);
 
   nlopt::opt opt(nlopt::LN_NELDERMEAD, 2);
 
@@ -73,15 +89,10 @@ void PointToBearing::imagePointCallback(
   double minf;
   nlopt::result result = opt.optimize(values, minf);
 
-  Eigen::Vector3d bearing(values[0], values[1], 1.0);
-  bearing.normalize();
-  geometry_msgs::PointStamped bearing_msg;
-  bearing_msg.header = image_point->header;
-  bearing_msg.point.x = bearing.x();
-  bearing_msg.point.y = bearing.y();
-  bearing_msg.point.z = bearing.z();
-  bearing_pub_.publish(bearing_msg);
+  *bearing = Eigen::Vector3d(values[0], values[1], 1.0);
+  bearing->normalize();
 }
+
 
 double PointToBearing::bearingProjectionError(const std::vector<double>& values,
                               std::vector<double>& grad, void* data) {
