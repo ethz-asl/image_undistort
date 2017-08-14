@@ -93,7 +93,6 @@ void PointToBearing::optimizeForBearingVector(
   bearing->normalize();
 }
 
-
 double PointToBearing::bearingProjectionError(const std::vector<double>& values,
                               std::vector<double>& grad, void* data) {
   // split out inputs
