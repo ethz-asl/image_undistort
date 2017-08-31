@@ -6,7 +6,6 @@ project(image_undistort)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
 find_package(Eigen3 REQUIRED)
-find_package(nlopt REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -16,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   tf_conversions
   nodelet
+  nlopt
 )
 
 catkin_package(
@@ -45,7 +45,7 @@ add_library(${PROJECT_NAME}_nodelet
   src/point_to_bearing.cpp)
 
 target_link_libraries(${PROJECT_NAME}_nodelet
-  ${catkin_LIBRARIES} ${nlopt_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
@@ -76,7 +76,7 @@ target_link_libraries(dense_stereo_node
 
 add_executable(point_to_bearing_node src/nodes/point_to_bearing_node.cpp)
 target_link_libraries(point_to_bearing_node
-  ${catkin_LIBRARIES} ${nlopt_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 
 # Install nodelet library
