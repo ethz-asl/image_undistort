@@ -31,6 +31,10 @@ class PointToBearing {
  public:
   PointToBearing(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
+  static void optimizeForBearingVector(
+      const InputCameraParameters& camera_parameters,
+      const Eigen::Vector2d& pixel_location, Eigen::Vector3d* bearing);
+
   static double bearingProjectionError(const std::vector<double>& values,
                                        std::vector<double>& grad, void* data);
 
