@@ -1,0 +1,15 @@
+<launch>
+
+<arg name="first_camera_name" default="cam00" />
+<arg name="second_camera_name" default="cam01" />
+<arg name="play_bag" value="true" />
+<arg name="bag_file" value="/home/z/Datasets/KITTI/2011_09_26/2011_09_26_drive_0035_sync/data.bag"/>
+
+<node name="depth_node" pkg="image_undistort" type="depth_node">
+    <remap from="rect/first/image" to="$(arg first_camera_name)/image_raw"/>
+    <remap from="rect/second/image" to="$(arg second_camera_name)/image_raw"/>
+    <remap from="rect/first/camera_info" to="$(arg first_camera_name)/camera_info"/>
+    <remap from="rect/second/camera_info" to="$(arg second_camera_name)/camera_info"/>
+</node>
+
+</launch>

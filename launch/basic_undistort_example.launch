@@ -1,0 +1,15 @@
+<launch>
+
+<arg name="input_camera_name" default="cam0" />
+<arg name="scale" default="1.0" />
+<arg name="calib_path" default="/home/z/Datasets/euroc/camchain.yaml"/>
+
+  <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node">
+    <param name="input_camera_namespace" value="cam1"/>      
+    <param name="input_camera_info_from_ros_params" value = "true"/>    
+    <param name="scale" value="$(arg scale)"/>
+    <rosparam file="$(arg calib_path)"/>
+    <remap from="input/image" to="$(arg input_camera_name)/image_raw"/>
+  </node>
+
+</launch>

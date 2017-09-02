@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-15"?>
+<launch>
+
+<arg name="first_camera_name" default="cam00" />
+<arg name="second_camera_name" default="cam01" />
+<arg name="play_bag" value="true" />
+<arg name="bag_file" value="/home/z/Datasets/KITTI/2011_09_26/2011_09_26_drive_0035_sync/data.bag"/>  
+
+<node name="player" pkg="rosbag" type="play" output="screen" args=" --clock $(arg bag_file)"  if="$(arg play_bag)"/>
+
+<node name="depth_node" pkg="image_undistort" type="depth_node">
+    <remap from="rect/first/image" to="$(arg first_camera_name)/image_raw"/>
+    <remap from="rect/second/image" to="$(arg second_camera_name)/image_raw"/>
+    <remap from="rect/first/camera_info" to="$(arg first_camera_name)/camera_info"/>
+    <remap from="rect/second/camera_info" to="$(arg second_camera_name)/camera_info"/>
+</node>
+
+<node name="voxblox_node" pkg="voxblox_ros" type="voxblox_node" output="screen" args="-alsologtostderr" clear_params="true">
+  <remap from="pointcloud" to="/pointcloud"/>
+  <remap from="freespace_pointcloud" to="/freespace_pointcloud"/>
+  <param name="use_freespace_pointcloud" value="true"/>
+  <param name="tsdf_voxel_size" value="0.2" />
+  <param name="tsdf_voxels_per_side" value="16" />
+  <param name="voxel_carving_enabled" value="true" />
+  <param name="color_mode" value="colors" />
+  <param name="max_ray_length_m" value="30.0" />
+  <param name="use_tf_transforms" value="true" />
+  <param name="verbose" value="true" />
+  <param name="world_frame" value="world"/>
+  <param name="output_mesh_as_pcl_mesh" value="true"/>
+  <param name="update_mesh_every_n_sec" value="1" />
+  <param name="mesh_filename" value="/home/z/Desktop/mesh.ply" />
+  <param name="generate_esdf" value="false" />
+  <param name="method" value="merged" />
+  <param name="use_const_weight" value="false" />
+</node>
+
+</launch>

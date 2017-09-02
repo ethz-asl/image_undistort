@@ -1,0 +1,50 @@
+<launch>
+
+<arg name="mav_name" default="ibis" />
+<arg name="namespace" default="$(arg mav_name)" />
+<arg name="process_every_nth_frame" default="1" />
+<arg name="play_bag" value="true" />
+<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/ibis/camchain_p22031.yaml"/>
+<arg name="bag_file" value="/home/z/Datasets/2017-05-23-honggerberg/ibis-erl-2017-06-16-11-54-43.bag"/>  
+
+<node name="player" pkg="rosbag" type="play" output="screen" args="  -r 0.5 --clock $(arg bag_file)"  if="$(arg play_bag)"/>
+
+<group ns="$(arg namespace)">
+ 
+    <node name="dense_stereo" pkg="image_undistort" type="dense_stereo_node">
+      <param name="input_camera_info_from_ros_params" value = "true"/>
+      <param name="first_camera_namespace" value="cam2"/>
+      <param name="second_camera_namespace" value="cam3"/>
+      <param name="first_output_frame" value="cam2_rect"/>
+      <param name="second_output_frame" value="cam3_rect"/>
+      <param name="scale" value="1.0"/>
+      <param name="rename_radtan_plumb_bob" value="true"/>
+      <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
+
+      <rosparam file="$(arg stereo_params_camchain)"/>
+  
+      <remap from="raw/first/image" to="cam2/image_raw"/>
+      <remap from="raw/second/image" to="cam3/image_raw"/>
+      <remap from="raw/first/camera_info" to="cam2/camera_info"/>
+      <remap from="raw/second/camera_info" to="cam3/camera_info"/>
+    </node>
+
+  <node name="voxblox_node" pkg="voxblox_ros" type="voxblox_node" output="screen" args="-alsologtostderr" clear_params="true">
+    <remap from="pointcloud" to="dense_stereo/pointcloud"/>
+    <remap from="freespace_pointcloud" to="dense_stereo/reespace_pointcloud"/>
+    <param name="tsdf_voxel_size" value="0.05" />
+    <param name="tsdf_voxels_per_side" value="16" />
+    <param name="voxel_carving_enabled" value="true" />
+    <param name="color_mode" value="colors" />
+    <param name="max_ray_length_m" value="5.0" />
+    <param name="use_tf_transforms" value="true" />
+    <param name="verbose" value="true" />
+    <param name="world_frame" value="arena"/>
+    <param name="update_mesh_every_n_sec" value="0.5" />
+    <param name="generate_esdf" value="false" />
+    <param name="method" value="merged" />
+    <param name="use_const_weight" value="false" />
+  </node>
+</group>
+
+</launch>
