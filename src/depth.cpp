@@ -38,16 +38,28 @@ Depth::Depth(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
         "'normalized_response'");
   }
 
-  nh_private_.param("pre_filter_size", pre_filter_size_, kPreFilterSize);
-  nh_private_.param("pre_filter_cap", pre_filter_cap_, kPreFilterCap);
-  nh_private_.param("sad_window_size", sad_window_size_, kSADWindowSize);
+  // general stereo parameters
   nh_private_.param("min_disparity", min_disparity_, kMinDisparity);
   nh_private_.param("num_disparities", num_disparities_, kNumDisparities);
-  nh_private_.param("texture_threshold", texture_threshold_, kTextureThreshold);
+  nh_private_.param("pre_filter_cap", pre_filter_cap_, kPreFilterCap);
   nh_private_.param("uniqueness_ratio", uniqueness_ratio_, kUniquenessRatio);
   nh_private_.param("speckle_range", speckle_range_, kSpeckleRange);
   nh_private_.param("speckle_window_size", speckle_window_size_,
                     kSpeckleWindowSize);
+  nh_private_.param("sad_window_size", sad_window_size_, kSADWindowSize);
+
+  // bm parameters
+  nh_private_.param("texture_threshold", texture_threshold_, kTextureThreshold);
+  nh_private_.param("pre_filter_size", pre_filter_size_, kPreFilterSize);
+
+  // sgbm parameters
+  nh_private_.param("use_sgbm", use_sgbm_, kUseSGBM);
+  nh_private_.param("p1", p1_, kP1);
+  nh_private_.param("p2", p2_, kP2);
+  nh_private_.param("disp_12_max_diff", disp_12_max_diff_, kDisp12MaxDiff);
+  nh_private_.param("use_mode_HH", use_mode_HH_, kUseHHMode);
+
+  nh_private_.param("do_median_blur", do_median_blur_, kDoMedianBlur);
 
   camera_sync_.registerCallback(
       boost::bind(&Depth::camerasCallback, this, _1, _2, _3, _4));
@@ -240,36 +252,76 @@ void Depth::calcDisparityImage(
 
 #if (defined(CV_VERSION_EPOCH) && CV_VERSION_EPOCH == 2)
 
-  std::shared_ptr<cv::StereoBM> left_matcher = std::make_shared<cv::StereoBM>();
+  if (use_sgbm_) {
+    std::shared_ptr<cv::StereoSGBM> left_matcher =
+        std::make_shared<cv::StereoSGBM>();
 
-  left_matcher->state->numberOfDisparities = num_disparities_;
-  left_matcher->state->SADWindowSize = sad_window_size_;
-  left_matcher->state->preFilterCap = pre_filter_cap_;
-  left_matcher->state->preFilterSize = pre_filter_size_;
-  left_matcher->state->minDisparity = min_disparity_;
-  left_matcher->state->textureThreshold = texture_threshold_;
-  left_matcher->state->uniquenessRatio = uniqueness_ratio_;
-  left_matcher->state->speckleRange = speckle_range_;
-  left_matcher->state->speckleWindowSize = speckle_window_size_;
-  left_matcher->operator()(left_ptr->image, right_ptr->image,
-                           disparity_ptr->image);
+    left_matcher->state->numberOfDisparities = num_disparities_;
+    left_matcher->state->BlockSize = sad_window_size_;
+    left_matcher->state->preFilterCap = pre_filter_cap_;
+    left_matcher->state->minDisparity = min_disparity_;
+    left_matcher->state->uniquenessRatio = uniqueness_ratio_;
+    left_matcher->state->speckleRange = speckle_range_;
+    left_matcher->state->speckleWindowSize = speckle_window_size_;
+    left_matcher->state->P1 = p1_;
+    left_matcher->state->P2 = p2_;
+    left_matcher->state->disp12MaxDiff = disp_12_max_diff_;
+    left_matcher->state->fullDP = use_mode_HH_;
+    left_matcher->operator()(left_ptr->image, right_ptr->image,
+                             disparity_ptr->image);
+  } else {
+    std::shared_ptr<cv::StereoBM> left_matcher =
+        std::make_shared<cv::StereoBM>();
+
+    left_matcher->state->numberOfDisparities = num_disparities_;
+    left_matcher->state->SADWindowSize = sad_window_size_;
+    left_matcher->state->preFilterCap = pre_filter_cap_;
+    left_matcher->state->preFilterSize = pre_filter_size_;
+    left_matcher->state->minDisparity = min_disparity_;
+    left_matcher->state->textureThreshold = texture_threshold_;
+    left_matcher->state->uniquenessRatio = uniqueness_ratio_;
+    left_matcher->state->speckleRange = speckle_range_;
+    left_matcher->state->speckleWindowSize = speckle_window_size_;
+    left_matcher->operator()(left_ptr->image, right_ptr->image,
+                             disparity_ptr->image);
+  }
 #else
-  cv::Ptr<cv::StereoBM> left_matcher =
-      cv::StereoBM::create(num_disparities_, sad_window_size_);
+  if (use_sgbm_) {
+    int mode;
+    if (use_mode_HH_) {
+      mode = cv::StereoSGBM::MODE_HH;
+    } else {
+      mode = cv::StereoSGBM::MODE_SGBM;
+    }
 
-  left_matcher->setPreFilterType(pre_filter_type_);
-  left_matcher->setPreFilterSize(pre_filter_size_);
-  left_matcher->setPreFilterCap(pre_filter_cap_);
-  left_matcher->setMinDisparity(min_disparity_);
-  left_matcher->setTextureThreshold(texture_threshold_);
-  left_matcher->setUniquenessRatio(uniqueness_ratio_);
-  left_matcher->setSpeckleRange(speckle_range_);
-  left_matcher->setSpeckleWindowSize(speckle_window_size_);
-  left_matcher->compute(left_ptr->image, right_ptr->image,
-                        disparity_ptr->image);
+    cv::Ptr<cv::StereoSGBM> left_matcher = cv::StereoSGBM::create(
+        min_disparity_, num_disparities_, sad_window_size_, p1_, p2_,
+        disp_12_max_diff_, pre_filter_cap_, uniqueness_ratio_,
+        speckle_window_size_, speckle_range_, mode);
+
+    left_matcher->compute(left_ptr->image, right_ptr->image,
+                          disparity_ptr->image);
+
+  } else {
+    cv::Ptr<cv::StereoBM> left_matcher =
+        cv::StereoBM::create(num_disparities_, sad_window_size_);
+
+    left_matcher->setPreFilterType(pre_filter_type_);
+    left_matcher->setPreFilterSize(pre_filter_size_);
+    left_matcher->setPreFilterCap(pre_filter_cap_);
+    left_matcher->setMinDisparity(min_disparity_);
+    left_matcher->setTextureThreshold(texture_threshold_);
+    left_matcher->setUniquenessRatio(uniqueness_ratio_);
+    left_matcher->setSpeckleRange(speckle_range_);
+    left_matcher->setSpeckleWindowSize(speckle_window_size_);
+    left_matcher->compute(left_ptr->image, right_ptr->image,
+                          disparity_ptr->image);
+  }
 #endif
 
-  cv::medianBlur(disparity_ptr->image, disparity_ptr->image, 5);
+  if(do_median_blur_){
+    cv::medianBlur(disparity_ptr->image, disparity_ptr->image, 5);
+  }
 }
 
 bool Depth::processCameraInfo(
