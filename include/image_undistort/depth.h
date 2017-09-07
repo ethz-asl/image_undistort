@@ -127,8 +127,8 @@ class Depth {
 
   // sgbm parameters
   bool use_sgbm_;
-  int p1_, kP1;
-  int p2_, kP2;
+  int p1_;
+  int p2_;
   int disp_12_max_diff_;
   bool use_mode_HH_;
 
