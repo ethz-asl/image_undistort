@@ -5,7 +5,7 @@ project(image_undistort)
 # Set compile flags (-Ofast actually makes a big difference over -O3 here (maybe 20% faster)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   nodelet
   nlopt
+  eigen_catkin
 )
 
 catkin_package(
@@ -25,7 +26,8 @@ catkin_package(
 
 include_directories(
   include
-  ${EIGEN3_INCLUDE_DIR}
+  #${EIGEN3_INCLUDE_DIR}
+  ${eigen_catkin_INCLUDE_DIRS}
   ${nlopt_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )

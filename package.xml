@@ -20,6 +20,7 @@
   <depend>tf_conversions</depend>
   <depend>nodelet</depend>
   <depend>nlopt</depend>
+  <depend>eigen_catkin</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
