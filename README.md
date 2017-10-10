@@ -1,9 +1,17 @@
-This repo contains five related ros nodes-
+image_undistort exists to handle all the odd situations image_proc doesn't quite cover. Some examples of this are
+* working with images that don't have a camera_info topic
+* undistortion of images using equidistant or other less common camera models
+* turning a location in a distorted image into a bearing vector
+
+If you have an image undistortion / stereo imaging problem that the library doesn't cover, create an issue and I'll look at adding it.
+
+This repo contains six related ros nodes-
 * **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
 * **[stereo_info_node](https://github.com/ethz-asl/image_undistort#stereo_info_node):** Calculates the camera information needed for stereo rectification.
 * **[stereo_undistort_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
 * **[depth_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Converts two undistorted images and their camera information into a disparity image and a pointcloud.
 * **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
+* **[point_to_bearing_node](https://github.com/ethz-asl/image_undistort#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
 
 # image_undistort_node:
 A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
@@ -169,3 +177,16 @@ Many of these topics are dependent on the parameters set above and may not appea
 * **rect/second/camera_info** second output camera info topic
 * **disparity** output disparity image topic
 * **pointcloud** output pointcloud topic
+
+# point_to_bearing_node:
+A node for converting a point in a distorted image to a unit bearing vector.
+
+## Parameters:
+* **queue size** The length of the queues the node uses for topics (default: 10).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+
+## Input/Output Topics
+Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
+* **input/camera_info** camera info topic
+* **image_point** input location of the point of interest in the image
+* **bearing** unit bearing to point
