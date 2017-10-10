@@ -257,7 +257,7 @@ void Depth::calcDisparityImage(
         std::make_shared<cv::StereoSGBM>();
 
     left_matcher->numberOfDisparities = num_disparities_;
-    left_matcher->BlockSize = sad_window_size_;
+    left_matcher->SADWindowSize = sad_window_size_;
     left_matcher->preFilterCap = pre_filter_cap_;
     left_matcher->minDisparity = min_disparity_;
     left_matcher->uniquenessRatio = uniqueness_ratio_;
