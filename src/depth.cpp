@@ -256,17 +256,17 @@ void Depth::calcDisparityImage(
     std::shared_ptr<cv::StereoSGBM> left_matcher =
         std::make_shared<cv::StereoSGBM>();
 
-    left_matcher->state->numberOfDisparities = num_disparities_;
-    left_matcher->state->BlockSize = sad_window_size_;
-    left_matcher->state->preFilterCap = pre_filter_cap_;
-    left_matcher->state->minDisparity = min_disparity_;
-    left_matcher->state->uniquenessRatio = uniqueness_ratio_;
-    left_matcher->state->speckleRange = speckle_range_;
-    left_matcher->state->speckleWindowSize = speckle_window_size_;
-    left_matcher->state->P1 = p1_;
-    left_matcher->state->P2 = p2_;
-    left_matcher->state->disp12MaxDiff = disp_12_max_diff_;
-    left_matcher->state->fullDP = use_mode_HH_;
+    left_matcher->numberOfDisparities = num_disparities_;
+    left_matcher->BlockSize = sad_window_size_;
+    left_matcher->preFilterCap = pre_filter_cap_;
+    left_matcher->minDisparity = min_disparity_;
+    left_matcher->uniquenessRatio = uniqueness_ratio_;
+    left_matcher->speckleRange = speckle_range_;
+    left_matcher->speckleWindowSize = speckle_window_size_;
+    left_matcher->P1 = p1_;
+    left_matcher->P2 = p2_;
+    left_matcher->disp12MaxDiff = disp_12_max_diff_;
+    left_matcher->fullDP = use_mode_HH_;
     left_matcher->operator()(left_ptr->image, right_ptr->image,
                              disparity_ptr->image);
   } else {
