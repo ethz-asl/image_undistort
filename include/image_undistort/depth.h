@@ -26,17 +26,26 @@ namespace image_undistort {
 constexpr int kQueueSize = 10;
 // small number used to check things are approximately equal
 constexpr double kDelta = 0.000000001;
-// stereobm parameters
-const std::string kPreFilterType = "xsobel";
-constexpr int kPreFilterSize = 9;
+// stereo parameters
 constexpr int kPreFilterCap = 31;
 constexpr int kSADWindowSize = 11;
 constexpr int kMinDisparity = 0;
 constexpr int kNumDisparities = 64;
-constexpr int kTextureThreshold = 0;
 constexpr int kUniquenessRatio = 0;
 constexpr int kSpeckleRange = 3;
 constexpr int kSpeckleWindowSize = 500;
+// bm parameters
+constexpr int kTextureThreshold = 0;
+const std::string kPreFilterType = "xsobel";
+constexpr int kPreFilterSize = 9;
+// sgbm parameters
+constexpr bool kUseSGBM = false;
+constexpr int kP1 = 120;
+constexpr int kP2 = 240;
+constexpr int kDisp12MaxDiff = -1;
+constexpr bool kUseHHMode = false;
+
+constexpr bool kDoMedianBlur = true;
 
 class Depth {
  public:
@@ -102,17 +111,28 @@ class Depth {
       CameraSyncPolicy;
   message_filters::Synchronizer<CameraSyncPolicy> camera_sync_;
 
-  // stereobm parameters
-  int pre_filter_type_;
-  int pre_filter_size_;
+  // stereo parameters
   int pre_filter_cap_;
   int sad_window_size_;
   int min_disparity_;
   int num_disparities_;
-  int texture_threshold_;
   int uniqueness_ratio_;
   int speckle_range_;
   int speckle_window_size_;
+
+  // bm parameters
+  int texture_threshold_;
+  int pre_filter_type_;
+  int pre_filter_size_;
+
+  // sgbm parameters
+  bool use_sgbm_;
+  int p1_;
+  int p2_;
+  int disp_12_max_diff_;
+  bool use_mode_HH_;
+
+  bool do_median_blur_;
 };
 }
 
