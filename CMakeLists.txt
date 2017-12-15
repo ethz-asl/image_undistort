@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
   nlopt
 )
+find_package(OpenCV 3 REQUIRED COMPONENTS core calib3d)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -28,6 +29,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${nlopt_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}_nodelet 
@@ -46,37 +48,44 @@ add_library(${PROJECT_NAME}_nodelet
 
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
 add_executable(image_undistort_node src/nodes/image_undistort_node.cpp)
 target_link_libraries(image_undistort_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(stereo_info_node src/nodes/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
   ${catkin_LIBRARIES} 
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(stereo_undistort_node src/nodes/stereo_undistort_node.cpp)
 target_link_libraries(stereo_undistort_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(depth_node src/nodes/depth_node.cpp)
 target_link_libraries(depth_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(dense_stereo_node src/nodes/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 add_executable(point_to_bearing_node src/nodes/point_to_bearing_node.cpp)
 target_link_libraries(point_to_bearing_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 # Install nodelet library
