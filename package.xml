@@ -11,6 +11,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>OpenCV</depend>
   <depend>roscpp</depend>
   <depend>roslib</depend>
   <depend>pcl_ros</depend>

@@ -5,6 +5,7 @@ project(image_undistort)
 # Set compile flags (-Ofast actually makes a big difference over -O3 here (maybe 20% faster)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
+find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -46,6 +47,7 @@ add_library(${PROJECT_NAME}_nodelet
 
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
