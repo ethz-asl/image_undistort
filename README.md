@@ -3,7 +3,7 @@ image_undistort exists to handle all the odd situations image_proc doesn't quite
 * undistortion of images using equidistant or other less common camera models
 * turning a location in a distorted image into a bearing vector
 
-If you have an image undistortion / stereo imaging problem that the library doesn't cover, create an issue and I'll look at adding it.
+If you have an image undistortion / stereo imaging problem that the library doesn't cover, create an issue and I'll look at adding it. Note that the automatic image size approach used will fail for cameras with a fov greater than 180 degrees.
 
 This repo contains six related ros nodes-
 * **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
