@@ -17,7 +17,6 @@ class StereoInfoNodelet : public nodelet::Nodelet {
 
   std::shared_ptr<StereoInfo> stereo_info_;
 };
-}
+}  // namespace image_undistort
 
-PLUGINLIB_DECLARE_CLASS(image_undistort, StereoInfoNodelet,
-                        image_undistort::StereoInfoNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(image_undistort::StereoInfoNodelet, nodelet::Nodelet);

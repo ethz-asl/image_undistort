@@ -17,8 +17,7 @@ class PointToBearingNodelet : public nodelet::Nodelet {
 
   std::shared_ptr<PointToBearing> point_to_bearing_;
 };
-}
+}  // namespace image_undistort
 
-PLUGINLIB_DECLARE_CLASS(image_undistort, PointToBearingNodelet,
-                        image_undistort::PointToBearingNodelet,
-                        nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(image_undistort::PointToBearingNodelet,
+                       nodelet::Nodelet);
