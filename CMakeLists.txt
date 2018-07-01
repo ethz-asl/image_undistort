@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(image_undistort)
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 # Set compile flags (-Ofast actually makes a big difference over -O3 here (maybe 20% faster)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Ofast")
 
@@ -15,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   tf_conversions
   nodelet
-  nlopt
 )
 
 catkin_package(
@@ -23,14 +24,15 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}_nodelet
 )
 
-include_directories(
-  include
-  ${EIGEN3_INCLUDE_DIR}
-  ${nlopt_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
+find_package(OpenCV REQUIRED COMPONENTS core calib3d)
 
-add_library(${PROJECT_NAME}_nodelet 
+find_package(NLOPT)
+IF(${NLOPT_FOUND})
+  include_directories(
+    ${NLOPT_INCLUDE_DIRS}
+  )
+
+  add_library(${PROJECT_NAME}_nodelet 
   src/nodelets/image_undistort_nodelet.cpp 
   src/nodelets/stereo_info_nodelet.cpp
   src/nodelets/stereo_undistort_nodelet.cpp
@@ -44,40 +46,65 @@ add_library(${PROJECT_NAME}_nodelet
   src/undistorter.cpp
   src/point_to_bearing.cpp)
 
+ELSE()
+
+  add_library(${PROJECT_NAME}_nodelet 
+  src/nodelets/image_undistort_nodelet.cpp 
+  src/nodelets/stereo_info_nodelet.cpp
+  src/nodelets/stereo_undistort_nodelet.cpp
+  src/nodelets/depth_nodelet.cpp
+  src/stereo_info.cpp
+  src/stereo_undistort.cpp
+  src/depth.cpp
+  src/camera_parameters.cpp 
+  src/image_undistort.cpp 
+  src/undistorter.cpp)
+
+  MESSAGE(WARNING "nlopt not found, building without point to bearing nodelet")
+ENDIF()
+
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
+
 target_link_libraries(${PROJECT_NAME}_nodelet
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_nodelet ${catkin_EXPORTED_TARGETS})
 
 add_executable(image_undistort_node src/nodes/image_undistort_node.cpp)
 target_link_libraries(image_undistort_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 add_executable(stereo_info_node src/nodes/stereo_info_node.cpp)
 target_link_libraries(stereo_info_node
-  ${catkin_LIBRARIES} 
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 add_executable(stereo_undistort_node src/nodes/stereo_undistort_node.cpp)
 target_link_libraries(stereo_undistort_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 add_executable(depth_node src/nodes/depth_node.cpp)
 target_link_libraries(depth_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
 add_executable(dense_stereo_node src/nodes/dense_stereo_node.cpp)
 target_link_libraries(dense_stereo_node
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 )
 
-add_executable(point_to_bearing_node src/nodes/point_to_bearing_node.cpp)
-target_link_libraries(point_to_bearing_node
-  ${catkin_LIBRARIES}
-)
+IF(${NLOPT_FOUND})
+  add_executable(point_to_bearing_node src/nodes/point_to_bearing_node.cpp)
+  target_link_libraries(point_to_bearing_node
+    ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${NLOPT_LIBRARIES}
+  )
+ENDIF()
 
 # Install nodelet library
 install(TARGETS ${PROJECT_NAME}_nodelet
@@ -103,3 +130,4 @@ install(DIRECTORY rviz/
 install(FILES nodelet_plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
