@@ -13,6 +13,9 @@ This repo contains six related ros nodes-
 * **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
 * **[point_to_bearing_node](https://github.com/ethz-asl/image_undistort#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
 
+## Dependencies
+Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found. 
+
 # image_undistort_node:
 A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
 
