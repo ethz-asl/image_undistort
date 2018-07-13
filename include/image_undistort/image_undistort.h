@@ -71,6 +71,7 @@ constexpr bool kDefaultRenameRadtanPlumbBob = false;
 
 class ImageUndistort {
  public:
+
   ImageUndistort(const ros::NodeHandle& nh_,
                  const ros::NodeHandle& nh_private_);
 
