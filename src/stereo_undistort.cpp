@@ -27,8 +27,8 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
       frame_counter_(0) {
   // set parameters from ros
   nh_private_.param("input_camera_info_from_ros_params",
-                    input_camera_info_from_ros_params_,
-                    kDefaultInputCameraInfoFromROSParams);
+                    config_.input_camera_info_from_ros_params,
+                    config_.input_camera_info_from_ros_params);
 
   nh_private_.param("rename_radtan_plumb_bob", rename_radtan_plumb_bob_,
                     kDefaultRenameRadtanPlumbBob);
