@@ -7,16 +7,11 @@
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
 
-#include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/PointCloud2.h>
-
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/time_synchronizer.h>
 
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/opencv.hpp>
+#include "image_undistort/depth_generator.h"
 
 namespace image_undistort {
 
@@ -24,28 +19,6 @@ namespace image_undistort {
 
 // queue size
 constexpr int kQueueSize = 10;
-// small number used to check things are approximately equal
-constexpr double kDelta = 0.000000001;
-// stereo parameters
-constexpr int kPreFilterCap = 31;
-constexpr int kSADWindowSize = 11;
-constexpr int kMinDisparity = 0;
-constexpr int kNumDisparities = 64;
-constexpr int kUniquenessRatio = 0;
-constexpr int kSpeckleRange = 3;
-constexpr int kSpeckleWindowSize = 500;
-// bm parameters
-constexpr int kTextureThreshold = 0;
-const std::string kPreFilterType = "xsobel";
-constexpr int kPreFilterSize = 9;
-// sgbm parameters
-constexpr bool kUseSGBM = false;
-constexpr int kP1 = 120;
-constexpr int kP2 = 240;
-constexpr int kDisp12MaxDiff = -1;
-constexpr bool kUseHHMode = false;
-
-constexpr bool kDoMedianBlur = true;
 
 class Depth {
  public:
@@ -59,32 +32,6 @@ class Depth {
 
  private:
   int getQueueSize() const;
-
-  static bool ApproxEq(double A, double B);
-
-  bool processCameraInfo(
-      const sensor_msgs::CameraInfoConstPtr& first_camera_info,
-      const sensor_msgs::CameraInfoConstPtr& second_camera_info,
-      double* baseline, double* focal_length, bool* first_is_left, int* cx,
-      int* cy);
-
-  static void fillDisparityFromSide(const cv::Mat& input_disparity,
-                                    const cv::Mat& valid, const bool& from_left,
-                                    cv::Mat* filled_disparity);
-
-  void bulidFilledDisparityImage(const cv::Mat& input_disparity,
-                                 cv::Mat* disparity_filled,
-                                 cv::Mat* input_valid) const;
-
-  void calcDisparityImage(const sensor_msgs::ImageConstPtr& first_image_msg_in,
-                          const sensor_msgs::ImageConstPtr& second_image_msg_in,
-                          cv_bridge::CvImagePtr disparity_ptr) const;
-
-  void calcPointCloud(const cv::Mat& input_disparity, const cv::Mat& left_image,
-                      const double baseline, const double focal_length,
-                      const int cx, const int cy,
-                      pcl::PointCloud<pcl::PointXYZRGB>* pointcloud,
-                      pcl::PointCloud<pcl::PointXYZRGB>* freespace_pointcloud);
 
   // nodes
   ros::NodeHandle nh_;
@@ -111,28 +58,7 @@ class Depth {
       CameraSyncPolicy;
   message_filters::Synchronizer<CameraSyncPolicy> camera_sync_;
 
-  // stereo parameters
-  int pre_filter_cap_;
-  int sad_window_size_;
-  int min_disparity_;
-  int num_disparities_;
-  int uniqueness_ratio_;
-  int speckle_range_;
-  int speckle_window_size_;
-
-  // bm parameters
-  int texture_threshold_;
-  int pre_filter_type_;
-  int pre_filter_size_;
-
-  // sgbm parameters
-  bool use_sgbm_;
-  int p1_;
-  int p2_;
-  int disp_12_max_diff_;
-  bool use_mode_HH_;
-
-  bool do_median_blur_;
+  std::shared_ptr<DepthGenerator> depth_gen_;
 };
 }
 
