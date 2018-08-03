@@ -39,7 +39,7 @@ A simple node for undistorting images. Handles plumb bob (aka radial-tangential)
 * **undistort_image** True to undistort the images, false to keep the distortion. (default: true).
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output image to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
-* **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
+* **scale** Only used if **output_camera_info_source** is set to "auto_generated" or "match_input". The output focal length will be multiplied by this value. If "auto_generated" is set the image size will also be increased by this factor. (default: 1.0).
 * **publish_tf** True to publish the tf between the input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "output_camera")
 * **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
