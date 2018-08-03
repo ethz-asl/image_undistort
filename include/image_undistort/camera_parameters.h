@@ -128,7 +128,7 @@ class CameraParametersPair {
                                  const Eigen::Matrix<double, 4, 4>& T,
                                  const Eigen::Matrix<double, 3, 3>& K);
 
-  bool setOutputFromInput();
+  bool setOutputFromInput(const double scale);
 
   bool setOptimalOutputCameraParameters(const double scale);
 

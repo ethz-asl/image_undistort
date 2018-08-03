@@ -295,15 +295,17 @@ bool CameraParametersPair::setOutputCameraParameters(
   }
 }
 
-bool CameraParametersPair::setOutputFromInput() {
+bool CameraParametersPair::setOutputFromInput(const double scale) {
   if (!valid(CameraIO::INPUT)) {
     ROS_ERROR(
         "Cannot set output to same values as input, as input is not currently "
         "set");
     return false;
   } else {
-    setOutputCameraParameters(input_ptr_->resolution(), input_ptr_->T(),
-                              input_ptr_->K());
+    Eigen::Matrix<double, 3, 3> K = input_ptr_->K();
+    K(0, 0) *= scale;
+    K(1, 1) *= scale;
+    setOutputCameraParameters(input_ptr_->resolution(), input_ptr_->T(), K);
     return true;
   }
 }
@@ -633,4 +635,4 @@ const CameraParametersPair& StereoCameraParameters::getFirst() const {
 const CameraParametersPair& StereoCameraParameters::getSecond() const {
   return second_;
 }
-}
+}  // namespace image_undistort
