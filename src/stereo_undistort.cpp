@@ -33,6 +33,9 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   nh_private_.param("rename_radtan_plumb_bob", rename_radtan_plumb_bob_,
                     kDefaultRenameRadtanPlumbBob);
 
+  bool invert_T;
+  nh_private_.param("invert_T", invert_T, kDefaultInvertT);
+
   nh_private_.param("queue_size", queue_size_, kQueueSize);
   if (queue_size_ < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
@@ -109,9 +112,10 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
     nh_private_.param("second_camera_namespace", second_camera_namespace,
                       kDefaultSecondCameraNamespace);
     if (!stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, first_camera_namespace, CameraSide::FIRST) ||
+            nh_private_, first_camera_namespace, CameraSide::FIRST, invert_T) ||
         !stereo_camera_parameters_ptr_->setInputCameraParameters(
-            nh_private_, second_camera_namespace, CameraSide::SECOND)) {
+            nh_private_, second_camera_namespace, CameraSide::SECOND,
+            invert_T)) {
       ROS_FATAL("Loading of input camera parameters failed, exiting");
       ros::shutdown();
       exit(EXIT_FAILURE);
@@ -334,4 +338,4 @@ void StereoUndistort::camerasCallback(
 
   imagesCallback(first_image_msg_in, second_image_msg_in);
 }
-}
+}  // namespace image_undistort

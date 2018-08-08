@@ -19,7 +19,8 @@ enum class DistortionProcessing { UNDISTORT, PRESERVE };
 class BaseCameraParameters {
  public:
   BaseCameraParameters(const ros::NodeHandle& nh,
-                       const std::string& camera_namespace);
+                       const std::string& camera_namespace,
+                       const bool invert_T);
 
   BaseCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
@@ -74,7 +75,8 @@ class BaseCameraParameters {
 class InputCameraParameters : public BaseCameraParameters {
  public:
   InputCameraParameters(const ros::NodeHandle& nh,
-                        const std::string& camera_namespace);
+                        const std::string& camera_namespace,
+                        const bool invert_T = false);
 
   InputCameraParameters(const sensor_msgs::CameraInfo& camera_info);
 
@@ -113,7 +115,7 @@ class CameraParametersPair {
 
   bool setCameraParameters(const ros::NodeHandle& nh,
                            const std::string& camera_namespace,
-                           const CameraIO& io);
+                           const CameraIO& io, const bool invert_T = false);
 
   bool setCameraParameters(const sensor_msgs::CameraInfo& camera_info,
                            const CameraIO& io);
@@ -164,7 +166,7 @@ class StereoCameraParameters {
 
   bool setInputCameraParameters(const ros::NodeHandle& nh,
                                 const std::string& camera_namespace,
-                                const CameraSide& side);
+                                const CameraSide& side, const bool invert_T);
 
   bool setInputCameraParameters(const sensor_msgs::CameraInfo& camera_info,
                                 const CameraSide& side);
@@ -192,5 +194,5 @@ class StereoCameraParameters {
   CameraParametersPair first_;
   CameraParametersPair second_;
 };
-}
+}  // namespace image_undistort
 #endif  // CAMERA_PARAMETERS_H
