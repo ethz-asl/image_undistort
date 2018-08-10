@@ -10,7 +10,7 @@
     <param name="scale" value="$(arg scale)"/>
     <param name="output_camera_info_source" value="auto_generated"/>
     <rosparam file="$(arg calib_path)"/>
-    <remap from="input/image" to="$(arg input_camera_name)/image_raw"/>
+    <remap from="input/image" to="/jay/cam2/image_raw"/>
   </node>
 
 </launch>

@@ -468,6 +468,16 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
   T.topRightCorner<3, 1>() = input_ptr_->p();
 
+  // set a max size increase of 2x to prevent fisheyed_lenses creating massive images
+  if(resolution_estimate.width > 2*scale*input_ptr_->resolution().width){
+    resolution_estimate.width = 2*scale*input_ptr_->resolution().width;
+    ROS_WARN("Automatic camera adjust has been limited to 2x original width");
+  }
+  if(resolution_estimate.height > 2*scale*input_ptr_->resolution().height){
+    resolution_estimate.height = 2*scale*input_ptr_->resolution().height;
+    ROS_WARN("Automatic camera adjust has been limited to 2x original height");
+  }
+
   return setOutputCameraParameters(resolution_estimate, T, K);
 }
 
