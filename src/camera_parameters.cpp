@@ -3,8 +3,9 @@
 
 namespace image_undistort {
 
-BaseCameraParameters::BaseCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T) {
+BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
+                                           const std::string& camera_namespace,
+                                           const bool invert_T) {
   ROS_INFO("Loading camera parameters");
 
   XmlRpc::XmlRpcValue K_in;
@@ -55,7 +56,7 @@ BaseCameraParameters::BaseCameraParameters(
     T_ = Eigen::Matrix4d::Identity();
   }
 
-  if(invert_T){
+  if (invert_T) {
     T_ = T_.inverse();
   }
 
@@ -150,7 +151,8 @@ bool BaseCameraParameters::operator!=(const BaseCameraParameters& B) const {
 }
 
 InputCameraParameters::InputCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T)
+    const ros::NodeHandle& nh, const std::string& camera_namespace,
+    const bool invert_T)
     : BaseCameraParameters(nh, camera_namespace, invert_T) {
   std::string distortion_model_in;
   if (!nh.getParam(camera_namespace + "/distortion_model",
@@ -219,10 +221,17 @@ const DistortionModel InputCameraParameters::stringToDistortion(
     return DistortionModel::EQUIDISTANT;
   } else if (lower_case_distortion_model == std::string("fov")) {
     return DistortionModel::FOV;
+  } else if (lower_case_distortion_model == std::string("double_sphere")) {
+    return DistortionModel::DOUBLESPHERE;
+  } else if (lower_case_distortion_model == std::string("unified")) {
+    return DistortionModel::UNIFIED;
+  } else if (lower_case_distortion_model == std::string("unified_extended")) {
+    return DistortionModel::UNIFIEDEXTENDED;
   } else {
     throw std::runtime_error(
         "Unrecognized distortion model. Valid options are 'radtan', 'Plumb "
-        "Bob', 'plumb_bob' 'equidistant' and 'fov'");
+        "Bob', 'plumb_bob', 'equidistant', 'fov', 'double_sphere', 'unified' "
+        "and 'unified_extended'");
   }
 }
 
@@ -245,11 +254,11 @@ bool CameraParametersPair::setCameraParameters(
     const CameraIO& io, const bool invert_T) {
   try {
     if (io == CameraIO::INPUT) {
-      input_ptr_ =
-          std::make_shared<InputCameraParameters>(nh, camera_namespace, invert_T);
+      input_ptr_ = std::make_shared<InputCameraParameters>(nh, camera_namespace,
+                                                           invert_T);
     } else {
-      output_ptr_ =
-          std::make_shared<OutputCameraParameters>(nh, camera_namespace, invert_T);
+      output_ptr_ = std::make_shared<OutputCameraParameters>(
+          nh, camera_namespace, invert_T);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -492,10 +501,11 @@ bool StereoCameraParameters::setInputCameraParameters(
     const CameraSide& side, const bool invert_T) {
   bool success;
   if (side == CameraSide::FIRST) {
-    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
+    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT,
+                                         invert_T);
   } else {
-    success =
-        second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
+    success = second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT,
+                                          invert_T);
   }
   if (valid(CameraSide::FIRST, CameraIO::INPUT) &&
       valid(CameraSide::SECOND, CameraIO::INPUT)) {

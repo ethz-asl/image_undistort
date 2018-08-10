@@ -148,6 +148,36 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
       xd = x * (rd / r);
       yd = y * (rd / r);
     } break;
+    case DistortionModel::DOUBLESPHERE: {
+      // Split out parameters for easier reading
+      const double& epsilon = D[0];
+      const double& alpha = D[1];
+
+      const double d1 = std::sqrt(x * x + y * y + 1.0);
+      const double d2 = std::sqrt(x * x + y * y + (epsilon*d1 + 1.0)*(epsilon*d1 + 1.0));
+      const double scaling = 1.0f/(alpha*d2 + (1-alpha)*(epsilon*d1+1.0));
+      xd = x * scaling;
+      yd = y * scaling;
+    } break;
+    case DistortionModel::UNIFIED: {
+      // Split out parameters for easier reading
+      const double& alpha = D[0];
+
+      const double d = std::sqrt(x * x + y * y + 1.0);
+      const double scaling = 1.0f/(alpha*d + (1-alpha));
+      xd = x * scaling;
+      yd = y * scaling;
+    } break;
+    case DistortionModel::EXTENDEDUNIFIED: {
+      // Split out parameters for easier reading
+      const double& alpha = D[0];
+      const double& beta = D[1];
+
+      const double d = std::sqrt(beta*(x * x + y * y) + 1.0);
+      const double scaling = 1.0f/(alpha*d + (1-alpha));
+      xd = x * scaling;
+      yd = y * scaling;
+    } break;
     default:
       throw std::runtime_error("Distortion model not implemented - model: " +
                                static_cast<int>(distortion_model));
