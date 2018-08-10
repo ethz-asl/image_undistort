@@ -4,7 +4,7 @@
 namespace image_undistort {
 
 BaseCameraParameters::BaseCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace) {
+    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T) {
   ROS_INFO("Loading camera parameters");
 
   XmlRpc::XmlRpcValue K_in;
@@ -53,6 +53,10 @@ BaseCameraParameters::BaseCameraParameters(
     T_loaded = true;
   } else {
     T_ = Eigen::Matrix4d::Identity();
+  }
+
+  if(invert_T){
+    T_ = T_.inverse();
   }
 
   XmlRpc::XmlRpcValue P_in;
@@ -146,8 +150,8 @@ bool BaseCameraParameters::operator!=(const BaseCameraParameters& B) const {
 }
 
 InputCameraParameters::InputCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace)
-    : BaseCameraParameters(nh, camera_namespace) {
+    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T)
+    : BaseCameraParameters(nh, camera_namespace, invert_T) {
   std::string distortion_model_in;
   if (!nh.getParam(camera_namespace + "/distortion_model",
                    distortion_model_in)) {
@@ -238,14 +242,14 @@ CameraParametersPair::CameraParametersPair(
 
 bool CameraParametersPair::setCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
-    const CameraIO& io) {
+    const CameraIO& io, const bool invert_T) {
   try {
     if (io == CameraIO::INPUT) {
       input_ptr_ =
-          std::make_shared<InputCameraParameters>(nh, camera_namespace);
+          std::make_shared<InputCameraParameters>(nh, camera_namespace, invert_T);
     } else {
       output_ptr_ =
-          std::make_shared<OutputCameraParameters>(nh, camera_namespace);
+          std::make_shared<OutputCameraParameters>(nh, camera_namespace, invert_T);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -485,13 +489,13 @@ StereoCameraParameters::StereoCameraParameters(const double scale)
 
 bool StereoCameraParameters::setInputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
-    const CameraSide& side) {
+    const CameraSide& side, const bool invert_T) {
   bool success;
   if (side == CameraSide::FIRST) {
-    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
+    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
   } else {
     success =
-        second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT);
+        second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
   }
   if (valid(CameraSide::FIRST, CameraIO::INPUT) &&
       valid(CameraSide::SECOND, CameraIO::INPUT)) {
