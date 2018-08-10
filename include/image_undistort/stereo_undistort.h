@@ -56,6 +56,8 @@ const std::string kDefaultSecondInputFrame = "second_camera";
 // if radtan distortion should be called radtan (ASL standard) or plumb_bob (ros
 // standard)
 constexpr bool kDefaultRenameRadtanPlumbBob = false;
+// if the read in transforms should be inverted
+constexpr bool kDefaultInvertT = false;
 
 class StereoUndistort {
  public:

@@ -129,7 +129,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
         exit(EXIT_FAILURE);
       }
     } else if (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT) {
-      camera_parameters_pair_ptr_->setOutputFromInput();
+      camera_parameters_pair_ptr_->setOutputFromInput(scale_);
     } else if (output_camera_info_source_ == OutputInfoSource::AUTO_GENERATED) {
       camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
     } else {
@@ -145,7 +145,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
       image_pub_ = it_.advertise("output/image", queue_size_);
     }
   } else {
-    camera_parameters_pair_ptr_->setOutputFromInput();
+    camera_parameters_pair_ptr_->setOutputFromInput(scale_);
 
     camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
         "output/camera_info", queue_size_);
@@ -250,7 +250,7 @@ void ImageUndistort::cameraCallback(
   camera_parameters_pair_ptr_->setCameraParameters(*camera_info,
                                                    CameraIO::INPUT);
   if (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT) {
-    camera_parameters_pair_ptr_->setOutputFromInput();
+    camera_parameters_pair_ptr_->setOutputFromInput(scale_);
   } else if (output_camera_info_source_ == OutputInfoSource::AUTO_GENERATED) {
     camera_parameters_pair_ptr_->setOptimalOutputCameraParameters(scale_);
   }
