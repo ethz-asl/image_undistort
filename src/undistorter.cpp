@@ -170,18 +170,21 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
       const double& p1 = D[3];
       const double& p2 = D[4];
 
+      //apply omni model
+      const double d = std::sqrt(x*x + y*y + 1.0);
+      const double scaling = 1.0 / (1.0 + xi * d);
+
+      const double x_temp = x*scaling;
+      const double y_temp = y*scaling;
+
       // Undistort
-      const double r2 = x * x + y * y;
+      const double r2 = x_temp * x_temp + y_temp * y_temp;
       const double r4 = r2 * r2;
       const double r6 = r4 * r2;
       const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
 
-      const double d = std::sqrt(r2 + 1.0);
-      const double scaling = 1.0 / (1.0 + xi * d);
-
-      //really not sure what order the distortion happens in
-      xd = (x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x))*scaling;
-      yd = (y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y))*scaling;
+      xd = (x_temp * kr + 2.0 * p1 * x_temp * y_temp + p2 * (r2 + 2.0 * x_temp * x_temp));
+      yd = (y_temp * kr + 2.0 * p2 * x_temp * y_temp + p1 * (r2 + 2.0 * y_temp * y_temp));
     } break;
     case DistortionModel::DOUBLESPHERE: {
       // Split out parameters for easier reading
