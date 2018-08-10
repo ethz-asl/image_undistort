@@ -97,6 +97,7 @@ A node that takes in the images and properties of two cameras and outputs rectif
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output images to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
+* **T_invert** Only used if loading parameters from ros params. True to invert the given transformations. (default: false)
 * **publish_tf** True to publish the tf between the first input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
 * **output_frame** The name of the frame of the output images. (default: "first_camera_rect")
 * **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
@@ -149,6 +150,7 @@ A node for producing dense stereo images. Internally this node simply combines 2
 * **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
 * **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
+* **T_invert** Only used if loading parameters from ros params. True to invert the given transformations. (default: false)
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output images to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
