@@ -94,6 +94,10 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
   double& yd = norm_distorted_pixel_location.y();
 
   switch (distortion_model) {
+    case DistortionModel::NONE: {
+      xd = x;
+      yd = y;
+    }
     case DistortionModel::RADTAN: {
       // Split out parameters for easier reading
       const double& k1 = D[0];
@@ -148,6 +152,37 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
       xd = x * (rd / r);
       yd = y * (rd / r);
     } break;
+    case DistortionModel::OMNI: {
+      // Split out parameters for easier reading
+      const double& xi = D[0];
+
+      const double d = std::sqrt(x * x + y * y + 1.0);
+      const double scaling = 1.0 / (1.0 + xi * d);
+      xd = x * scaling;
+      yd = y * scaling;
+    }
+    case DistortionModel::OMNIRADTAN: {
+      // Split out parameters for easier reading
+      const double& xi = D[0];
+      const double& k1 = D[1];
+      const double& k2 = D[2];
+      const double& k3 = D[5];
+      const double& p1 = D[3];
+      const double& p2 = D[4];
+
+      // Undistort
+      const double r2 = x * x + y * y;
+      const double r4 = r2 * r2;
+      const double r6 = r4 * r2;
+      const double kr = (1.0 + k1 * r2 + k2 * r4 + k3 * r6);
+
+      const double d = std::sqrt(r2 + 1.0);
+      const double scaling = 1.0 / (1.0 + xi * d);
+
+      //really not sure what order the distortion happens in
+      xd = (x * kr + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x))*scaling;
+      yd = (y * kr + 2.0 * p2 * x * y + p1 * (r2 + 2.0 * y * y))*scaling;
+    } break;
     case DistortionModel::DOUBLESPHERE: {
       // Split out parameters for easier reading
       const double& epsilon = D[0];
@@ -164,17 +199,17 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
       const double& alpha = D[0];
 
       const double d = std::sqrt(x * x + y * y + 1.0);
-      const double scaling = 1.0f/(alpha*d + (1-alpha));
+      const double scaling = 1.0/(alpha*d + (1-alpha));
       xd = x * scaling;
       yd = y * scaling;
     } break;
-    case DistortionModel::UNIFIEDEXTENDED: {
+    case DistortionModel::EXTENDEDUNIFIED: {
       // Split out parameters for easier reading
       const double& alpha = D[0];
       const double& beta = D[1];
 
       const double d = std::sqrt(beta*(x * x + y * y) + 1.0);
-      const double scaling = 1.0f/(alpha*d + (1-alpha));
+      const double scaling = 1.0/(alpha*d + (1-alpha));
       xd = x * scaling;
       yd = y * scaling;
     } break;
