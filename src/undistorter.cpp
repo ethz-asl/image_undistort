@@ -168,7 +168,7 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
       xd = x * scaling;
       yd = y * scaling;
     } break;
-    case DistortionModel::EXTENDEDUNIFIED: {
+    case DistortionModel::UNIFIEDEXTENDED: {
       // Split out parameters for easier reading
       const double& alpha = D[0];
       const double& beta = D[1];

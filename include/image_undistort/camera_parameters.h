@@ -18,7 +18,7 @@ enum class DistortionModel {
   FOV,
   DOUBLESPHERE,
   UNIFIED,
-  UNIFEDEXTENDED
+  UNIFIEDEXTENDED
 };
 enum class DistortionProcessing { UNDISTORT, PRESERVE };
 
