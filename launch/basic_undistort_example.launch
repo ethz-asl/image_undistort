@@ -8,7 +8,6 @@
     <param name="input_camera_namespace" value="cam0"/>      
     <param name="input_camera_info_from_ros_params" value = "true"/>    
     <param name="scale" value="$(arg scale)"/>
-    <param name="output_camera_info_source" value="auto_generated"/>
     <rosparam file="$(arg calib_path)"/>
     <remap from="input/image" to="$(arg input_camera_name)/image_raw"/>
   </node>
