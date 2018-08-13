@@ -20,12 +20,6 @@ class Undistorter {
   // get camera parameters used to build undistorter
   const CameraParametersPair& getCameraParametersPair();
 
-  // generates a new output camera with fx = fy = (scale * (input_fx +
-  // input_fy)/2, center point in the center of the image, R = I, and a
-  // resolution that is as large as possible while having no empty pixels
-  static void setOptimalOutputCameraParameters(
-      const double scale, CameraParametersPair* camera_parameters_pair);
-
   static void distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
                            const Eigen::Matrix<double, 3, 3>& R_in,
                            const Eigen::Matrix<double, 3, 4>& P_out,

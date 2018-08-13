@@ -16,6 +16,21 @@ This repo contains six related ros nodes-
 ## Dependencies
 Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found. 
 
+## Supported Camera and Distortion Models
+The only supported output is the pinhole camera model with no distortion. 
+Supported input models:
+
+* Pinhole with no distortion
+* Pinhole with radial-tangential distortion
+* Pinhole with equidistant distortion
+* Omnidirectional with no distortion
+* Omindirectional with rad-tan distortion
+* FOV
+* Unified
+* Extended Unified
+* Double Sphere 
+
+
 # image_undistort_node:
 A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
 
