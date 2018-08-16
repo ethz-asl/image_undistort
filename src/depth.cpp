@@ -5,7 +5,7 @@ namespace image_undistort {
 // needed so that topic filters can be initialized in the constructor
 int Depth::getQueueSize() const {
   int queue_size;
-  nh_private_.param("queue_size", queue_size, kQueueSize);
+  nh_private_.param("queue_size", queue_size, kDepthQueueSize);
   if (queue_size < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
     queue_size = 1;

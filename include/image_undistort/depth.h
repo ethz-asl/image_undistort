@@ -23,7 +23,7 @@ namespace image_undistort {
 // Default values
 
 // queue size
-constexpr int kQueueSize = 10;
+constexpr int kDepthQueueSize = 10;
 // small number used to check things are approximately equal
 constexpr double kDelta = 0.000000001;
 // stereo parameters
