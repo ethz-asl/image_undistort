@@ -39,7 +39,7 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
     output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
   }
 
-  nh_private_.param("queue_size", queue_size_, kQueueSize);
+  nh_private_.param("queue_size", queue_size_, kImageQueueSize);
   if (queue_size_ < 1) {
     ROS_ERROR("Queue size must be >= 1, setting to 1");
     queue_size_ = 1;
