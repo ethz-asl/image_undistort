@@ -370,6 +370,10 @@ bool CameraParametersPair::setOutputFromInput(const double scale) {
     Eigen::Matrix<double, 3, 3> K = input_ptr_->K();
     K(0, 0) *= scale;
     K(1, 1) *= scale;
+
+    cv::Size output_resolution(
+        std::ceil(scale * input_ptr_->resolution().width),
+        std::ceil(scale * input_ptr_->resolution().height));
     setOutputCameraParameters(input_ptr_->resolution(), input_ptr_->T(), K);
     return true;
   }
@@ -397,10 +401,13 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   P.topRightCorner<3, 1>() = focal_length * input_ptr_->p();
 
   std::vector<double> D;
+  DistortionModel distortion_model;
   if (distortion_processing_ == DistortionProcessing::UNDISTORT) {
     D = input_ptr_->D();
+    distortion_model = input_ptr_->distortionModel();
   } else {
     D = std::vector<double>(0, 7);
+    distortion_model = DistortionModel::RADTAN;
   }
 
   // Find the resolution of the output image
@@ -429,8 +436,8 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     for (Eigen::Vector2d pixel_location : pixel_locations) {
       Eigen::Vector2d distorted_pixel_location;
       Undistorter::distortPixel(input_ptr_->K(), input_ptr_->R(), P,
-                                input_ptr_->distortionModel(), D,
-                                pixel_location, &distorted_pixel_location);
+                                distortion_model, D, pixel_location,
+                                &distorted_pixel_location);
 
       max_x = std::max(
           max_x,
