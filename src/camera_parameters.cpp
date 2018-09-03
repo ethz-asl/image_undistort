@@ -3,8 +3,9 @@
 
 namespace image_undistort {
 
-BaseCameraParameters::BaseCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T) {
+BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
+                                           const std::string& camera_namespace,
+                                           const bool invert_T) {
   ROS_INFO("Loading camera parameters");
 
   XmlRpc::XmlRpcValue K_in;
@@ -55,7 +56,7 @@ BaseCameraParameters::BaseCameraParameters(
     T_ = Eigen::Matrix4d::Identity();
   }
 
-  if(invert_T){
+  if (invert_T) {
     T_ = T_.inverse();
   }
 
@@ -150,7 +151,8 @@ bool BaseCameraParameters::operator!=(const BaseCameraParameters& B) const {
 }
 
 InputCameraParameters::InputCameraParameters(
-    const ros::NodeHandle& nh, const std::string& camera_namespace, const bool invert_T)
+    const ros::NodeHandle& nh, const std::string& camera_namespace,
+    const bool invert_T)
     : BaseCameraParameters(nh, camera_namespace, invert_T) {
   std::string distortion_model_in;
   if (!nh.getParam(camera_namespace + "/distortion_model",
@@ -245,11 +247,11 @@ bool CameraParametersPair::setCameraParameters(
     const CameraIO& io, const bool invert_T) {
   try {
     if (io == CameraIO::INPUT) {
-      input_ptr_ =
-          std::make_shared<InputCameraParameters>(nh, camera_namespace, invert_T);
+      input_ptr_ = std::make_shared<InputCameraParameters>(nh, camera_namespace,
+                                                           invert_T);
     } else {
-      output_ptr_ =
-          std::make_shared<OutputCameraParameters>(nh, camera_namespace, invert_T);
+      output_ptr_ = std::make_shared<OutputCameraParameters>(
+          nh, camera_namespace, invert_T);
     }
     return true;
   } catch (std::runtime_error e) {
@@ -309,6 +311,10 @@ bool CameraParametersPair::setOutputFromInput(const double scale) {
     Eigen::Matrix<double, 3, 3> K = input_ptr_->K();
     K(0, 0) *= scale;
     K(1, 1) *= scale;
+
+    cv::Size output_resolution(
+        std::ceil(scale * input_ptr_->resolution().width),
+        std::ceil(scale * input_ptr_->resolution().height));
     setOutputCameraParameters(input_ptr_->resolution(), input_ptr_->T(), K);
     return true;
   }
@@ -336,10 +342,13 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   P.topRightCorner<3, 1>() = focal_length * input_ptr_->p();
 
   std::vector<double> D;
+  DistortionModel distortion_model;
   if (distortion_processing_ == DistortionProcessing::UNDISTORT) {
     D = input_ptr_->D();
+    distortion_model = input_ptr_->distortionModel();
   } else {
     D = std::vector<double>(0, 5);
+    distortion_model = DistortionModel::RADTAN;
   }
 
   // Find the resolution of the output image
@@ -368,8 +377,8 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     for (Eigen::Vector2d pixel_location : pixel_locations) {
       Eigen::Vector2d distorted_pixel_location;
       Undistorter::distortPixel(input_ptr_->K(), input_ptr_->R(), P,
-                                input_ptr_->distortionModel(), D,
-                                pixel_location, &distorted_pixel_location);
+                                distortion_model, D, pixel_location,
+                                &distorted_pixel_location);
 
       max_x = std::max(
           max_x,
@@ -492,10 +501,11 @@ bool StereoCameraParameters::setInputCameraParameters(
     const CameraSide& side, const bool invert_T) {
   bool success;
   if (side == CameraSide::FIRST) {
-    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
+    success = first_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT,
+                                         invert_T);
   } else {
-    success =
-        second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT, invert_T);
+    success = second_.setCameraParameters(nh, camera_namespace, CameraIO::INPUT,
+                                          invert_T);
   }
   if (valid(CameraSide::FIRST, CameraIO::INPUT) &&
       valid(CameraSide::SECOND, CameraIO::INPUT)) {
