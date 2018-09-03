@@ -6,12 +6,12 @@ image_undistort exists to handle all the odd situations image_proc doesn't quite
 If you have an image undistortion / stereo imaging problem that the library doesn't cover, create an issue and I'll look at adding it. Note that the automatic image size approach used will fail for cameras with a fov greater than 180 degrees.
 
 This repo contains six related ros nodes-
-* **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
-* **[stereo_info_node](https://github.com/ethz-asl/image_undistort#stereo_info_node):** Calculates the camera information needed for stereo rectification.
-* **[stereo_undistort_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
-* **[depth_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Converts two undistorted images and their camera information into a disparity image and a pointcloud.
-* **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
-* **[point_to_bearing_node](https://github.com/ethz-asl/image_undistort#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
+* **[image_undistort_node](#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
+* **[stereo_info_node](#stereo_info_node):** Calculates the camera information needed for stereo rectification.
+* **[stereo_undistort_node](#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
+* **[depth_node](#depth_node):** Converts two undistorted images and their camera information into a disparity image and a pointcloud.
+* **[dense_stereo_node](#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
+* **[point_to_bearing_node](#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
 
 ## Dependencies
 Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found. 
