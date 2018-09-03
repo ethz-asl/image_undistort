@@ -6,15 +6,30 @@ image_undistort exists to handle all the odd situations image_proc doesn't quite
 If you have an image undistortion / stereo imaging problem that the library doesn't cover, create an issue and I'll look at adding it. Note that the automatic image size approach used will fail for cameras with a fov greater than 180 degrees.
 
 This repo contains six related ros nodes-
-* **[image_undistort_node](https://github.com/ethz-asl/image_undistort#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
-* **[stereo_info_node](https://github.com/ethz-asl/image_undistort#stereo_info_node):** Calculates the camera information needed for stereo rectification.
-* **[stereo_undistort_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
-* **[depth_node](https://github.com/ethz-asl/image_undistort#stereo_undistort_node):** Converts two undistorted images and their camera information into a disparity image and a pointcloud.
-* **[dense_stereo_node](https://github.com/ethz-asl/image_undistort#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
-* **[point_to_bearing_node](https://github.com/ethz-asl/image_undistort#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
+* **[image_undistort_node](#image_undistort_node):** Undistorts and changes images intrinsics and resolution.
+* **[stereo_info_node](#stereo_info_node):** Calculates the camera information needed for stereo rectification.
+* **[stereo_undistort_node](#stereo_undistort_node):** Combines the functionality of the above two nodes to perform stereo image rectification.
+* **[depth_node](#depth_node):** Converts two undistorted images and their camera information into a disparity image and a pointcloud.
+* **[dense_stereo_node](#dense_stereo_node):** Performs the full dense stereo estimation (internally this node is just the stereo_undistort nodelet and the depth nodelet).
+* **[point_to_bearing_node](#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
 
 ## Dependencies
 Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found. 
+
+## Supported Camera and Distortion Models
+The only supported output is the pinhole camera model with no distortion. 
+Supported input models:
+
+* Pinhole with no distortion
+* Pinhole with radial-tangential distortion
+* Pinhole with equidistant distortion
+* Omnidirectional with no distortion
+* Omindirectional with rad-tan distortion
+* FOV
+* Unified
+* Extended Unified
+* Double Sphere 
+
 
 # image_undistort_node:
 A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
@@ -27,7 +42,7 @@ A simple node for undistorting images. Handles plumb bob (aka radial-tangential)
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
-* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If true the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 * **output_camera_info_source** The source to use when obtaining the output camera parameters. The possible case-insensitive options are,
   * *"auto_generated"* The default value. In this mode "good" output parameters are automatically generated based on the input image. focal length is the average of fx and fy of the input, the center point is in the center of the image, R=I and translation is preserved. Resolution is set to the largest area that contains no empty pixels. The size of the output can also be modified with the *scale* parameter.
   * *"match_input"* The output projection matrix and resolution, exactly match the inputs.
@@ -70,7 +85,7 @@ A node that takes in the properties of two cameras and outputs the camera info r
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
-* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If true the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 * **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
 * **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
@@ -90,7 +105,7 @@ A node that takes in the images and properties of two cameras and outputs rectif
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
-* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If true the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 * **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
 * **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
@@ -146,7 +161,7 @@ A node for producing dense stereo images. Internally this node simply combines 2
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
-* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If true the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 * **first_camera_namespace** If the first camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "first_camera")
 * **second_camera_namespace** If the second camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "second_camera").
 * **scale** Only used if **output_camera_info_source** is set to "auto_generated". The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
@@ -188,7 +203,7 @@ A node for converting a point in a distorted image to a unit bearing vector.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
-* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If false the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
+* **input_camera_info_from_ros_params** If false the node will subscribe to a camera_info ros topic named input/camera_info to obtain the input camera parameters. If true the input camera parameters will be loaded from ros parameters. See the parameters format section for further details. (default: false).
 
 ## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.

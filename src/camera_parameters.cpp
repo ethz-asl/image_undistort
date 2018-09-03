@@ -21,16 +21,16 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
       ROS_WARN(
           "Both K and intrinsics vector given, ignoring intrinsics "
           "vector");
-    } else if (intrinsics_in.size() != 4) {
+    } else if (intrinsics_in.size() < 4) {
       throw std::runtime_error(
-          "Intrinsics vector must have exactly 4 values (Fx,Fy,Cx,Cy)");
+          "Intrinsics vector must have at least 4 values (Fx,Fy,Cx,Cy)");
     }
 
     K_ = Eigen::Matrix3d::Identity();
-    K_(0, 0) = intrinsics_in[0];
-    K_(1, 1) = intrinsics_in[1];
-    K_(0, 2) = intrinsics_in[2];
-    K_(1, 2) = intrinsics_in[3];
+    K_(0, 0) = intrinsics_in[intrinsics_in.size() - 4];
+    K_(1, 1) = intrinsics_in[intrinsics_in.size() - 3];
+    K_(0, 2) = intrinsics_in[intrinsics_in.size() - 2];
+    K_(1, 2) = intrinsics_in[intrinsics_in.size() - 1];
   } else if (!K_loaded) {
     throw std::runtime_error("Could not find K or camera intrinsics vector");
   }
@@ -154,24 +154,45 @@ InputCameraParameters::InputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
     const bool invert_T)
     : BaseCameraParameters(nh, camera_namespace, invert_T) {
-  std::string distortion_model_in;
+  std::string distortion_model_in, camera_model_in;
   if (!nh.getParam(camera_namespace + "/distortion_model",
-                   distortion_model_in)) {
-    ROS_WARN("No distortion model given, assuming radtan");
+                   distortion_model_in) ||
+      !nh.getParam(camera_namespace + "/camera_model", camera_model_in)) {
+    ROS_WARN(
+        "No camera and/or distortion model given, assuming pinhole-radtan");
     distortion_model_ = DistortionModel::RADTAN;
   } else {
-    distortion_model_ = stringToDistortion(distortion_model_in);
+    distortion_model_ =
+        stringToDistortion(distortion_model_in, camera_model_in);
   }
 
-  if (!nh.getParam(camera_namespace + "/distortion_coeffs", D_)) {
+  std::vector<double> intrinsics_in;
+  if (nh.getParam(camera_namespace + "/intrinsics", intrinsics_in)) {
+    if (intrinsics_in.size() > 4) {
+      D_.push_back(intrinsics_in[0]);
+    }
+    if (intrinsics_in.size() > 5) {
+      D_.push_back(intrinsics_in[1]);
+    }
+    if (intrinsics_in.size() > 6) {
+      throw std::runtime_error(
+          "Intrinsics vector cannot have more than 6 values");
+    }
+  }
+
+  std::vector<double> D_in;
+  if (nh.getParam(camera_namespace + "/distortion_coeffs", D_in)) {
+    D_.insert(D_.end(), D_in.begin(), D_in.end());
+  }
+
+  if (D_.empty()) {
     ROS_WARN(
         "No distortion coefficients found, assuming images are "
         "undistorted");
-    D_ = std::vector<double>(0, 5);
   }
 
-  // ensure D always has at least 5 elements
-  while (D_.size() < 5) {
+  // ensure D always has at least 7 elements
+  while (D_.size() < 7) {
     D_.push_back(0);
   }
 }
@@ -180,7 +201,8 @@ InputCameraParameters::InputCameraParameters(
     const sensor_msgs::CameraInfo& camera_info)
     : BaseCameraParameters(camera_info),
       D_(camera_info.D),
-      distortion_model_(stringToDistortion(camera_info.distortion_model)) {
+      distortion_model_(
+          stringToDistortion(camera_info.distortion_model, "pinhole")) {
   // ensure D always has at least 5 elements
   while (D_.size() < 5) {
     D_.push_back(0);
@@ -207,24 +229,61 @@ const DistortionModel& InputCameraParameters::distortionModel() const {
 }
 
 const DistortionModel InputCameraParameters::stringToDistortion(
-    const std::string& distortion_model) {
+    const std::string& distortion_model, const std::string& camera_model) {
   std::string lower_case_distortion_model = distortion_model;
+  std::string lower_case_camera_model = camera_model;
 
   std::transform(lower_case_distortion_model.begin(),
                  lower_case_distortion_model.end(),
                  lower_case_distortion_model.begin(), ::tolower);
-  if ((lower_case_distortion_model == std::string("plumb bob")) ||
-      (lower_case_distortion_model == std::string("plumb_bob")) ||
-      (lower_case_distortion_model == std::string("radtan"))) {
-    return DistortionModel::RADTAN;
-  } else if (lower_case_distortion_model == std::string("equidistant")) {
-    return DistortionModel::EQUIDISTANT;
-  } else if (lower_case_distortion_model == std::string("fov")) {
-    return DistortionModel::FOV;
+  std::transform(lower_case_camera_model.begin(), lower_case_camera_model.end(),
+                 lower_case_camera_model.begin(), ::tolower);
+
+  if (lower_case_camera_model == "pinhole") {
+    if (lower_case_camera_model == std::string("none")) {
+      return DistortionModel::NONE;
+    } else if ((lower_case_distortion_model == std::string("plumb bob")) ||
+               (lower_case_distortion_model == std::string("plumb_bob")) ||
+               (lower_case_distortion_model == std::string("radtan"))) {
+      return DistortionModel::RADTAN;
+    } else if (lower_case_distortion_model == std::string("equidistant")) {
+      return DistortionModel::EQUIDISTANT;
+    } else if (lower_case_distortion_model == std::string("fov")) {
+      return DistortionModel::FOV;
+    } else {
+      throw std::runtime_error(
+          "Unrecognized distortion model for pinhole camera. Valid pinhole "
+          "distortion model options are 'none', 'radtan', 'Plumb Bob', "
+          "'plumb_bob', "
+          "'equidistant' and 'fov'.");
+    }
+
+  } else if (lower_case_camera_model == "omni") {
+    if ((lower_case_distortion_model == std::string("plumb bob")) ||
+        (lower_case_distortion_model == std::string("plumb_bob")) ||
+        (lower_case_distortion_model == std::string("radtan"))) {
+      return DistortionModel::OMNIRADTAN;
+    } else if (lower_case_distortion_model == std::string("none")) {
+      return DistortionModel::OMNI;
+    } else {
+      throw std::runtime_error(
+          "Unrecognized distortion model for omni camera. Valid omni "
+          "distortion model options are 'none' and 'radtan'.");
+    }
+
+  } else if ((lower_case_camera_model == std::string("double_sphere")) ||
+             (lower_case_camera_model == std::string("ds"))) {
+    return DistortionModel::DOUBLESPHERE;
+  } else if (lower_case_camera_model == std::string("unified")) {
+    return DistortionModel::UNIFIED;
+  } else if ((lower_case_camera_model == std::string("extended_unified")) ||
+             (lower_case_camera_model == std::string("eucm"))) {
+    return DistortionModel::EXTENDEDUNIFIED;
   } else {
     throw std::runtime_error(
-        "Unrecognized distortion model. Valid options are 'radtan', 'Plumb "
-        "Bob', 'plumb_bob' 'equidistant' and 'fov'");
+        "Unrecognized camera model. Valid camera models are 'pinhole', "
+        "'omni', 'double_sphere', 'ds', 'unified', 'extended_unified' and "
+        "'eucm'");
   }
 }
 
@@ -347,7 +406,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
     D = input_ptr_->D();
     distortion_model = input_ptr_->distortionModel();
   } else {
-    D = std::vector<double>(0, 5);
+    D = std::vector<double>(0, 7);
     distortion_model = DistortionModel::RADTAN;
   }
 
