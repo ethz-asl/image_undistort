@@ -58,9 +58,9 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   nh_private_.param("undistort_image", undistort_image, kDefaultUndistortImage);
   DistortionProcessing distortion_processing;
   if (undistort_image) {
-    distortion_processing == DistortionProcessing::UNDISTORT;
+    distortion_processing = DistortionProcessing::UNDISTORT;
   } else {
-    distortion_processing == DistortionProcessing::PRESERVE;
+    distortion_processing = DistortionProcessing::PRESERVE;
   }
   camera_parameters_pair_ptr_ =
       std::make_shared<CameraParametersPair>(distortion_processing);
