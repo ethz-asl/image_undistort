@@ -400,7 +400,7 @@ bool CameraParametersPair::setOptimalOutputCameraParameters(
   if (distortion_processing_ == DistortionProcessing::UNDISTORT) {
     D = input_ptr_->D();
   } else {
-    D = std::vector<double>(0, 7);
+    D = std::vector<double>(7, 0);
   }
 
   // Find the resolution of the output image
