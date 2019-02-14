@@ -202,22 +202,6 @@ void ImageUndistort::imageCallback(
 
   image_out_ptr->header.frame_id = output_frame_;
 
-  // if camera info was just read in from a topic don't republish it
-  if (output_camera_info_source_ == OutputInfoSource::CAMERA_INFO) {
-    image_pub_.publish(*(image_out_ptr->toImageMsg()));
-  } else {
-    sensor_msgs::CameraInfo camera_info;
-    camera_info.header = image_out_ptr->header;
-    if (rename_input_frame_) {
-      camera_info.header.frame_id = input_frame_;
-    }
-    camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
-                                                           &camera_info);
-    if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
-      camera_info.distortion_model = "plumb_bob";
-    }
-    camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
-  }
 
   if (publish_tf_) {
     Eigen::Matrix4d T =
@@ -241,6 +225,23 @@ void ImageUndistort::imageCallback(
                                              image_out_ptr->header.stamp, frame,
                                              output_frame_));
     }
+  }
+
+  // if camera info was just read in from a topic don't republish it
+  if (output_camera_info_source_ == OutputInfoSource::CAMERA_INFO) {
+    image_pub_.publish(*(image_out_ptr->toImageMsg()));
+  } else {
+    sensor_msgs::CameraInfo camera_info;
+    camera_info.header = image_out_ptr->header;
+    if (rename_input_frame_) {
+      camera_info.header.frame_id = input_frame_;
+    }
+    camera_parameters_pair_ptr_->generateCameraInfoMessage(CameraIO::OUTPUT,
+                                                           &camera_info);
+    if (rename_radtan_plumb_bob_ && camera_info.distortion_model == "radtan") {
+      camera_info.distortion_model = "plumb_bob";
+    }
+    camera_pub_.publish(*(image_out_ptr->toImageMsg()), camera_info);
   }
 }
 
