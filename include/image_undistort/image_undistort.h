@@ -59,8 +59,14 @@ const std::string kDefaultOutputImageType = "";
 constexpr double kDefaultScale = 1.0;
 // if a tf between the input and output frame should be created
 constexpr bool kDefaultPublishTF = true;
+// if a tf between the imu and camera frame should be created
+constexpr bool kDefaultPublishImuCamTF = true;
 // name of output image frame
 const std::string kDefaultOutputFrame = "output_camera";
+// name of input imu_cam tf frame
+const std::string kDefaultImuCamInputFrame = "input_imu";
+// name of output imu_cam tf frame
+const std::string kDefaultImuCamOutputFrame = "output_camera";
 // rename input frames
 constexpr bool kDefaultRenameInputFrame = false;
 // new name of input frame (only used if rename_input_frame = true)
@@ -130,13 +136,16 @@ class ImageUndistort {
   std::string output_image_type_;
   double scale_;
   bool publish_tf_;
+  bool publish_imu_cam_tf_;
   std::string output_frame_;
+  std::string input_imu_cam_frame_;
+  std::string output_imu_cam_frame_;
   bool rename_input_frame_;
   std::string input_frame_;
   bool rename_radtan_plumb_bob_;
 
   int frame_counter_;
 };
-}
+}  // namespace image_undistort
 
 #endif
