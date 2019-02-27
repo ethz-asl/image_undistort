@@ -60,11 +60,11 @@ Undistorter::Undistorter(
 void Undistorter::undistortImage(const cv::Mat& image,
                                  cv::Mat* undistorted_image) {
   if (empty_pixels_) {
-    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_NEAREST,
               cv::BORDER_CONSTANT);
   } else {
     // replicate is more efficient for gpus to calculate
-    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_LINEAR,
+    cv::remap(image, *undistorted_image, map_x_, map_y_, cv::INTER_NEAREST,
               cv::BORDER_REPLICATE);
   }
 }
