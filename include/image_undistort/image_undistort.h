@@ -10,6 +10,7 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf_conversions/tf_eigen.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
@@ -22,7 +23,7 @@ namespace image_undistort {
 // Default values
 
 // queue size
-constexpr int kImageQueueSize = 10;
+constexpr int kImageQueueSize = 1;
 // true to load input cam_info from ros parameters, false to get it from a
 // cam_info topic
 constexpr bool kDefaultInputCameraInfoFromROSParams = false;
@@ -116,7 +117,7 @@ class ImageUndistort {
   std::shared_ptr<Undistorter> undistorter_ptr_;
 
   // tf broadcaster
-  tf::TransformBroadcaster br_;
+  tf2_ros::StaticTransformBroadcaster br_;
 
   // camera info
   std::shared_ptr<CameraParametersPair> camera_parameters_pair_ptr_;
