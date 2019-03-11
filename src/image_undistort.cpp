@@ -252,20 +252,20 @@ void ImageUndistort::imageCallback(
     if (frame.empty()) {
       ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
     } else {
-      geometry_msgs::TransformStamped static_transformStamped;
-      static_transformStamped.header.stamp = image_out_ptr->header.stamp;
-      static_transformStamped.header.frame_id = frame;
-      static_transformStamped.child_frame_id = output_frame_;
-      static_transformStamped.transform.translation.x = p_ros.x();
-      static_transformStamped.transform.translation.y = p_ros.y();
-      static_transformStamped.transform.translation.z = p_ros.z();
+      geometry_msgs::TransformStamped static_transform_stamped;
+      static_transform_stamped.header.stamp = image_out_ptr->header.stamp;
+      static_transform_stamped.header.frame_id = frame;
+      static_transform_stamped.child_frame_id = output_frame_;
+      static_transform_stamped.transform.translation.x = p_ros.x();
+      static_transform_stamped.transform.translation.y = p_ros.y();
+      static_transform_stamped.transform.translation.z = p_ros.z();
       tf::Quaternion quat;
       R_ros.getRotation(quat);
-      static_transformStamped.transform.rotation.x = quat.x();
-      static_transformStamped.transform.rotation.y = quat.y();
-      static_transformStamped.transform.rotation.z = quat.z();
-      static_transformStamped.transform.rotation.w = quat.w();
-      br_.sendTransform(static_transformStamped);
+      static_transform_stamped.transform.rotation.x = quat.x();
+      static_transform_stamped.transform.rotation.y = quat.y();
+      static_transform_stamped.transform.rotation.z = quat.z();
+      static_transform_stamped.transform.rotation.w = quat.w();
+      br_.sendTransform(static_transform_stamped);
     }
   }
   if (publish_imu_cam_tf_) {
@@ -281,20 +281,20 @@ void ImageUndistort::imageCallback(
     tf::vectorEigenToTF(T_imu_cam.block<3, 1>(0, 3), imu_cam_p_ros);
 
 
-    geometry_msgs::TransformStamped static_transformStamped;
-    static_transformStamped.header.stamp = image_out_ptr->header.stamp;
-    static_transformStamped.header.frame_id = input_imu_cam_frame_;
-    static_transformStamped.child_frame_id = output_imu_cam_frame_;
-    static_transformStamped.transform.translation.x = imu_cam_p_ros.x();
-    static_transformStamped.transform.translation.y = imu_cam_p_ros.y();
-    static_transformStamped.transform.translation.z = imu_cam_p_ros.z();
+    geometry_msgs::TransformStamped static_transform_stamped;
+    static_transform_stamped.header.stamp = image_out_ptr->header.stamp;
+    static_transform_stamped.header.frame_id = input_imu_cam_frame_;
+    static_transform_stamped.child_frame_id = output_imu_cam_frame_;
+    static_transform_stamped.transform.translation.x = imu_cam_p_ros.x();
+    static_transform_stamped.transform.translation.y = imu_cam_p_ros.y();
+    static_transform_stamped.transform.translation.z = imu_cam_p_ros.z();
     tf::Quaternion quat;
     imu_cam_R_ros.getRotation(quat);
-    static_transformStamped.transform.rotation.x = quat.x();
-    static_transformStamped.transform.rotation.y = quat.y();
-    static_transformStamped.transform.rotation.z = quat.z();
-    static_transformStamped.transform.rotation.w = quat.w();
-    br_.sendTransform(static_transformStamped);
+    static_transform_stamped.transform.rotation.x = quat.x();
+    static_transform_stamped.transform.rotation.y = quat.y();
+    static_transform_stamped.transform.rotation.z = quat.z();
+    static_transform_stamped.transform.rotation.w = quat.w();
+    br_.sendTransform(static_transform_stamped);
   }
 }
 
