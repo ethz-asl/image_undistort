@@ -10,6 +10,9 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
 
   XmlRpc::XmlRpcValue K_in;
   bool K_loaded = false;
+  std::string k_param = camera_namespace + "/K";
+  std::cout << k_param << std::endl;
+  std::cout << nh.getParam("/K", K_in) << std::endl;
   if (nh.getParam(camera_namespace + "/K", K_in)) {
     xmlRpcToMatrix(K_in, &K_);
     K_loaded = true;
@@ -32,6 +35,7 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
     K_(0, 2) = intrinsics_in[intrinsics_in.size() - 2];
     K_(1, 2) = intrinsics_in[intrinsics_in.size() - 1];
   } else if (!K_loaded) {
+    ROS_ERROR_STREAM("Tried to load from " << camera_namespace + "/intrinsics");
     throw std::runtime_error("Could not find K or camera intrinsics vector");
   }
 
@@ -44,6 +48,15 @@ BaseCameraParameters::BaseCameraParameters(const ros::NodeHandle& nh,
     resolution_.height = resolution_in[1];
   } else {
     throw std::runtime_error("Could not find camera resolution");
+  }
+
+  XmlRpc::XmlRpcValue T_cam_imu;
+  bool T_cam_imu_loaded = false;
+  if (nh.getParam(camera_namespace + "/T_cam_imu", T_cam_imu)) {
+    xmlRpcToMatrix(T_cam_imu, &T_cam_imu_);
+    T_cam_imu_loaded = true;
+  } else {
+    T_cam_imu_ = Eigen::Matrix4d::Identity();
   }
 
   XmlRpc::XmlRpcValue T_in;
@@ -124,6 +137,9 @@ const cv::Size& BaseCameraParameters::resolution() const { return resolution_; }
 
 const Eigen::Matrix<double, 4, 4>& BaseCameraParameters::T() const {
   return T_;
+}
+const Eigen::Matrix<double, 4, 4>& BaseCameraParameters::T_cam_imu() const {
+  return T_cam_imu_;
 }
 const Eigen::Ref<const Eigen::Matrix<double, 3, 3>> BaseCameraParameters::R()
     const {

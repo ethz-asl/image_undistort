@@ -83,10 +83,26 @@ ImageUndistort::ImageUndistort(const ros::NodeHandle& nh,
   }
 
   nh_private_.param("publish_tf", publish_tf_, kDefaultPublishTF);
+  nh_private_.param("publish_imu_cam_tf", publish_imu_cam_tf_,
+                    kDefaultPublishImuCamTF);
   nh_private_.param("output_frame", output_frame_, kDefaultOutputFrame);
   if (output_frame_.empty()) {
     ROS_ERROR("Output frame cannot be blank, setting to default");
     output_frame_ = kDefaultOutputFrame;
+  }
+
+  nh_private_.param("input_imu_cam_frame", input_imu_cam_frame_,
+                    kDefaultImuCamInputFrame);
+  if (input_imu_cam_frame_.empty()) {
+    ROS_ERROR("Input imu cam frame cannot be blank, setting to default");
+    input_imu_cam_frame_ = kDefaultImuCamInputFrame;
+  }
+
+  nh_private_.param("output_imu_cam_frame", output_imu_cam_frame_,
+                    kDefaultImuCamOutputFrame);
+  if (output_imu_cam_frame_.empty()) {
+    ROS_ERROR("Output imu cam frame cannot be blank, setting to default");
+    output_imu_cam_frame_ = kDefaultImuCamOutputFrame;
   }
 
   nh_private_.param("rename_input_frame", rename_input_frame_,
@@ -228,7 +244,6 @@ void ImageUndistort::imageCallback(
     tf::Vector3 p_ros;
     tf::matrixEigenToTF(T.topLeftCorner<3, 3>(), R_ros);
     tf::vectorEigenToTF(T.topRightCorner<3, 1>(), p_ros);
-    tf::Transform(R_ros, p_ros);
 
     std::string frame = image_in_ptr->header.frame_id;
     if (rename_input_frame_) {
@@ -237,10 +252,49 @@ void ImageUndistort::imageCallback(
     if (frame.empty()) {
       ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
     } else {
-      br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
-                                             image_out_ptr->header.stamp, frame,
-                                             output_frame_));
+      geometry_msgs::TransformStamped static_transform_stamped;
+      static_transform_stamped.header.stamp = image_out_ptr->header.stamp;
+      static_transform_stamped.header.frame_id = frame;
+      static_transform_stamped.child_frame_id = output_frame_;
+      static_transform_stamped.transform.translation.x = p_ros.x();
+      static_transform_stamped.transform.translation.y = p_ros.y();
+      static_transform_stamped.transform.translation.z = p_ros.z();
+      tf::Quaternion quat;
+      R_ros.getRotation(quat);
+      static_transform_stamped.transform.rotation.x = quat.x();
+      static_transform_stamped.transform.rotation.y = quat.y();
+      static_transform_stamped.transform.rotation.z = quat.z();
+      static_transform_stamped.transform.rotation.w = quat.w();
+      br_.sendTransform(static_transform_stamped);
     }
+  }
+  if (publish_imu_cam_tf_) {
+    // TODO(ff): Publish also imu cam transform.
+    // We invert this by default, as we are typically interested in a tf tree
+    // from imu to cam.
+    const Eigen::Matrix4d T_cam_imu =
+        camera_parameters_pair_ptr_->getInputPtr()->T_cam_imu();
+    const Eigen::Matrix<double, 4, 4> T_imu_cam = T_cam_imu.inverse();
+    tf::Matrix3x3 imu_cam_R_ros;
+    tf::Vector3 imu_cam_p_ros;
+    tf::matrixEigenToTF(T_imu_cam.block<3, 3>(0, 0), imu_cam_R_ros);
+    tf::vectorEigenToTF(T_imu_cam.block<3, 1>(0, 3), imu_cam_p_ros);
+
+
+    geometry_msgs::TransformStamped static_transform_stamped;
+    static_transform_stamped.header.stamp = image_out_ptr->header.stamp;
+    static_transform_stamped.header.frame_id = input_imu_cam_frame_;
+    static_transform_stamped.child_frame_id = output_imu_cam_frame_;
+    static_transform_stamped.transform.translation.x = imu_cam_p_ros.x();
+    static_transform_stamped.transform.translation.y = imu_cam_p_ros.y();
+    static_transform_stamped.transform.translation.z = imu_cam_p_ros.z();
+    tf::Quaternion quat;
+    imu_cam_R_ros.getRotation(quat);
+    static_transform_stamped.transform.rotation.x = quat.x();
+    static_transform_stamped.transform.rotation.y = quat.y();
+    static_transform_stamped.transform.rotation.z = quat.z();
+    static_transform_stamped.transform.rotation.w = quat.w();
+    br_.sendTransform(static_transform_stamped);
   }
 }
 
@@ -265,4 +319,4 @@ void ImageUndistort::cameraInfoCallback(
     ROS_ERROR("Setting output camera from ros message failed");
   }
 }
-}
+}  // namespace image_undistort

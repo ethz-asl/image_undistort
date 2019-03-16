@@ -14,10 +14,10 @@ This repo contains six related ros nodes-
 * **[point_to_bearing_node](#point_to_bearing_node):** Takes in a 2D image location and transforms it into a bearing vector.
 
 ## Dependencies
-Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found. 
+Image undistort depends on ROS, OpenCV and Eigen. The point to bearing node also depends on NLopt (installed with `apt install libnlopt-dev`) and will only be built if it is found.
 
 ## Supported Camera and Distortion Models
-The only supported output is the pinhole camera model with no distortion. 
+The only supported output is the pinhole camera model with no distortion.
 Supported input models:
 
 * Pinhole with no distortion
@@ -28,7 +28,7 @@ Supported input models:
 * FOV
 * Unified
 * Extended Unified
-* Double Sphere 
+* Double Sphere
 
 
 # image_undistort_node:
@@ -75,10 +75,11 @@ Camera information can be loaded from ROS parameters. These parameters are typic
 1. A 3x3 intrinscs matrix named **K** is searched for. If it is found it is loaded. If it is not found a 1x4 vector named **intrinsics** is loaded, this contains the parameters (fx, fy, cx, cy). If neither parameters are given the node displays an error and terminates.
 2. A 1x2 vector named **resolution** is loaded which contains the parameters (width, height). Again, if not given the node displays an error and terminates.
 3. A 4x4 transformation matrix **T** is searched for. If it is found it is loaded. Otherwise it is searched for under the name **T_cn_cnm1** and if found loaded. If neither are found the node continues.
-4. A 4x3 projection matrix **P** is searched for. If it is found it is loaded. If **P** was found but **T** was not, **P** and **K** are used to construct **T**, otherwise **T** is set to identity. If **P** was not found it is constructed from **K** and **T**.
-5. If an output is being loaded, the loading of parameters is completed. For input cameras the distortion properties are now loaded
-6. A 1xn vector **D** is loaded. If it is not found or is less than 5 elements long it is padded with zeros.
-7. A string **distortion_model** is loaded and converted to lower-case. If it is not found it is set to "radtan".
+4. A 4x4 transformation matrix **T_cam_imu** is searched for (provided by IMU camera calibration using Kalibr). If it is found it is loaded and a tf from imu to cam is published. If it can't find the value the node continues.
+5. A 4x3 projection matrix **P** is searched for. If it is found it is loaded. If **P** was found but **T** was not, **P** and **K** are used to construct **T**, otherwise **T** is set to identity. If **P** was not found it is constructed from **K** and **T**.
+6. If an output is being loaded, the loading of parameters is completed. For input cameras the distortion properties are now loaded.
+7. A 1xn vector **D** is loaded. If it is not found or is less than 5 elements long it is padded with zeros.
+8. A string **distortion_model** is loaded and converted to lower-case. If it is not found it is set to "radtan".
 
 # stereo_info_node:
 A node that takes in the properties of two cameras and outputs the camera info required to rectify them so that stereo reconstruction can be performed. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named image_undistort/StereoInfo
@@ -93,8 +94,8 @@ A node that takes in the properties of two cameras and outputs the camera info r
 
 ## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
-* **raw/first/image** first input image topic, only needed if loading camera parameters from ros params (used for timing information) 
-* **raw/second/image** second input image topic, only needed if loading camera parameters from ros params (used for timing information) 
+* **raw/first/image** first input image topic, only needed if loading camera parameters from ros params (used for timing information)
+* **raw/second/image** second input image topic, only needed if loading camera parameters from ros params (used for timing information)
 * **raw/first/camera_info** first input camera info topic
 * **raw/second/camera_info** second input camera info topic
 * **rect/first/camera_info** first output camera info topic
