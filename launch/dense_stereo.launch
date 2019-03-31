@@ -3,7 +3,7 @@
 <arg name="mav_name" default="ibis" />
 <arg name="namespace" default="$(arg mav_name)" />
 <arg name="process_every_nth_frame" default="1" />
-<arg name="stereo_params_camchain" default="/home/z/Downloads/pinhole-equi-512/camchain-imucam-imucalib.yaml"/>
+<arg name="stereo_params_camchain" default="$(find mav_startup)/parameters/mavs/ibis/camchain_p22031.yaml"/>
 
 <group ns="$(arg namespace)">
  
@@ -20,8 +20,8 @@
       <param name="depth/use_mode_HH" value="true"/>
       <rosparam file="$(arg stereo_params_camchain)"/>
   
-      <remap from="raw/first/image" to="/cam0/image_raw"/>
-      <remap from="raw/second/image" to="/cam1/image_raw"/>
+      <remap from="raw/first/image" to="/$(arg mav_name)/cam0/image_raw"/>
+      <remap from="raw/second/image" to="/$(arg mav_name)/cam1/image_raw"/>
       <remap from="raw/first/camera_info" to="/$(arg mav_name)/cam0/camera_info"/>
       <remap from="raw/second/camera_info" to="/$(arg mav_name)/cam1/camera_info"/>
     </node>
