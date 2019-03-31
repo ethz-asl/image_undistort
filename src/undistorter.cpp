@@ -85,6 +85,7 @@ void Undistorter::distortPixel(const Eigen::Matrix<double, 3, 3>& K_in,
   // Transform image coordinates to be size and focus independent
   Eigen::Vector3d norm_pixel_location =
       R_in * P_out.topLeftCorner<3, 3>().inverse() * pixel_location_3;
+  norm_pixel_location /= norm_pixel_location.z();
 
   const double& x = norm_pixel_location.x();
   const double& y = norm_pixel_location.y();
