@@ -28,6 +28,14 @@ constexpr int kQueueSize = 10;
 // true to load input cam_info from ros parameters, false to get it from a
 // cam_info topic
 constexpr bool kDefaultInputCameraInfoFromROSParams = true;
+// source of output camera information, the options are as follows-
+//  "auto_generated": (default), automatically generated based on the input, the
+//    focal length is the average of fx and fy of the input, the center point is
+//    in the center of the image, R=I and only x-translation is preserved.
+//    Resolution is set to the largest area that contains no empty pixels. The
+//    size of the output can also be modified with the "scale" parameter
+//  "match_input": intrinsic values are taken from the input camera parameters
+const std::string kDefaultOutputCameraInfoSource = "auto_generated";
 // namespace to use when loading first camera parameters from ros params
 const std::string kDefaultFirstCameraNamespace = "first_camera";
 // namespace to use when loading second camera parameters from ros params
@@ -124,6 +132,11 @@ class StereoUndistort {
   // camera parameters
   std::shared_ptr<StereoCameraParameters> stereo_camera_parameters_ptr_;
 
+  enum class OutputInfoSource {
+    AUTO_GENERATED,
+    MATCH_INPUT,
+  };
+
   // undistorters
   std::shared_ptr<Undistorter> first_undistorter_ptr_;
   std::shared_ptr<Undistorter> second_undistorter_ptr_;
@@ -133,6 +146,7 @@ class StereoUndistort {
   int queue_size_;
   int process_every_nth_frame_;
   std::string output_image_type_;
+  OutputInfoSource output_camera_info_source_;
   bool publish_tf_;
   std::string first_output_frame_;
   std::string second_output_frame_;

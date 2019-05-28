@@ -172,7 +172,7 @@ class CameraParametersPair {
 // rectified images
 class StereoCameraParameters {
  public:
-  StereoCameraParameters(const double scale = 1.0);
+  StereoCameraParameters(const double scale = 1.0, const bool match_input = false);
 
   bool setInputCameraParameters(const ros::NodeHandle& nh,
                                 const std::string& camera_namespace,
@@ -198,9 +198,10 @@ class StereoCameraParameters {
   bool valid(const CameraSide& side, const CameraIO& io) const;
 
  private:
-  bool generateRectificationParameters();
+  bool generateRectificationParameters(void);
 
   double scale_;
+  double match_input_;
   CameraParametersPair first_;
   CameraParametersPair second_;
 };
