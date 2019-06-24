@@ -96,11 +96,11 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
 
   // setup publishers
   first_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/first/camera_info", queue_size_);
+      "cam0/cam_info", queue_size_);
   second_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/second/camera_info", queue_size_);
-  first_image_pub_ = it_.advertise("rect/first/image", queue_size_);
-  second_image_pub_ = it_.advertise("rect/second/image", queue_size_);
+      "cam1/cam_info", queue_size_);
+  first_image_pub_ = it_.advertise("cam0/image_rect", queue_size_);
+  second_image_pub_ = it_.advertise("cam1/image_rect", queue_size_);
 
   // setup subscribers (must be done last as it appears image filters allow a
   // subscriber to be called as soon as it is created, even if this constructor

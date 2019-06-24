@@ -67,9 +67,9 @@ StereoInfo::StereoInfo(const ros::NodeHandle& nh,
 
   // setup publishers
   first_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/first/camera_info", queue_size_);
+      "cam0/cam_info", queue_size_);
   second_camera_info_output_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(
-      "rect/second/camera_info", queue_size_);
+      "cam1/cam_info", queue_size_);
 }
 
 void StereoInfo::firstImageCallback(
