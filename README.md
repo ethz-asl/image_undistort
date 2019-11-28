@@ -137,23 +137,31 @@ A node that takes in the rectified images and properties of two cameras and outp
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics. (default: 10)
+* **pre_filter_type** The prefilter type (possible values: 'xsobel', 'normalized_response', default: 'xsobel')
 * **pre_filter_size** The size of the prefilter used in StereoBM. (default: 9)
 * **pre_filter_cap** The upper cap on the prefilter used in StereoBM. (default: 31)
-* **sad_window_size** The window size used when performing the stereo matching, note the efficientcy of the implementation reduces if this value is greater than 21 (default: 21)
+* **sad_window_size** The window size used when performing the stereo matching, note the efficiency of the implementation reduces if this value is greater than 21 (default: 21)
 * **min_disparity** The minimum disparity checked in StereoBM. (default: 0)
 * **num_disparities** The number of disparities checked in StereoBM. (default: 64)
 * **texture_threshold** Minimum texture a patch requires to be matched in StereoBM. (default: 10)
 * **uniqueness_ratio** Minimum margin by which the best matching disparity must 'win' in StereoBM. (default: 15)
 * **speckle_range** Parameter used for removing speckle in StereoBM. (default: 0)
 * **speckle_window_size** Window size used for speckle removal in StereoBM. (default: 0)
+* **use_sgbm** Use SGBM (Semi-Global Block Matching) instead of BM (Block Matching)? (default: false)
+* **p1** The first parameter controlling the disparity smoothness, only available in SGBM (default: 120)
+* **p2** The second parameter controlling the disparity smoothness, only available in SGBM (default: 240)
+* **disp_12_max_diff** Maximum allowed difference (in integer pixel units) in the left-right disparity check, only available in SGBM (default: -1)
+* **use_mode_HH** Run the full-scale two-pass dynamic programming algorithm. It will consume O(W*H*numDisparities) bytes, which is large for 640x480 stereo and huge for HD-size pictures. Only available in SGBM (default: false)
+* **do_median_blur** Apply median blur to the final disparity image (default: true)
 
 ## Input/Output Topics
 * **rect/first/image** first input image topic
 * **rect/second/image** second input image topic
 * **rect/first/camera_info** first input camera info topic
 * **rect/second/camera_info** second input camera info topic
-* **disparity** output disparity image
+* **disparity/image** output disparity image
 * **pointcloud** output pointcloud
+* **freespace_pointcloud** output freespace pointcloud
 
 # dense_stereo_node:
 A node for producing dense stereo images. Internally this node simply combines 2 nodelets.
@@ -176,15 +184,22 @@ A node for producing dense stereo images. Internally this node simply combines 2
 * **first_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the first input images. (default: "first_camera")
 * **second_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the second input images. (default: "second_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
+* **pre_filter_type** The prefilter type (possible values: 'xsobel', 'normalized_response', default: 'xsobel')
 * **pre_filter_size** The size of the prefilter used in StereoBM. (default: 9)
 * **pre_filter_cap** The upper cap on the prefilter used in StereoBM. (default: 31)
-* **sad_window_size** The window size used when performing the stereo matching, note the efficientcy of the implementation reduces if this value is greater than 21 (default: 21)
+* **sad_window_size** The window size used when performing the stereo matching, note the efficiency of the implementation reduces if this value is greater than 21 (default: 21)
 * **min_disparity** The minimum disparity checked in StereoBM. (default: 0)
 * **num_disparities** The number of disparities checked in StereoBM. (default: 64)
 * **texture_threshold** Minimum texture a patch requires to be matched in StereoBM. (default: 10)
 * **uniqueness_ratio** Minimum margin by which the best matching disparity must 'win' in StereoBM. (default: 15)
 * **speckle_range** Parameter used for removing speckle in StereoBM. (default: 0)
 * **speckle_window_size** Window size used for speckle removal in StereoBM. (default: 0)
+* **use_sgbm** Use SGBM (Semi-Global Block Matching) instead of BM (Block Matching)? (default: false)
+* **p1** The first parameter controlling the disparity smoothness, only available in SGBM (default: 120)
+* **p2** The second parameter controlling the disparity smoothness, only available in SGBM (default: 240)
+* **disp_12_max_diff** Maximum allowed difference (in integer pixel units) in the left-right disparity check, only available in SGBM (default: -1)
+* **use_mode_HH** Run the full-scale two-pass dynamic programming algorithm. It will consume O(W*H*numDisparities) bytes, which is large for 640x480 stereo and huge for HD-size pictures. Only available in SGBM (default: false)
+* **do_median_blur** Apply median blur to the final disparity image (default: true)
 
 ## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
