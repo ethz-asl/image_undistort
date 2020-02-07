@@ -50,7 +50,7 @@ A simple node for undistorting images. Handles plumb bob (aka radial-tangential)
   * *"camera_info"* The output parameters are found through subscribing to a camera_info ros topic named output/camera_info
 * **input_camera_namespace** If the input camera parameters are loaded from ros parameters this is the namespace that will be searched. This is needed to allow both input and output to be loaded from parameters. (default: "input_camera")
 * **output_camera_namespace** If the output camera parameters are loaded from ros parameters this is the namespace that will be searched. (default: "output_camera").
-* **process_images** True to output a processed image, false if only a camera_info topic should be generated. (default: true).
+* **process_image** True to output a processed image, false if only a camera_info topic should be generated. (default: true).
 * **undistort_image** True to undistort the images, false to keep the distortion. (default: true).
 * **process_every_nth_frame** Used to temporarily down-sample the images, if it is <= 1 every frame will be processed. (default: 1).
 * **output_image_type** Converts the output image to the specified format, set to the empty string "" to preserve the input type. See [the cv_bridge tutorial](http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages) for possible format strings. (default: "").
