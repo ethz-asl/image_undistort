@@ -32,7 +32,7 @@ Supported input models:
 
 
 # image_undistort_node:
-A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named image_undistort/ImageUndistort
+A simple node for undistorting images. Handles plumb bob (aka radial-tangential), fov and equidistant distortion models. It can either use standard ros camera_info topics or load camera models in a form that is compatible with the camchain.yaml files produced by [Kalibr](https://github.com/ethz-asl/kalibr). Note this node can also be run as a nodelet named `image_undistort/ImageUndistortNodelet`.
 
 ## The node has several possible use cases:
 
@@ -74,14 +74,14 @@ Camera information can be loaded from ROS parameters. These parameters are typic
 
 1. A 3x3 intrinscs matrix named **K** is searched for. If it is found it is loaded. If it is not found a 1x4 vector named **intrinsics** is loaded, this contains the parameters (fx, fy, cx, cy). If neither parameters are given the node displays an error and terminates.
 2. A 1x2 vector named **resolution** is loaded which contains the parameters (width, height). Again, if not given the node displays an error and terminates.
-3. A 4x4 transformation matrix **T** is searched for. If it is found it is loaded. Otherwise it is searched for under the name **T_cn_cnm1** and if found loaded. If neither are found the node continues.
+3. A 4x4 transformation matrix **T_cn_cnm1** is searched for. If it is found it is loaded. Otherwise it is searched for under the name **T** and if found loaded. If neither are found the node continues.
 4. A 4x3 projection matrix **P** is searched for. If it is found it is loaded. If **P** was found but **T** was not, **P** and **K** are used to construct **T**, otherwise **T** is set to identity. If **P** was not found it is constructed from **K** and **T**.
 5. If an output is being loaded, the loading of parameters is completed. For input cameras the distortion properties are now loaded
 6. A 1xn vector **D** is loaded. If it is not found or is less than 5 elements long it is padded with zeros.
 7. A string **distortion_model** is loaded and converted to lower-case. If it is not found it is set to "radtan".
 
 # stereo_info_node:
-A node that takes in the properties of two cameras and outputs the camera info required to rectify them so that stereo reconstruction can be performed. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named image_undistort/StereoInfo
+A node that takes in the properties of two cameras and outputs the camera info required to rectify them so that stereo reconstruction can be performed. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named `image_undistort/StereoInfoNodelet`.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
@@ -101,7 +101,7 @@ Many of these topics are dependent on the parameters set above and may not appea
 * **rect/second/camera_info** second output camera info topic
 
 # stereo_undistort_node:
-A node that takes in the images and properties of two cameras and outputs rectified stereo images with their corresponding camera parameters. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named image_undistort/StereoUndistort
+A node that takes in the images and properties of two cameras and outputs rectified stereo images with their corresponding camera parameters. The rectification is performed such that only x translation is present between the cameras. The focal points are in the image centers, fx=fy and the image resolution is set to be the largest frame that contains no empty pixels. Note this node can also be run as a nodelet named `image_undistort/StereoUndistortNodelet`.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
@@ -114,11 +114,12 @@ A node that takes in the images and properties of two cameras and outputs rectif
 * **scale** The output focal length will be multiplied by this value. This has the effect of resizing the image by this scale factor. (default: 1.0).
 * **T_invert** Only used if loading parameters from ros params. True to invert the given transformations. (default: false)
 * **publish_tf** True to publish the tf between the first input and output image. If the undistortion involves changes to the rotation matrix the frame that the image is in will change. This tf gives that change. (default: true)
-* **output_frame** The name of the frame of the output images. (default: "first_camera_rect")
+* **first_output_frame** The name of the frame of the first camera output images. (default: "first_camera_rect")
+* **second_output_frame** The name of the frame of the second camera output images. (default: "second_camera_rect")
 * **rename_input_frame** If the input frame should be renamed in the published topics and tf tree. (default: false)
 * **first_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the first input images. (default: "first_camera")
 * **second_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the second input images. (default: "second_camera")
-**rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
+* **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
 
 ## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
@@ -132,32 +133,40 @@ Many of these topics are dependent on the parameters set above and may not appea
 * **rect/second/camera_info** second output camera info topic
 
 # depth_node:
-A node that takes in the rectified images and properties of two cameras and outputs a disparity image and a pointcloud. The node uses the camera_info topics to figure out which camera is the left one and which is the right one. Internally the node makes use of the opencv stereo block matcher to perform the depth estimation. Note this node can also be run as a nodelet named image_undistort/Depth
+A node that takes in the rectified images and properties of two cameras and outputs a disparity image and a pointcloud. The node uses the camera_info topics to figure out which camera is the left one and which is the right one. Internally the node makes use of the opencv stereo block matcher to perform the depth estimation. Note this node can also be run as a nodelet named `image_undistort/DepthNodelet`.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics. (default: 10)
+* **pre_filter_type** The prefilter type (possible values: 'xsobel', 'normalized_response', default: 'xsobel')
 * **pre_filter_size** The size of the prefilter used in StereoBM. (default: 9)
 * **pre_filter_cap** The upper cap on the prefilter used in StereoBM. (default: 31)
-* **sad_window_size** The window size used when performing the stereo matching, note the efficientcy of the implementation reduces if this value is greater than 21 (default: 21)
+* **sad_window_size** The window size used when performing the stereo matching, note the efficiency of the implementation reduces if this value is greater than 21 (default: 21)
 * **min_disparity** The minimum disparity checked in StereoBM. (default: 0)
 * **num_disparities** The number of disparities checked in StereoBM. (default: 64)
 * **texture_threshold** Minimum texture a patch requires to be matched in StereoBM. (default: 10)
 * **uniqueness_ratio** Minimum margin by which the best matching disparity must 'win' in StereoBM. (default: 15)
 * **speckle_range** Parameter used for removing speckle in StereoBM. (default: 0)
 * **speckle_window_size** Window size used for speckle removal in StereoBM. (default: 0)
+* **use_sgbm** Use SGBM (Semi-Global Block Matching) instead of BM (Block Matching)? (default: false)
+* **p1** The first parameter controlling the disparity smoothness, only available in SGBM (default: 120)
+* **p2** The second parameter controlling the disparity smoothness, only available in SGBM (default: 240)
+* **disp_12_max_diff** Maximum allowed difference (in integer pixel units) in the left-right disparity check, only available in SGBM (default: -1)
+* **use_mode_HH** Run the full-scale two-pass dynamic programming algorithm. It will consume O(W*H*numDisparities) bytes, which is large for 640x480 stereo and huge for HD-size pictures. Only available in SGBM (default: false)
+* **do_median_blur** Apply median blur to the final disparity image (default: true)
 
 ## Input/Output Topics
 * **rect/first/image** first input image topic
 * **rect/second/image** second input image topic
 * **rect/first/camera_info** first input camera info topic
 * **rect/second/camera_info** second input camera info topic
-* **disparity** output disparity image
+* **disparity/image** output disparity image
 * **pointcloud** output pointcloud
+* **freespace_pointcloud** output freespace pointcloud
 
 # dense_stereo_node:
 A node for producing dense stereo images. Internally this node simply combines 2 nodelets.
-* **image_undistort/StereoUndistort** Used to set up the stereo system and rectify the images.
-* **image_undistort/Depth** Generates disparity images and pointclouds from the rectified images.
+* **image_undistort/StereoUndistortNodelet** Used to set up the stereo system and rectify the images.
+* **image_undistort/DepthNodelet** Generates disparity images and pointclouds from the rectified images.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
@@ -175,15 +184,22 @@ A node for producing dense stereo images. Internally this node simply combines 2
 * **first_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the first input images. (default: "first_camera")
 * **second_input_frame** Only used if **rename_input_frame** is true. The name of the frame of the second input images. (default: "second_camera")
 **rename_radtan_plumb_bob** If true the radial-tangential distortion model will be called "plumb_bob" in the output camera_info, this is needed by some ros image processing nodes. If false it will be called "radtan". (default: false).
+* **pre_filter_type** The prefilter type (possible values: 'xsobel', 'normalized_response', default: 'xsobel')
 * **pre_filter_size** The size of the prefilter used in StereoBM. (default: 9)
 * **pre_filter_cap** The upper cap on the prefilter used in StereoBM. (default: 31)
-* **sad_window_size** The window size used when performing the stereo matching, note the efficientcy of the implementation reduces if this value is greater than 21 (default: 21)
+* **sad_window_size** The window size used when performing the stereo matching, note the efficiency of the implementation reduces if this value is greater than 21 (default: 21)
 * **min_disparity** The minimum disparity checked in StereoBM. (default: 0)
 * **num_disparities** The number of disparities checked in StereoBM. (default: 64)
 * **texture_threshold** Minimum texture a patch requires to be matched in StereoBM. (default: 10)
 * **uniqueness_ratio** Minimum margin by which the best matching disparity must 'win' in StereoBM. (default: 15)
 * **speckle_range** Parameter used for removing speckle in StereoBM. (default: 0)
 * **speckle_window_size** Window size used for speckle removal in StereoBM. (default: 0)
+* **use_sgbm** Use SGBM (Semi-Global Block Matching) instead of BM (Block Matching)? (default: false)
+* **p1** The first parameter controlling the disparity smoothness, only available in SGBM (default: 120)
+* **p2** The second parameter controlling the disparity smoothness, only available in SGBM (default: 240)
+* **disp_12_max_diff** Maximum allowed difference (in integer pixel units) in the left-right disparity check, only available in SGBM (default: -1)
+* **use_mode_HH** Run the full-scale two-pass dynamic programming algorithm. It will consume O(W*H*numDisparities) bytes, which is large for 640x480 stereo and huge for HD-size pictures. Only available in SGBM (default: false)
+* **do_median_blur** Apply median blur to the final disparity image (default: true)
 
 ## Input/Output Topics
 Many of these topics are dependent on the parameters set above and may not appear or may be renamed under some settings.
@@ -199,7 +215,7 @@ Many of these topics are dependent on the parameters set above and may not appea
 * **pointcloud** output pointcloud topic
 
 # point_to_bearing_node:
-A node for converting a point in a distorted image to a unit bearing vector.
+A node for converting a point in a distorted image to a unit bearing vector. Note this node can also be run as a nodelet named `image_undistort/PointToBearingNodelet`.
 
 ## Parameters:
 * **queue size** The length of the queues the node uses for topics (default: 10).
