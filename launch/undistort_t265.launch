@@ -1,0 +1,18 @@
+<launch>
+
+<arg name="namespace" default="camera" />
+<arg name="input_camera_name" default="fisheye1" />
+<arg name="scale" default="1.0" />
+
+<group ns="$(arg namespace)">
+  <node name="image_undistort_node" pkg="image_undistort" type="image_undistort_node" output="screen" clear_params="true">
+    <param name="scale" value="$(arg scale)"/>
+    <param name="output_camera_info_source" value="match_input" />
+    <remap from="input/image" to="$(arg input_camera_name)/image_raw"/>
+    <remap from="input/camera_info" to="$(arg input_camera_name)/camera_info"/>
+    <remap from="output/image" to="$(arg input_camera_name)_rect/image"/>
+    <remap from="output/camera_info" to="$(arg input_camera_name)_rect/camera_info"/>
+  </node>
+</group>
+
+</launch>
