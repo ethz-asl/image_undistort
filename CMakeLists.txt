@@ -24,7 +24,7 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}_nodelet
 )
 
-find_package(OpenCV REQUIRED COMPONENTS core calib3d)
+find_package(OpenCV REQUIRED COMPONENTS core calib3d imgproc imgcodecs)
 
 find_package(NLOPT)
 IF(${NLOPT_FOUND})
