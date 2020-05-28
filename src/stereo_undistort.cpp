@@ -33,6 +33,20 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   nh_private_.param("rename_radtan_plumb_bob", rename_radtan_plumb_bob_,
                     kDefaultRenameRadtanPlumbBob);
 
+  std::string output_camera_info_source_in;
+  nh_private_.param("output_camera_info_source", output_camera_info_source_in,
+                    kDefaultOutputCameraInfoSource);
+  if (output_camera_info_source_in == "auto_generated") {
+    output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
+  } else if (output_camera_info_source_in == "match_input") {
+    output_camera_info_source_ = OutputInfoSource::MATCH_INPUT;
+  } else {
+    ROS_ERROR(
+        "Invalid camera source given, valid options are auto_generated, "
+        "match_input. Defaulting to auto_generated");
+    output_camera_info_source_ = OutputInfoSource::AUTO_GENERATED;
+  }
+
   bool invert_T;
   nh_private_.param("invert_T", invert_T, kDefaultInvertT);
 
@@ -46,7 +60,7 @@ StereoUndistort::StereoUndistort(const ros::NodeHandle& nh,
   nh_private_.param("scale", scale, kDefaultScale);
 
   stereo_camera_parameters_ptr_ =
-      std::make_shared<StereoCameraParameters>(scale);
+      std::make_shared<StereoCameraParameters>(scale, (output_camera_info_source_ == OutputInfoSource::MATCH_INPUT));
 
   nh_private_.param("process_every_nth_frame", process_every_nth_frame_,
                     kDefaultProcessEveryNthFrame);
