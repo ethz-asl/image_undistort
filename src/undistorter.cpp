@@ -21,7 +21,7 @@ Undistorter::Undistorter(
       DistortionProcessing::UNDISTORT) {
     D = used_camera_parameters_pair_.getInputPtr()->D();
   } else {
-    D = std::vector<double>(0, 5);
+    D = std::vector<double>(5, 0.0);
   }
 
   empty_pixels_ = false;
