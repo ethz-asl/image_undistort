@@ -246,6 +246,8 @@ void StereoUndistort::processAndSendImage(
       }
       if (frame.empty()) {
         ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+      } else if (frame == first_output_frame_) {
+        ROS_ERROR_ONCE("Input and output frame are identical ('%s'), cannot construct tf", frame.c_str());
       } else {
         br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
                                                image_out_ptr->header.stamp,
@@ -275,6 +277,8 @@ void StereoUndistort::processAndSendImage(
       }
       if (frame.empty()) {
         ROS_ERROR_ONCE("Image frame name is blank, cannot construct tf");
+      } else if (frame == first_output_frame_) {
+        ROS_ERROR_ONCE("Input and output frame are identical ('%s'), cannot construct tf", frame.c_str());
       } else {
         br_.sendTransform(tf::StampedTransform(tf::Transform(R_ros, p_ros),
                                                image_out_ptr->header.stamp,
