@@ -3,8 +3,8 @@
 
 #include <Eigen/Dense>
 
-#include <cv.h>
-#include <highgui.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "image_undistort/camera_parameters.h"
