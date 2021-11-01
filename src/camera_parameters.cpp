@@ -545,8 +545,8 @@ bool CameraParametersPair::operator!=(const CameraParametersPair& B) const {
   return !(*this == B);
 }
 
-StereoCameraParameters::StereoCameraParameters(const double scale)
-    : scale_(scale){};
+StereoCameraParameters::StereoCameraParameters(const double scale, const bool match_input)
+    : scale_(scale), match_input_(match_input){};
 
 bool StereoCameraParameters::setInputCameraParameters(
     const ros::NodeHandle& nh, const std::string& camera_namespace,
@@ -628,7 +628,7 @@ bool StereoCameraParameters::valid(const CameraSide& side,
   }
 }
 
-bool StereoCameraParameters::generateRectificationParameters() {
+bool StereoCameraParameters::generateRectificationParameters(void) {
   if (first_.getInputPtr()->p().isApprox(second_.getInputPtr()->p())) {
     ROS_ERROR(
         "Stereo rectification cannot be performed on cameras with a baseline "
@@ -661,11 +661,21 @@ bool StereoCameraParameters::generateRectificationParameters() {
       T.inverse() * second_.getInputPtr()->T(), second_.getInputPtr()->K(),
       second_.getInputPtr()->D(), second_.getInputPtr()->distortionModel());
 
-  // set individual outputs
-  if (!first_.setOptimalOutputCameraParameters(scale_) ||
-      !second_.setOptimalOutputCameraParameters(scale_)) {
-    ROS_ERROR("Automatic generation of stereo output parameters failed");
-    return false;
+
+  if (match_input_) {
+    if (!first_.setOutputFromInput(scale_) ||
+        !second_.setOutputFromInput(scale_)) {
+      ROS_ERROR("Automatic generation of stereo output parameters failed");
+      return false;
+    }
+  }
+  else {
+    // set individual outputs
+    if (!first_.setOptimalOutputCameraParameters(scale_) ||
+        !second_.setOptimalOutputCameraParameters(scale_)) {
+      ROS_ERROR("Automatic generation of stereo output parameters failed");
+      return false;
+    }
   }
 
   // grab most conservative values
