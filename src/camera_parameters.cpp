@@ -240,7 +240,7 @@ const DistortionModel InputCameraParameters::stringToDistortion(
                  lower_case_camera_model.begin(), ::tolower);
 
   if (lower_case_camera_model == "pinhole") {
-    if (lower_case_camera_model == std::string("none")) {
+    if (lower_case_distortion_model == std::string("none")) {
       return DistortionModel::NONE;
     } else if ((lower_case_distortion_model == std::string("plumb bob")) ||
                (lower_case_distortion_model == std::string("plumb_bob")) ||
