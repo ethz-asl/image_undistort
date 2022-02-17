@@ -121,6 +121,16 @@ install(TARGETS ${PROJECT_NAME}_nodelet
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
+# Install general executables
+install(
+  TARGETS
+    depth_node
+    dense_stereo_node
+    image_undistort_node
+    stereo_info_node
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 # Install header files
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
